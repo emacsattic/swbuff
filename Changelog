@@ -1,3 +1,19 @@
+2004-03-31  David Ponce  <david@dponce.com>
+
+	* tabbar.el
+
+	More efficient design of tab callbacks.
+	
+	(tabbar-make-select-tab-command)
+	(tabbar-make-help-on-tab-function): Remove.
+	(tabbar-help-on-tab, tabbar-select-tab-callback)
+	(tabbar-make-tab-keymap): New functions.
+	(tabbar-select-tab-keymap): New variable.
+	(tabbar-make-mouse-event): Move before first use.
+	(tabbar-click-on-tab): defsubst.  Move before first use.
+	(tabbar-line-element): defsubst.  Build tab keymap with
+	`tabbar-make-tab-keymap'.  Set help-echo to `tabbar-help-on-tab'.
+
 2004-03-29  David Ponce  <david@dponce.com>
 
 	* tabbar.el
