@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 25 February 2003
 ;; Keywords: convenience
-;; Revision: $Id: tabbar.el,v 1.31 2004/03/03 09:46:30 ponced Exp $
+;; Revision: $Id: tabbar.el,v 1.32 2004/03/03 09:56:00 ponced Exp $
 
 (defconst tabbar-version "1.4")
 
@@ -285,7 +285,7 @@ The function is called with no arguments."
 
 ;;; Misc.
 ;;
-(eval-when-compile
+(eval-and-compile
   (defalias 'tabbar-display-update
     (if (fboundp 'force-window-update)
         'force-window-update
