@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 25 February 2003
 ;; Keywords: convenience
-;; Revision: $Id: tabbar.el,v 1.5 2003/03/09 17:46:32 ponce Exp $
+;; Revision: $Id: tabbar.el,v 1.6 2003/03/10 13:38:48 ponce Exp $
 
 (defconst tabbar-version "1.0")
 
@@ -1094,9 +1094,9 @@ Return the the first group where the current buffer is."
 (defun tabbar-buffer-tab-label (tab)
   "Return the label to display TAB.
 Must be a valid `header-line-format' template element."
-  (format " %s " (if tabbar-buffer-group-mode
-                     (tabbar-tab-tabset tab)
-                   (tabbar-tab-value tab))))
+  (if tabbar-buffer-group-mode
+      (format "[%s]" (tabbar-tab-tabset tab))
+    (format " %s " (tabbar-tab-value tab))))
 
 (defun tabbar-buffer-help-on-tab (tab)
   "Return the help string shown when mouse is onto TAB."
