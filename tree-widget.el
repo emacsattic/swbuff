@@ -5,9 +5,9 @@
 ;; Author: David Ponce <david@dponce.com>
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 16 Feb 2001
-;; Version: 1.0
+;; Version: 1.0.5
 ;; Keywords: extensions
-;; VC: $Id: tree-widget.el,v 1.4 2001/05/11 23:02:14 ponce Exp $
+;; VC: $Id: tree-widget.el,v 1.5 2001/05/11 23:11:18 ponce Exp $
 
 ;; This file is not part of Emacs
 
@@ -115,6 +115,9 @@
 ;;; History:
 ;; 
 ;; $Log: tree-widget.el,v $
+;; Revision 1.5  2001/05/11 23:11:18  ponce
+;; Updated version to 1.0.5.
+;;
 ;; Revision 1.4  2001/05/11 23:02:14  ponce
 ;; (tree-widget-value-create): Fixed a bug when the dynamic tree :dynargs
 ;; function returns nil (no children).
