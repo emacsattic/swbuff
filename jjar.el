@@ -1,5 +1,5 @@
 ;; @(#) jjar.el -- Java Archive builder
-;; @(#) $Id: jjar.el,v 1.4 1999/07/06 15:38:42 ebat311 Exp $
+;; @(#) $Id: jjar.el,v 1.5 1999/07/21 14:45:35 ebat311 Exp $
 
 ;; This file is not part of Emacs
 
@@ -11,7 +11,7 @@
 ;; LCD Archive Entry:
 ;; jjar|David Ponce|david.ponce@wanadoo.fr|
 ;; Java Archive builder|
-;; $Date: 1999/07/06 15:38:42 $|$Revision: 1.4 $|~/misc/jjar.el|
+;; $Date: 1999/07/21 14:45:35 $|$Revision: 1.5 $|~/misc/jjar.el|
 
 ;; COPYRIGHT NOTICE
 ;;
@@ -95,7 +95,7 @@
 (eval-when-compile
   (require 'wid-edit))
 
-(defconst jjar-version "$Revision: 1.4 $"
+(defconst jjar-version "$Revision: 1.5 $"
   "jjar version number."
   )
 
@@ -114,7 +114,7 @@
 (defcustom jjar-jar-nocompress-option t
   "*If non-nil jar uses no ZIP compression."
   :group 'jjar
-  :type 'string
+  :type 'boolean
   )
 
 (defcustom jjar-jar-verbose-option t
@@ -454,7 +454,13 @@ DIR that match one of `jjar-selected-wildcards' wildcard expressions."
 
 ;;
 ;; $Log: jjar.el,v $
-;; Revision 1.4  1999/07/06 15:38:42  ebat311
+;; Revision 1.5  1999/07/21 14:45:35  ebat311
+;; FIXED:
+;;   bad :type 'string of customizable variable `jjar-jar-nocompress-option'.
+;;   Thanks to "Phillip Lord" <plord@hgmp.mrc.ac.uk> who has reported
+;;   this bug.
+;;
+;; Revision 1.4  1999-07-06 17:38:42+02  ebat311
 ;; Added comments for autoload installation.
 ;;
 ;; Revision 1.3  1999-07-06 17:31:27+02  ebat311
