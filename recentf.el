@@ -9,9 +9,9 @@
 ;; This file is part of GNU Emacs.
 
 ;; GNU Emacs is free software; you can redistribute it and/or modify
-;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 2, or (at your option)
-;; any later version.
+;; it under the terms of the GNU General Public License as published
+;; by the Free Software Foundation; either version 2, or (at your
+;; option) any later version.
 
 ;; GNU Emacs is distributed in the hope that it will be useful,
 ;; but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -185,7 +185,7 @@ The filter function is called with one argument, the list of menu elements
 used to build the menu and must return a new list of menu elements (see
 `recentf-make-menu-element' for menu element form)."
   :group 'recentf
-  :type '(radio (const nil) 
+  :type '(radio (const nil)
 		(function-item recentf-sort-ascending)
 		(function-item recentf-sort-descending)
 		(function-item recentf-sort-basenames-ascending)
@@ -241,8 +241,8 @@ recent file list.  There are three choices:
 
 - - 'always-link-source': always save the `recentf-file-truename',
     means the name of the link-source, in the `recentf-list'.
-- - 'only-one-version': if the file is already saved in the `recentf-list'
-     with another name then nothing is done.
+- - 'only-one-version': if the file is already saved in the
+    `recentf-list' with another name then nothing is done.
 - - nil: there is no special link handling and a file can be saved
     with different names in the `recentf-list'.
 
@@ -273,9 +273,63 @@ use either \\[customize] or the function `recentf-mode'."
   :group 'recentf
   :type 'hook)
 
+(defvar recentf-auto-cleanup-timer nil
+  "Timer used to automatically cleanup the `recentf-list'.
+See also the `recentf-auto-cleanup' option.")
+
+(defcustom recentf-auto-cleanup 'enable
+  "*Define how to automatically cleanup the `recentf-list'.
+
+The following values are recognized:
+
+- 'enable: cleanup when turning recentf mode on (default).
+- NUMBER: cleanup each time Emacs has been idle for NUMBER seconds.
+- TIME: cleanup at TIME where TIME must be a string like \"11:30pm\".
+- 'never: disable automatic cleanup.
+
+You can always perform a manual cleanup of the `recentf-list' with
+\\[recentf-cleanup].
+
+Do not change this variable directly but always use customize!"
+  :group 'recentf
+  :type '(radio
+          (const  :tag "When mode enabled"
+                  :value enable)
+          (const  :tag "Never"
+                  :value never)
+          (number :tag "After idle seconds"
+                  :value 300)
+          (string :tag "At time"
+                  :value "11:00pm")
+          )
+  :set (lambda (symbol value)
+         (set symbol value)
+         (when recentf-mode
+           ;; Always cancel any existing timer
+           (recentf-cancel-cleanup-timer)
+           (cond
+            ((numberp recentf-auto-cleanup)
+             (setq recentf-auto-cleanup-timer
+                   (run-with-idle-timer recentf-auto-cleanup
+                                        t
+                                        'recentf-cleanup))
+             )
+            ((stringp recentf-auto-cleanup)
+             (setq recentf-auto-cleanup-timer
+                   (run-at-time recentf-auto-cleanup
+                                nil
+                                'recentf-cleanup))
+             )))))
+                           
 ;;;;
 ;;;; Common functions
 ;;;;
+
+(defun recentf-cancel-cleanup-timer ()
+  "Cancel the auto cleanup timer."
+  (if (timerp recentf-auto-cleanup-timer)
+      (cancel-timer recentf-auto-cleanup-timer))
+  (setq recentf-auto-cleanup-timer nil))
 
 (defconst recentf-case-fold-search
   (memq system-type '(vax-vms windows-nt))
@@ -1296,7 +1350,11 @@ were operated on recently."
                       'activate-menubar-hook
                     'menu-bar-update-hook)
                   'recentf-update-menu-hook)
-        (add-hook 'kill-emacs-hook       'recentf-save-list)))
+        (add-hook 'kill-emacs-hook       'recentf-save-list))
+      ;; maybe we have to do an initial cleanup
+      (if (eq recentf-auto-cleanup 'enable)
+          (recentf-cleanup)))
+
      ;; `recentf-mode' disabled.
      (recentf-initialized-p
       (setq recentf-initialized-p nil)
@@ -1308,7 +1366,9 @@ were operated on recently."
                        'activate-menubar-hook
                      'menu-bar-update-hook)
                    'recentf-update-menu-hook)
-      (remove-hook 'kill-emacs-hook 'recentf-save-list)))
+      (remove-hook 'kill-emacs-hook 'recentf-save-list)
+      ;; cancel all timers
+      (recentf-cancel-cleanup-timer)))
     (setq recentf-mode on-p)))
 
 (provide 'recentf)
