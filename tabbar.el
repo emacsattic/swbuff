@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 25 February 2003
 ;; Keywords: convenience
-;; Revision: $Id: tabbar.el,v 1.9 2003/03/11 16:08:15 ponce Exp $
+;; Revision: $Id: tabbar.el,v 1.10 2003/03/12 10:59:12 ponce Exp $
 
 (defconst tabbar-version "1.0")
 
@@ -328,26 +328,6 @@ Return the tab found, or nil if not found."
   "Set the TABSET's header line format with TEMPLATE."
   (put tabset 'template template))
 
-(defun tabbar-add-tab (tabset object &optional append)
-  "Add to TABSET a tab with value OBJECT if there isn't one there yet.
-If the tab is added, it is added at the beginning of the tab list,
-unless the optional argument APPEND is non-nil, in which case it is
-added at the end."
-  (let ((tabs (tabbar-tabs tabset)))
-    (if (tabbar-get-tab object tabset)
-        tabs
-      (let ((tab (tabbar-make-tab object tabset)))
-        (tabbar-set-template tabset nil)
-        (set tabset (if append
-                        (append tabs (list tab))
-                      (cons tab tabs)))))))
-
-(defsubst tabbar-delete-tab (tab)
-  "Remove TAB from its TABSET."
-  (let ((tabset (tabbar-tab-tabset tab)))
-    (tabbar-set-template tabset nil)
-    (set tabset (delq tab (tabbar-tabs tabset)))))
-
 (defsubst tabbar-selected-tab (tabset)
   "Return the tab selected in TABSET."
   (get tabset 'select))
@@ -382,6 +362,30 @@ Return the tab selected, or nil if nothing was selected."
 (defsubst tabbar-view (tabset)
   "Return the list of tabs in the TABSET's view."
   (nthcdr (tabbar-start tabset) (tabbar-tabs tabset)))
+
+(defun tabbar-add-tab (tabset object &optional append)
+  "Add to TABSET a tab with value OBJECT if there isn't one there yet.
+If the tab is added, it is added at the beginning of the tab list,
+unless the optional argument APPEND is non-nil, in which case it is
+added at the end."
+  (let ((tabs (tabbar-tabs tabset)))
+    (if (tabbar-get-tab object tabset)
+        tabs
+      (let ((tab (tabbar-make-tab object tabset)))
+        (tabbar-set-template tabset nil)
+        (set tabset (if append
+                        (append tabs (list tab))
+                      (cons tab tabs)))))))
+
+(defun tabbar-delete-tab (tab)
+  "Remove TAB from its TABSET."
+  (let* ((tabset (tabbar-tab-tabset tab))
+         (tabs   (tabbar-tabs tabset)))
+    (tabbar-set-template tabset nil)
+    (when (eq tab (tabbar-selected-tab tabset))
+      (tabbar-select-tab (car (or (cdr (memq tab tabs)) (last tabs)))
+                         tabset))
+    (set tabset (delq tab tabs))))
 
 (defun tabbar-scroll (tabset count)
   "Scroll the TABSET's view of COUNT tabs.
@@ -554,7 +558,7 @@ Arguments WINDOW, OBJECT and POSITION, are not used."
     (funcall tabbar-home-help-function)))
 
 (defconst tabbar-home-button-enabled-image
-  '((:type pbm :ascent 80 :data "\
+  '((:type pbm :ascent center :data "\
 P2
 10 10
 255
@@ -567,7 +571,7 @@ P2
   "Default image for the enabled home button.")
 
 (defconst tabbar-home-button-disabled-image
-  '((:type pbm :ascent 80 :data "\
+  '((:type pbm :ascent center :data "\
 P2
 10 10
 255
@@ -617,7 +621,7 @@ Arguments WINDOW, OBJECT and POSITION, are not used."
     (funcall tabbar-scroll-left-help-function)))
 
 (defconst tabbar-scroll-left-button-enabled-image
-  '((:type pbm :ascent 80 :data "\
+  '((:type pbm :ascent center :data "\
 P2
 8 10
 255
@@ -629,7 +633,7 @@ P2
   "Default image for the enabled scroll left button.")
 
 (defconst tabbar-scroll-left-button-disabled-image
-  '((:type pbm :ascent 80 :data "\
+  '((:type pbm :ascent center :data "\
 P2
 8 10
 255
@@ -678,7 +682,7 @@ Arguments WINDOW, OBJECT and POSITION, are not used."
     (funcall tabbar-scroll-right-help-function)))
 
 (defconst tabbar-scroll-right-button-enabled-image
-  '((:type pbm :ascent 80 :data "\
+  '((:type pbm :ascent center :data "\
 P2
 8 10
 255
@@ -690,7 +694,7 @@ P2
   "Default image for the enabled scroll right button.")
 
 (defconst tabbar-scroll-right-button-disabled-image
-  '((:type pbm :ascent 80 :data "\
+  '((:type pbm :ascent center :data "\
 P2
 8 10
 255
