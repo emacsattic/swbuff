@@ -1,6 +1,6 @@
 ;;; recentf.el --- setup a menu of recently opened files
 
-;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004
+;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2005
 ;;   Free Software Foundation, Inc.
 
 ;; Author: David Ponce <david@dponce.com>
@@ -8,7 +8,7 @@
 ;; Maintainer: FSF
 ;; Keywords: files
 
-(defconst recentf-version "$Revision: 1.34 $")
+(defconst recentf-version "$Revision: 1.35 $")
 
 ;; This file is part of GNU Emacs.
 
@@ -107,6 +107,22 @@ must return non-nil to exclude it."
   :group 'recentf
   :type '(repeat (choice regexp function)))
 
+(defcustom recentf-keep
+  '(file-readable-p)
+  "*List of regexps and predicates for filenames kept in the recent list.
+Regexps and predicates are tried in the specified order.
+When nil all filenames are kept in the recent list.
+When a filename matches any of the regexps or satisfies any of the
+predicates it is kept in the recent list.
+The default is to keep readable files.
+A predicate is a function that is passed a filename to check and that
+must return non-nil to keep it.  For example, you can add the
+`file-remote-p' predicate in front of this list to keep remote file
+names in the recent list without checking their readability through a
+remote access."
+  :group 'recentf
+  :type '(repeat (choice regexp function)))
+
 (defun recentf-menu-customization-changed (variable value)
   "Function called when the recentf menu customization has changed.
 Set VARIABLE with VALUE, and force a rebuild of the recentf menu."
@@ -148,9 +164,9 @@ If nil add it at end of menu (see also `easy-menu-add-item')."
                  (const :tag "Last" nil))
   :set 'recentf-menu-customization-changed)
 
-(defcustom recentf-menu-action 'recentf-find-file
+(defcustom recentf-menu-action 'find-file
   "*Function to invoke with a filename item of the recentf menu.
-The default is to call `recentf-find-file' to edit the selected file."
+The default is to call `find-file' to edit the selected file."
   :group 'recentf
   :type 'function
   :set 'recentf-menu-customization-changed)
@@ -223,13 +239,6 @@ elements (see `recentf-make-menu-element' for menu element form)."
   :set 'recentf-menu-customization-changed)
 (make-obsolete-variable 'recentf-menu-append-commands-p
                         'recentf-menu-append-commands-flag)
-
-(defcustom recentf-keep-non-readable-files-flag nil
-  "*non-nil means to keep non readable files in the recent list."
-  :group 'recentf
-  :type 'boolean)
-(make-obsolete-variable 'recentf-keep-non-readable-files-p
-                        'recentf-keep-non-readable-files-flag)
 
 (defcustom recentf-auto-cleanup 'mode
   "*Define when to automatically cleanup the recent list.
@@ -398,55 +407,55 @@ process the canonical name."
              (funcall recentf-filename-handler filename))
         filename)))
 
-(defsubst recentf-file-readable-p (filename)
-  "Return t if file FILENAME exists and you can read it.
-Like the function `file-readable-p' but return nil on error."
-  (condition-case nil
-      (file-readable-p filename)
-    (error nil)))
-
 (defun recentf-include-p (filename)
   "Return non-nil if FILENAME should be included in the recent list.
 That is, if it doesn't match any of the `recentf-exclude' checks."
   (let ((case-fold-search recentf-case-fold-search)
         (checks recentf-exclude)
-        (keepit t)
-        check)
+        (keepit t))
     (while (and checks keepit)
-      (setq check  (car checks)
-            checks (cdr checks)
-            keepit (not (if (stringp check)
-                            ;; A regexp
-                            (string-match check filename)
-                          ;; A predicate
-                          (funcall check filename)))))
+      (setq keepit (condition-case nil
+                       (not (if (stringp (car checks))
+                                ;; A regexp
+                                (string-match (car checks) filename)
+                              ;; A predicate
+                              (funcall (car checks) filename)))
+                     (error nil))
+            checks (cdr checks)))
+    keepit))
+
+(defun recentf-keep-p (filename)
+  "Return non-nil if FILENAME should be kept in the recent list.
+That is, if it matches any of the `recentf-keep' checks."
+  (let* ((case-fold-search recentf-case-fold-search)
+         (checks recentf-keep)
+         (keepit (null checks)))
+    (while (and checks (not keepit))
+      (setq keepit (condition-case nil
+                       (if (stringp (car checks))
+                           ;; A regexp
+                           (string-match (car checks) filename)
+                         ;; A predicate
+                         (funcall (car checks) filename))
+                     (error nil))
+            checks (cdr checks)))
     keepit))
 
 (defsubst recentf-add-file (filename)
   "Add or move FILENAME at the beginning of the recent list.
-Does nothing if the name satisfies any of the `recentf-exclude' regexps or
-predicates."
+Does nothing if the name satisfies any of the `recentf-exclude'
+regexps or predicates."
   (setq filename (recentf-expand-file-name filename))
   (when (recentf-include-p filename)
     (recentf-push filename)))
 
-(defsubst recentf-remove-if-non-readable (filename)
-  "Remove FILENAME from the recent list, if file is not readable.
+(defsubst recentf-remove-if-non-kept (filename)
+  "Remove FILENAME from the recent list, if file is not kept.
 Return non-nil if FILENAME has been removed."
-  (unless (recentf-file-readable-p filename)
+  (unless (recentf-keep-p filename)
     (let ((m (recentf-string-member
               (recentf-expand-file-name filename) recentf-list)))
       (and m (setq recentf-list (delq (car m) recentf-list))))))
-
-(defun recentf-find-file (filename)
-  "Edit file FILENAME using `find-file'.
-If the file does not exist or is non readable, and
-`recentf-keep-non-readable-files-flag' is nil, it is not edited and
-its name is removed from the recent list."
-  (if (and (not recentf-keep-non-readable-files-flag)
-           (recentf-remove-if-non-readable filename))
-      (message "File `%s' not found" filename)
-    (find-file filename)))
 
 (defsubst recentf-directory-compare (f1 f2)
   "Compare absolute filenames F1 and F2.
@@ -464,7 +473,7 @@ Return non-nil if F1 is less than F2."
 (defvar recentf-menu-items-for-commands
   (list ["Cleanup list"
          recentf-cleanup
-;;;         :help "Remove all non-readable and excluded files from the recent list"
+;;;         :help "Remove all excluded and non-kept files from the recent list"
          :active t]
         ["Edit list..."
          recentf-edit-list
@@ -1006,11 +1015,9 @@ IGNORE arguments."
 
 (defun recentf-track-closed-file ()
   "Update the recent list when a buffer is killed.
-That is, remove a non readable file from the recent list, if
-`recentf-keep-non-readable-files-flag' is nil."
+That is, remove a non kept file from the recent list."
   (and buffer-file-name
-       (not recentf-keep-non-readable-files-flag)
-       (recentf-remove-if-non-readable buffer-file-name)))
+       (recentf-remove-if-non-kept buffer-file-name)))
 
 (defun recentf-update-menu ()
   "Update the recentf menu from the current recent list."
@@ -1226,12 +1233,12 @@ Write data into the file specified by `recentf-save-file'."
   (interactive)
   (condition-case error
       (with-temp-buffer
-        (erase-buffer)
-        (insert (format recentf-save-file-header (current-time-string)))
-        (recentf-dump-variable 'recentf-list recentf-max-saved-items)
-        (recentf-dump-variable 'recentf-filter-changer-state)
-        (write-file (expand-file-name recentf-save-file))
-        nil)
+	(erase-buffer)
+	(insert (format recentf-save-file-header (current-time-string)))
+	(recentf-dump-variable 'recentf-list recentf-max-saved-items)
+	(recentf-dump-variable 'recentf-filter-changer-state)
+	(write-file (expand-file-name recentf-save-file))
+	nil)
     (error
      (message "recentf mode: %s" (error-message-string error)))))
 
@@ -1250,16 +1257,18 @@ empty `file-name-history' with the recent list."
                                            recentf-list))))))
 
 (defun recentf-cleanup ()
-  "Remove all excluded or non-readable files from the recent list."
+  "Remove all non-kept and excluded files from the recent list."
   (interactive)
   (message "Cleaning up the recentf list...")
-  (let (newlist)
+  (let ((n 0) newlist)
     (dolist (f recentf-list)
-      (if (and (recentf-include-p f) (recentf-file-readable-p f))
+      (if (and (recentf-include-p f)
+               (recentf-keep-p f))
           (push f newlist)
+        (setq n (1+ n))
         (message "File %s removed from the recentf list" f)))
-    (setq recentf-list (nreverse newlist))
-    (message "Cleaning up the recentf list...done")))
+    (message "Cleaning up the recentf list...done (%d removed)" n)
+    (setq recentf-list (nreverse newlist))))
 
 ;;;###autoload
 (defun recentf-mode (&optional arg)
