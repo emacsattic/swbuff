@@ -1,5 +1,5 @@
 ;; @(#) recentf.el -- Setup a menu of recently opened files
-;; @(#) $Id: recentf.el,v 1.1 1999/07/20 14:44:07 ebat311 Exp $
+;; @(#) $Id: recentf.el,v 1.2 1999/07/20 21:39:36 ebat311 Exp $
 
 ;; This file is not part of Emacs
 
@@ -11,7 +11,7 @@
 ;; LCD Archive Entry:
 ;; recentf|David Ponce|david.ponce@wanadoo.fr|
 ;; Setup a menu of recently opened files|
-;; $Date: 1999/07/20 14:44:07 $|$Revision: 1.1 $|~/misc/recentf.el|
+;; $Date: 1999/07/20 21:39:36 $|$Revision: 1.2 $|~/misc/recentf.el|
 
 ;; COPYRIGHT NOTICE
 ;;
@@ -81,9 +81,13 @@
 ;;     If nil add it add at end of menu (see also `easy-menu-change').
 ;;     The default is to add the recentf menu before the "Open File..." item. 
 ;;
-;;  o `recentf-menu-command'
+;;  o `recentf-menu-action'
 ;;     Command to invoke with an entry of the recentf list.
-;;     The default is `find-file'.
+;;     The default is `recentf-find-file' that uses `find-file' to edit an
+;;     existing file. If the file does not exists or is not readable, it is
+;;     not edited and its name is removed from `recentf-list'.
+;;     You can use `find-file' instead to open non existing files and keep
+;;     them is the list of recently opened files."
 ;;
 ;;  o `recentf-load-hook'
 ;;     Hook run when package has been loaded.
@@ -101,7 +105,7 @@
 (require 'cl)
 (require 'easymenu)
 
-(defconst recentf-version "$Revision: 1.1 $"
+(defconst recentf-version "$Revision: 1.2 $"
   "recentf version number.")
 
 (defconst recentf-save-file-header
@@ -160,8 +164,12 @@ If nil add it add at end of menu (see also `easy-menu-change')."
                  (const :tag "Last" nil))
   )
 
-(defcustom recentf-menu-command 'find-file
-  "*Command to invoke with an entry of the recentf list."
+(defcustom recentf-menu-action 'recentf-find-file
+  "*Function to invoke with an filename item of the recentf menu.
+The default action `recentf-find-file' calls `find-file' to edit an existing file.
+If the file does not exists or is not readable, it is not edited and its name is
+removed from `recentf-list'. You can use `find-file' instead to open non existing
+files and keep them is the list of recently opened files."
   :group 'recentf
   :type 'function
   )
@@ -259,7 +267,7 @@ If nil add it add at end of menu (see also `easy-menu-change')."
 (defun recentf-make-menu-items ()
   "Make menu items from `recentf-list'."
   (mapcar '(lambda (entry)
-             (vector entry (list recentf-menu-command entry) t))
+             (vector entry (list recentf-menu-action entry) t))
           (recentf-elements recentf-max-menu-items))
   )
 
@@ -270,6 +278,17 @@ Does nothing if FILENAME matches one of the `recentf-exclude' regexps."
     (setq recentf-list (cons filename (remove filename recentf-list)))
     (setq recentf-update-menu-p t)
     )
+  )
+
+(defun recentf-find-file (filename)
+  "Edit file FILENAME using `find-file'.
+If FILENAME is not readable it is removed from `recentf-list'."
+  (if (file-readable-p filename)
+      (find-file filename)
+    (progn
+      (message "File `%s' not found." filename)
+      (setq recentf-list (remove filename recentf-list))
+      (setq recentf-update-menu-p t)))
   )
 
 (defun recentf-include-p (filename)
@@ -298,7 +317,15 @@ Does nothing if FILENAME matches one of the `recentf-exclude' regexps."
 
 ;;
 ;; $Log: recentf.el,v $
-;; Revision 1.1  1999/07/20 14:44:07  ebat311
+;; Revision 1.2  1999/07/20 21:39:36  ebat311
+;; New default function `recentf-find-file' to invoke with an filename item of
+;; the recentf menu. It calls `find-file' to edit an existing file and removes the
+;; name of a non existing file from the list of recently opened files.
+;;
+;; Custom variable `recentf-menu-command' renamed to `recentf-menu-action'
+;; because its value is not necessarily a command.
+;;
+;; Revision 1.1  1999-07-20 16:44:07+02  ebat311
 ;; Initial revision
 ;;
 ;;
