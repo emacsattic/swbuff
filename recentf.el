@@ -1,5 +1,5 @@
 ;; @(#) recentf.el -- Setup a menu of recently opened files
-;; @(#) $Id: recentf.el,v 1.5 1999/07/27 07:08:40 ebat311 Exp $
+;; @(#) $Id: recentf.el,v 1.6 1999/08/24 07:18:57 ebat311 Exp $
 
 ;; This file is not part of Emacs
 
@@ -11,7 +11,7 @@
 ;; LCD Archive Entry:
 ;; recentf|David Ponce|david.ponce@wanadoo.fr|
 ;; Setup a menu of recently opened files|
-;; $Date: 1999/07/27 07:08:40 $|$Revision: 1.5 $|~/misc/recentf.el|
+;; $Date: 1999/08/24 07:18:57 $|$Revision: 1.6 $|~/misc/recentf.el|
 
 ;; COPYRIGHT NOTICE
 ;;
@@ -87,7 +87,18 @@
 ;;     existing file. If the file does not exists or is not readable, it is
 ;;     not edited and its name is removed from `recentf-list'.
 ;;     You can use `find-file' instead to open non existing files and keep
-;;     them is the list of recently opened files."
+;;     them is the list of recently opened files.
+;;
+;;  o `recentf-menu-filter'
+;;     Function used to filter the menu items.
+;;     If its value is nil (default) the list will not change.
+;;     You can use the following predefined functions:
+;;
+;;     - `recentf-sort-ascending' to sort the menu items in ascending order.
+;;     - `recentf-sort-descending' to sort the menu items in descending order.
+;;
+;;     The given function will receive one argument, the list of filenames to be
+;;     displayed in the menu and must return a new list of filenames.
 ;;
 ;;  o `recentf-load-hook'
 ;;     Hook run when package has been loaded.
@@ -104,7 +115,7 @@
 ;;; Code:
 (require 'easymenu)
 
-(defconst recentf-version "$Revision: 1.5 $"
+(defconst recentf-version "$Revision: 1.6 $"
   "recentf version number.")
 
 (defconst recentf-save-file-header
@@ -199,6 +210,21 @@ files and keep them is the list of recently opened files."
   :set 'recentf-menu-customization-changed
   )
 
+(defcustom recentf-menu-filter nil
+  "*Function used to filter the menu items.
+If its value is nil (default) the list will not change.
+You can use the following predefined functions:
+
+- `recentf-sort-ascending' to sort the menu items in ascending order.
+- `recentf-sort-descending' to sort the menu items in descending order.
+
+The given function will receive one argument, the list of filenames to be
+displayed in the menu and must return a new list of filenames."
+  :group 'recentf
+  :type 'function
+  :set 'recentf-menu-customization-changed
+  )
+
 (defcustom recentf-load-hook nil
    "*Hook run when package has been loaded."
   :group 'recentf
@@ -281,7 +307,8 @@ files and keep them is the list of recently opened files."
   "Make menu items from `recentf-list'."
   (mapcar '(lambda (entry)
              (vector entry (list recentf-menu-action entry) t))
-          (recentf-elements recentf-max-menu-items))
+          (funcall (or recentf-menu-filter 'identity)
+                   (recentf-elements recentf-max-menu-items)))
   )
 
 (defun recentf-add-file (filename)
@@ -322,6 +349,16 @@ If FILENAME is not readable it is removed from `recentf-list'."
     (nreverse lh))
   )
 
+(defun recentf-sort-ascending (l)
+  "Sort the given list L in ascending order."
+  (sort l '(lambda (e1 e2) (string-lessp e1 e2)))
+  )
+
+(defun recentf-sort-descending (l)
+  "Sort the given list L in descending order."
+  (sort l '(lambda (e1 e2) (string-lessp e2 e1)))
+  )
+
 (provide 'recentf)
 (recentf-initialize)
 (run-hooks 'recentf-load-hook)
@@ -330,7 +367,15 @@ If FILENAME is not readable it is removed from `recentf-list'."
 
 ;;
 ;; $Log: recentf.el,v $
-;; Revision 1.5  1999/07/27 07:08:40  ebat311
+;; Revision 1.6  1999/08/24 07:18:57  ebat311
+;; NEW FEATURE:
+;;   The `recentf-menu-filter' customizable variable can be set to a function
+;;   used to filter the menu items. If its value is nil (default) the list will not change.
+;;   Two predefined functions are provided:
+;;      - `recentf-sort-ascending' to sort the menu items in ascending order.
+;;      - `recentf-sort-descending' to sort the menu items in descending order.
+;;
+;; Revision 1.5  1999-07-27 09:08:40+02  ebat311
 ;; FIXED:
 ;;   Typo error. The `recentf-menu-customization-changed' function
 ;;   was incorrectly named `recentf-menu-cutomization-changed'.
