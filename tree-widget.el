@@ -7,7 +7,7 @@
 ;; Created: 16 Feb 2001
 ;; Version: 1.0
 ;; Keywords: extensions
-;; VC: $Id: tree-widget.el,v 1.1 2001/02/19 22:51:23 ponce Exp $
+;; VC: $Id: tree-widget.el,v 1.2 2001/03/16 14:15:09 ponce Exp $
 
 ;; This file is not part of Emacs
 
@@ -115,6 +115,18 @@
 ;;; History:
 ;; 
 ;; $Log: tree-widget.el,v $
+;; Revision 1.2  2001/03/16 14:15:09  ponce
+;; (tree-widget-children-value-save): use `tree-widget-node' to get the
+;; :node value of widgets.  Check node and node-child values before
+;; saving properties.
+;;
+;; (tree-widget-button-keymap): new variable.  Keymap used inside node
+;; handle buttons.
+;;
+;; (tree-widget-node-handle): use `tree-widget-button-keymap'.
+;;
+;; (tree-widget-map): new utility function.
+;;
 ;; Revision 1.1  2001/02/19 22:51:23  ponce
 ;; Initial revision.
 ;;
@@ -158,13 +170,29 @@
             plist (cdr plist))
       (widget-put arg prop (widget-get widget prop)))))
   
+(defun tree-widget-node (widget)
+  "Return the tree WIDGET :node value.
+If not found setup a default 'item' widget."
+  (or (widget-get widget :node)
+      ;; Take care of actually return the :node property value.
+      ;; Because FSF Emacs `widget-put' returns the property value and
+      ;; XEmacs one returns the widget value!!!  So don't use thing
+      ;; like this ;-)
+      ;; (or (widget-get widget :node)
+      ;;     (widget-put widget :node node))
+      (let ((node `(item :tag ,(or (widget-get widget :tag)
+                                   (widget-princ-to-string
+                                    (widget-value widget))))))
+        (widget-put widget :node node)
+        node)))
+
 (defun tree-widget-children-value-save (widget &optional args node)
   "Save WIDGET children values.
 Children properties and values are saved in ARGS if non-nil else in
 WIDGET :args property value.  Data node properties and value are saved
 in NODE if non-nil else in WIDGET :node property value."
   (let ((args       (or args (widget-get widget :args)))
-        (node       (or node (widget-get widget :node)))
+        (node       (or node (tree-widget-node widget)))
         (children   (widget-get widget :children))
         (node-child (widget-get widget :tree-widget-node))
         arg child)
@@ -180,7 +208,7 @@ in NODE if non-nil else in WIDGET :node property value."
 
           ;; Backtrack :args and :node properties.
         (widget-put arg :args (widget-get child :args))
-        (widget-put arg :node (widget-get child :node))
+        (widget-put arg :node (tree-widget-node child))
         
         ;; Save :open property.
         (widget-put arg :open (widget-get child :open))
@@ -204,17 +232,19 @@ in NODE if non-nil else in WIDGET :node property value."
          (widget-put arg :value (widget-value child))
          ;; Save properties specified in :keep.
          (tree-widget-keep arg child))))
-    
-    ;; Save the node child widget value.  Assume it is not a tree!
-    (widget-put node :value (widget-value node-child))
-    ;; Save the node child properties specified in :keep.
-    (tree-widget-keep node node-child)))
+
+    (cond ((and node node-child)
+           ;; Assume that the node child widget is not a tree!
+           ;; Save the node child widget value.
+           (widget-put node :value (widget-value node-child))
+           ;; Save the node child properties specified in :keep.
+           (tree-widget-keep node node-child)))))
 
 (defun tree-widget-toggle-folding (widget &rest ignore)
   "Toggle tree WIDGET folding.
 IGNORE other arguments."
-  (let ((parent   (widget-get widget :parent))
-        (open (widget-value widget)))
+  (let ((parent (widget-get widget :parent))
+        (open   (widget-value widget)))
      (if open
          ;; Before folding the node up, save children values so next
          ;; open can recover them.
@@ -222,8 +252,23 @@ IGNORE other arguments."
     (widget-put parent :open (not open))
     (widget-value-set parent (not open))))
 
+(defvar tree-widget-button-keymap
+  (let (parent-keymap mouse-button1 keymap)
+    (if (featurep 'xemacs)
+        (setq parent-keymap  widget-button-keymap
+              mouse-button1 [button1])
+      (setq parent-keymap  widget-keymap
+            mouse-button1 [down-mouse-1]))
+    (setq keymap (copy-keymap parent-keymap))
+    (define-key keymap mouse-button1 #'widget-button-click)
+    keymap)
+  "Keymap used inside node handle buttons.")
+
+
 (define-widget 'tree-widget-node-handle 'toggle
   "Tree node handle widget."
+  :button-keymap  tree-widget-button-keymap ; XEmacs
+  :keymap         tree-widget-button-keymap ; Emacs
   :format         "%[%v%]"
   :on             "[+]"
   :off            "[-]"
@@ -281,22 +326,6 @@ WIDGET is a tree leaf node and ESCAPE a format character."
   ;; Delete node child
   (widget-delete (widget-get widget :tree-widget-node))
   (widget-put widget :tree-widget-node nil))
-
-(defun tree-widget-node (widget)
-  "Return the tree WIDGET :node value.
-If not found setup a default 'item' widget."
-  (or (widget-get widget :node)
-      ;; Take care of actually return the :node property value.
-      ;; Because FSF Emacs `widget-put' returns the property value and
-      ;; XEmacs one returns the widget value!!!  So don't use thing
-      ;; like this ;-)
-      ;; (or (widget-get widget :node)
-      ;;     (widget-put widget :node node))
-      (let ((node `(item :tag ,(or (widget-get widget :tag)
-                                   (widget-princ-to-string
-                                    (widget-value widget))))))
-        (widget-put widget :node node)
-        node)))
 
 (defun tree-widget-value-create (widget)
   "Create the tree WIDGET children."
@@ -383,6 +412,33 @@ If not found setup a default 'item' widget."
     
     (widget-put widget :children (nreverse children))
     (widget-put widget :buttons  buttons)))
+
+;;;;
+;;;; Utilities
+;;;;
+
+(defun tree-widget-map (widget fun)
+  "For each WIDGET displayed child call function FUN.
+FUN is called with three arguments like this:
+
+ (FUN CHILD IS-NODE WIDGET)
+
+where:
+- - CHILD is the child widget.
+- - IS-NODE is non-nil if CHILD is WIDGET node widget."
+  (if (widget-get widget :tree-widget-node)
+      (let ((children (widget-get widget :children))
+            child)
+        (funcall fun (widget-get widget :tree-widget-node)
+                 t widget)
+        (while children
+          (setq child    (car children)
+                children (cdr children))
+          (if (tree-widget-p child)
+              ;; The child is a tree node.
+              (tree-widget-map child fun)
+            ;; Another non tree node.
+            (funcall fun child nil widget))))))
 
 ;;;;
 ;;;; Samples
