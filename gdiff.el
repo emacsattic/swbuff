@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: Aug 21 2002
 ;; Keywords: tools
-;; Revision: $Id: gdiff.el,v 1.3 2003/04/25 11:27:04 ponced Exp $
+;; Revision: $Id: gdiff.el,v 1.4 2003/08/05 10:44:55 ponced Exp $
 
 (defconst gdiff-version "1.0")
 
@@ -119,19 +119,22 @@ The cleanup function has no arguments.  This variable is locally
 defined in each process buffer.")
 (make-variable-buffer-local 'gdiff-cleanup-function)
 
-(defun gdiff-execute-nowait (f1 f2 &optional cleanup &rest options)
+(defun gdiff-execute-nowait (f1 f2 &optional cleanup)
   "Run `gdiff-program' asynchronously to compare files F1 and F2.
 CLEANUP specify an optional function called after the gdiff process
-has terminated.
-OPTIONS specify additional command line parameters passed to
-`gdiff-program'."
+has terminated.  Additional command line parameters defined in
+`gdiff-program-options' are also passed to `gdiff-program'."
   (with-current-buffer (generate-new-buffer "gdiff")
     (setq gdiff-cleanup-function cleanup
           f1 (gdiff-file-name f1)
           f2 (gdiff-file-name f2))
-    (message "gdiff start %s %s %s %s" gdiff-program options f1 f2)
+    (message "gdiff start %s %s %s %s"
+             gdiff-program
+             (mapconcat 'identity gdiff-program-options " ")
+             f1 f2)
     (let ((pid (apply 'start-process (buffer-name) (current-buffer)
-                      gdiff-program (append options (list f1 f2)))))
+                      gdiff-program
+                      (append gdiff-program-options (list f1 f2)))))
       (set-process-sentinel pid #'gdiff-process-sentinel)
       (message "gdiff process '%s' -- %S"
                (process-name pid) (process-status pid)))))
