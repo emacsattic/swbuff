@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 25 February 2003
 ;; Keywords: convenience
-;; Revision: $Id: tabbar.el,v 1.35 2004/03/31 14:01:28 ponced Exp $
+;; Revision: $Id: tabbar.el,v 1.36 2004/04/21 08:04:50 ponced Exp $
 
 (defconst tabbar-version "1.4")
 
@@ -1344,7 +1344,7 @@ after the current buffer has been killed.  Try first the buffer in tab
 after the current one, then the buffer in tab before.  On success, put
 the sibling buffer in front of the buffer list, so it will be selected
 first."
-  (and tabbar-mode
+  (and (eq header-line-format tabbar-header-line-format)
        (eq tabbar-current-tabset-function 'tabbar-buffer-tabs)
        (eq (current-buffer) (window-buffer (selected-window)))
        (let ((bl (tabbar-tab-values (tabbar-current-tabset)))
