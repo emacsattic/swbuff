@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 25 February 2003
 ;; Keywords: convenience
-;; Revision: $Id: tabbar.el,v 1.21 2003/08/25 15:13:38 ponced Exp $
+;; Revision: $Id: tabbar.el,v 1.22 2003/10/08 10:33:25 ponced Exp $
 
 (defconst tabbar-version "1.3")
 
@@ -917,73 +917,74 @@ Call `tabbar-tab-label-function' to obtain a label for TAB."
                               'tabbar-unselected-face))
           tabbar-separator-value)))
 
-(defun tabbar-line-template (tabset offset)
-  "Return `header-line-format' template elements from TABSET.
-Insert elements at OFFSET start position in the header line."
-  (let* ((sel       (tabbar-selected-tab tabset))
-         (tabs      (tabbar-view tabset))
-         (width     (- (nth 2 (window-edges)) (car (window-edges))))
-         (scroll    0)
-         (seloffset width)
-         tab elt elts sizes)
-    (when tabbar-show-selected
-      (while (not (memq sel tabs))
-        (tabbar-scroll tabset -1)
-        (setq tabs (tabbar-view tabset))))
-    (while tabs
-      (setq tab    (car tabs)
-            tabs   (cdr tabs)
-            elt    (tabbar-line-element tab)
-            elts   (cons elt elts)
-            sizes  (cons (apply '+ (mapcar 'string-width elt)) sizes)
-            offset (+ offset (car sizes)))
-      (and (eq tab sel) (setq seloffset offset)))
-    (setq elts  (nreverse elts))
-    (when (and tabbar-show-selected (> seloffset width))
-      (setq sizes (nreverse sizes))
-      (while (> seloffset width)
-        (setq seloffset (- seloffset (car sizes))
-              sizes     (cdr sizes)
-              elts      (cdr elts)
-              scroll    (1+ scroll)))
-      (tabbar-scroll tabset scroll))
-    (setq tabbar-show-selected nil)
-    (tabbar-set-template tabset elts)))
+(defun tabbar-line-format (tabset)
+  "Return the `header-line-format' value to display TABSET."
+  ;; If a cached value of the `header-line-format' exists use it.
+  (or (tabbar-template tabset)
+      ;; Otherwise recompute a new `header-line-format'.
+      (let* ((sel    (tabbar-selected-tab tabset))
+             (tabs   (tabbar-view tabset))
+             (width  (- (nth 2 (window-edges)) (car (window-edges))))
+             (scroll 0)
+             (offset (+ (string-width tabbar-home-button-enabled)
+                        (string-width tabbar-scroll-left-button-enabled)
+                        (string-width tabbar-scroll-right-button-enabled)
+                        (string-width tabbar-separator-value)))
+             (seloffset width)
+             (padcolor (face-background 'tabbar-default-face))
+             tab elt elts sizes maxscroll)
+        (when tabbar-show-selected
+          (while (not (memq sel tabs))
+            (tabbar-scroll tabset -1)
+            (setq tabs (tabbar-view tabset))))
+        (while tabs
+          (setq tab    (car tabs)
+                tabs   (cdr tabs)
+                elt    (tabbar-line-element tab)
+                elts   (cons elt elts)
+                sizes  (cons (apply '+ (mapcar 'string-width elt)) sizes)
+                offset (+ offset (car sizes)))
+          (when (eq tab sel)
+            (setq seloffset offset
+                  maxscroll scroll))
+          (setq scroll (1+ scroll)))
+        (setq elts  (nreverse elts))
+        (when (and tabbar-show-selected (> seloffset width))
+          (setq sizes (nreverse sizes)
+                scroll 0)
+          (while (and (< scroll maxscroll) (> seloffset width))
+            (setq seloffset (- seloffset (car sizes))
+                  sizes     (cdr sizes)
+                  elts      (cdr elts)
+                  scroll    (1+ scroll)))
+          (tabbar-scroll tabset scroll))
+        (setq tabbar-show-selected nil)
+        (tabbar-set-template
+         tabset
+         (list (format "%s%s%s"
+                       (if tabbar-home-function
+                           tabbar-home-button-enabled
+                         tabbar-home-button-disabled)
+                       (if (> (tabbar-start tabset) 0)
+                           tabbar-scroll-left-button-enabled
+                         tabbar-scroll-left-button-disabled)
+                       (if (< (tabbar-start tabset)
+                              (1- (length (tabbar-tabs tabset))))
+                           tabbar-scroll-right-button-enabled
+                         tabbar-scroll-right-button-disabled))
+               tabbar-separator-value elts
+               (propertize "%-" 'face (list :background padcolor
+                                            :foreground padcolor))))
+        )))
 
 (defun tabbar-line ()
   "Return the header line templates that represent the tab bar.
-Call `tabbar-current-tabset-function' to obtain the current tab set to
-display.  Then call `tabbar-line-element' on each tab in current tab
-set's view to build a list of template elements for
-`header-line-format'."
+Inhibit display of the tab bar in current window if any of the
+`tabbar-inhibit-functions' return non-nil."
   (if (run-hook-with-args-until-success 'tabbar-inhibit-functions)
       (setq header-line-format nil)
-    (let ((tabset (tabbar-current-tabset t))
-          padcolor buttons)
-      (when tabset
-        (setq padcolor (face-background 'tabbar-default-face)
-              buttons (format "%s%s%s"
-                              (if tabbar-home-function
-                                  tabbar-home-button-enabled
-                                tabbar-home-button-disabled)
-                              (if (> (tabbar-start tabset) 0)
-                                  tabbar-scroll-left-button-enabled
-                                tabbar-scroll-left-button-disabled)
-                              (if (< (tabbar-start tabset)
-                                     (1- (length (tabbar-tabs tabset))))
-                                  tabbar-scroll-right-button-enabled
-                                tabbar-scroll-right-button-disabled)))
-        (list buttons tabbar-separator-value
-              (or
-               ;; If a cached template exists, use it.
-               (tabbar-template tabset)
-               ;; Otherwise use a refeshed value.
-               (tabbar-line-template
-                tabset (+ (string-width buttons)
-                          (string-width tabbar-separator-value))))
-              (propertize "%-" 'face (list :background padcolor
-                                           :foreground padcolor)))
-        ))))
+    (let ((tabset (tabbar-current-tabset t)))
+      (and tabset (tabbar-line-format tabset)))))
 
 ;;; Cyclic navigation through tabs
 ;;
@@ -1166,7 +1167,10 @@ header line is restored, hiding the tab bar."
 That is dedicated windows, and `checkdoc' status windows."
   (or (window-dedicated-p (selected-window))
       (member (buffer-name)
-              '(" *Checkdoc Status*"))))
+              (list " *Checkdoc Status*"
+                    (if (boundp 'ispell-choices-buffer)
+                        ispell-choices-buffer
+                      "*Choices*")))))
 
 (defun tabbar-buffer-kill-buffer-hook ()
   "Hook run just before actually killing a buffer.
