@@ -4,6 +4,10 @@
 
 	(recentf-save-list): Catch and display about errors.
 
+	* tree-widget-themes/folder
+
+	Updated theme.
+	
 2004-04-14  David Ponce  <david@dponce.com>
 
 	* tabbar.el
