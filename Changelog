@@ -1,5 +1,12 @@
 2003-10-03  David Ponce  <david@dponce.com>
 
+	* tree-widget.el
+
+	(tree-widget-themes-directory): New function.
+	(tree-widget-find-image): Use it.
+
+2003-10-03  David Ponce  <david@dponce.com>
+
 	* recentf.el
 
 	(recentf-initialize-file-name-history): New defcustom.
