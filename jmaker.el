@@ -1,5 +1,5 @@
 ;; @(#) jmaker.el -- Java Makefile generator
-;; @(#) $Id: jmaker.el,v 1.15 2000/03/31 10:56:08 david_ponce Exp $
+;; @(#) $Id: jmaker.el,v 1.16 2000/03/31 12:45:16 david_ponce Exp $
 
 ;; This file is not part of Emacs
 
@@ -11,7 +11,7 @@
 ;; LCD Archive Entry:
 ;; jmaker|David Ponce|<david@dponce.com>|
 ;; Java Makefile generator|
-;; $Date: 2000/03/31 10:56:08 $|$Revision: 1.15 $|~/misc/jmaker.el|
+;; $Date: 2000/03/31 12:45:16 $|$Revision: 1.16 $|~/misc/jmaker.el|
 
 ;; COPYRIGHT NOTICE
 ;;
@@ -99,7 +99,7 @@
 (eval-when-compile
   (require 'wid-edit))
 
-(defconst jmaker-version "$Revision: 1.15 $"
+(defconst jmaker-version "$Revision: 1.16 $"
   "jmaker version tag.")
 
 (defgroup jmaker nil
@@ -214,18 +214,17 @@ command `jmaker-insert-meta-makefile', as a side-effect."
           (directory-files default-directory nil ".\\.java$")))
 
 (defun jmaker-convert-directory-to-package (dir)
-  "Convert the given directory DIR to a Java package form
+  "Convert the directory path DIR to a Java package form
 by replacing '/' by '.' and removing extra '/' at end."
-  (let* ((pkg (if (string= (substring dir -1) "/")
-                  (substring dir 0 -1)
-                (copy-sequence dir)))
-         (n (length pkg))
-         (i 0)
-         (case-fold-search nil))
-    (while (< i n)
-      (and (char-equal ?/ (aref pkg i))
-           (aset pkg i ?.))
-      (setq i (1+ i)))
+  (let* ((i (length dir))
+         (pkg (cond ((= i 0)
+                     "")
+                    ((eq (aref dir (1- i)) ?/)
+                     (substring dir 0 (setq i (1- i))))
+                    ((copy-sequence dir)))))
+    (while (> i 0)
+      (if (eq (aref pkg (setq i (1- i))) ?/)
+          (aset pkg i ?.)))
     pkg))
 
 (defun jmaker-get-makefiles-in-tree (root)
@@ -265,7 +264,8 @@ all: \
 
 "
   (concat "all:\t\\\n"
-          (mapconcat '(lambda (name) (concat "\t" name))
+          (mapconcat '(lambda (name)
+                        (concat "\t" name))
                      (jmaker-get-java-names)
                      " \\\n")
           "\n"))
@@ -279,7 +279,8 @@ Sample1: Sample1.class
 Sample2: Sample2.class
 
 "
-  (mapconcat '(lambda (name) (concat name ":\t" name ".class\n"))
+  (mapconcat '(lambda (name)
+                (concat name ":\t" name ".class\n"))
              (jmaker-get-java-names)
              ""))
 
@@ -305,8 +306,9 @@ other: FORCE
 FORCE:
 \"
 "
-  (let ((subdir-list (mapcar '(lambda (x) (directory-file-name (file-name-directory x)))
-                              (jmaker-get-makefiles-in-tree default-directory))))
+  (let ((subdir-list (mapcar '(lambda (x)
+                                (directory-file-name (file-name-directory x)))
+                             (jmaker-get-makefiles-in-tree default-directory))))
     (concat "all:\t\\\n"
             (mapconcat '(lambda (dir)
                           (concat "\t" (jmaker-convert-directory-to-package dir)))
@@ -318,8 +320,7 @@ FORCE:
                                   ":\tFORCE\n\tcd " dir "; $(MAKE)\n"))
                        subdir-list
                        "\n")
-            "\nFORCE:\n"
-            )))
+            "\nFORCE:\n")))
 
 (defun jmaker-makefile-generator ()
   "Build and insert a Makefile contents in the current buffer.
@@ -566,6 +567,10 @@ If Makefile.meta already exists the command requires confirmation to overwrite i
 
 ;;
 ;; $Log: jmaker.el,v $
+;; Revision 1.16  2000/03/31 12:45:16  david_ponce
+;; Minor changes in code presentation.
+;; Improved version of `jmaker-convert-directory-to-package'.
+;;
 ;; Revision 1.15  2000/03/31 10:56:08  david_ponce
 ;; Code cleanup and better variables and functions naming.
 ;;
