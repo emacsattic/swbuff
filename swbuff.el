@@ -1,5 +1,5 @@
 ;; @(#) swbuff.el -- Quick switch between Emacs buffers.
-;; @(#) $Id: swbuff.el,v 1.3 1999/05/06 10:13:09 ebat311 Exp $
+;; @(#) $Id: swbuff.el,v 1.4 1999/05/07 07:43:02 ebat311 Exp $
 
 ;; This file is not part of Emacs
 
@@ -11,7 +11,7 @@
 ;; LCD Archive Entry:
 ;; <el>|David Ponce|david.ponce@wanadoo.fr|
 ;; <docum>|
-;; <date>|$Revision: 1.3 $|~/misc/|
+;; <date>|$Revision: 1.4 $|~/misc/|
 
 ;; COPYRIGHT NOTICE
 ;;
@@ -82,8 +82,9 @@
 ;;  Please, let me know if it works with other OS and versions of Emacs.
 
 ;;; Code:
-  
-(defconst swbuff-version "$Revision: 1.3 $"
+(require 'cl)
+
+(defconst swbuff-version "$Revision: 1.4 $"
   "swbuff version number."
   )
 
@@ -109,11 +110,11 @@
   :group 'swbuff
   )
 
-(defcustom swbuff-exclude-buffer-regexps '("^ .*")
+(defcustom swbuff-exclude-buffer-regexps '("^ ")
   "*List of regular expressions for excluded buffers.
 The default setting excludes buffers whose name begin with a blank character.
 To exclude all the internal buffers (that is *scratch*, *Message*, etc...) you could
-use the following regexps (\"^ .*\" \"^\*.*\*\")."
+use the following regexps (\"^ \" \"^\*.*\*\")."
   :group 'swbuff
   :type '(repeat (regexp :format "%v"))
   )
@@ -164,20 +165,24 @@ Buffer names beginning with a ' ' are excluded."
 
 (defun swbuff-display-buffer-list ()
   "Displays the buffer names string from `swbuff-buffer-string'. The name of
-the current buffer is highlighted with the `swbuff-current-buffer-face' face."
+the current buffer is highlighted with the `swbuff-current-buffer-face' face.
+If there are no buffers, then the message is \"No buffers eligible for switching.\""
   (let* ((display-text (swbuff-buffer-list-string))
          (cur-buf-name (regexp-quote (buffer-name (current-buffer))))
          (start        (string-match cur-buf-name display-text))
          (end          (match-end 0))
          (mini-window (minibuffer-window))
          (mini-buffer (window-buffer mini-window)))
-    (set-text-properties start end '(face swbuff-current-buffer-face) display-text)
+    (if start 
+        (set-text-properties start end '(face swbuff-current-buffer-face) display-text))
     (if (minibuffer-window-active-p mini-window)
         (abort-recursive-edit))
     (message nil)
     (with-current-buffer mini-buffer
       (erase-buffer)
-      (insert display-text)
+      (insert (if (< 0 (length display-text))
+                  display-text
+                "No buffers eligible for switching."))
       (setq swbuff-mini-buffer mini-buffer)
       (add-hook 'pre-command-hook 'swbuff-pre-command-hook)
       (if (sit-for swbuff-clear-delay)
@@ -251,7 +256,15 @@ and `swbuff-switch-to-previous-buffer' commands."
 
 ;;
 ;; $Log: swbuff.el,v $
-;; Revision 1.3  1999/05/06 10:13:09  ebat311
+;; Revision 1.4  1999/05/07 07:43:02  ebat311
+;; Fixed a problem when no buffers are eligible for switching.
+;; Added (require 'cl) to avoid problem using `mapcan' and
+;; `notany' from `cl-extra'.
+;; Simplified default exclude regexp from "^ .*" to "^ "
+;; Thank you so much to "Paul Ford" <pford@chi.navtech.com>
+;; for these fixes.
+;;
+;; Revision 1.3  1999-05-06 12:13:09+02  ebat311
 ;; Added a new customisable feature to exclude buffers whose
 ;; name matches a given list of regular expressions.
 ;;
