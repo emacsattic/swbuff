@@ -1,6 +1,6 @@
 ;; recentf.el --- setup a menu of recently opened files
 
-;; Copyright (C) 1999, 2000 Free Software Foundation, Inc.
+;; Copyright (C) 1999, 2000, 2001 Free Software Foundation, Inc.
 
 ;; Author: David Ponce <david@dponce.com>
 ;; Created: July 19 1999
@@ -166,26 +166,41 @@ list of recently opened files."
   "*Function used to filter files displayed in the recentf menu.
 Nil means no filter.  The following functions are predefined:
 
-- - `recentf-sort-ascending' to sort menu items in ascending order.
-- - `recentf-sort-descending' to sort menu items in descending order.
-- - `recentf-sort-basenames-ascending' to sort file names in descending order.
-- - `recentf-sort-basenames-descending' to sort file names in descending order.
-- - `recentf-sort-directories-ascending' to sort directories in ascending order.
-- - `recentf-sort-directories-descending' to sort directories in descending order.
-- - `recentf-show-basenames' to show file names (no directories) in menu items.
-- - `recentf-show-basenames-ascending' to show file names in ascending order.
-- - `recentf-show-basenames-descending' to show file names in descending order.
-- - `recentf-relative-filter' to show file names relative to `default-directory'.
-- - `recentf-arrange-by-rule' to show sub-menus following user defined rules.
-- - `recentf-arrange-by-mode' to show a sub-menu for each major mode.
-- - `recentf-arrange-by-dir' to show a sub-menu for each directory.
-- - `recentf-filter-changer' to manage a ring of filters.
+- `recentf-sort-ascending' to sort menu items in ascending order.
+- `recentf-sort-descending' to sort menu items in descending order.
+- `recentf-sort-basenames-ascending' to sort file names in descending order.
+- `recentf-sort-basenames-descending' to sort file names in descending order.
+- `recentf-sort-directories-ascending' to sort directories in ascending order.
+- `recentf-sort-directories-descending' to sort directories in descending order.
+- `recentf-show-basenames' to show file names (no directories) in menu items.
+- `recentf-show-basenames-ascending' to show file names in ascending order.
+- `recentf-show-basenames-descending' to show file names in descending order.
+- `recentf-relative-filter' to show file names relative to `default-directory'.
+- `recentf-arrange-by-rule' to show sub-menus following user defined rules.
+- `recentf-arrange-by-mode' to show a sub-menu for each major mode.
+- `recentf-arrange-by-dir' to show a sub-menu for each directory.
+- `recentf-filter-changer' to manage a ring of filters.
 
 The filter function is called with one argument, the list of menu elements
 used to build the menu and must return a new list of menu elements (see
 `recentf-make-menu-element' for menu element form)."
   :group 'recentf
-  :type 'function
+  :type '(radio (const nil) 
+		(function-item recentf-sort-ascending)
+		(function-item recentf-sort-descending)
+		(function-item recentf-sort-basenames-ascending)
+		(function-item recentf-sort-basenames-descending)
+		(function-item recentf-sort-directories-ascending)
+		(function-item recentf-sort-directories-descending)
+		(function-item recentf-show-basenames)
+		(function-item recentf-show-basenames-ascending)
+		(function-item recentf-show-basenames-descending)
+		(function-item recentf-relative-filter)
+		(function-item recentf-arrange-by-rule)
+		(function-item recentf-arrange-by-mode)
+		(function-item recentf-arrange-by-dir)
+		(function-item recentf-filter-changer)
+		function)
   :set 'recentf-menu-customization-changed)
 
 (defcustom recentf-menu-append-commands-p t
@@ -266,6 +281,51 @@ use either \\[customize] or the function `recentf-mode'."
   (memq system-type '(vax-vms windows-nt))
   "Non-nil if recentf searches and matches should ignore case.")
 
+(defun recentf-string-equal (s1 s2)
+  "Return non-nil if strings S1 and S2 have identical contents.
+Ignore case if `recentf-case-fold-search' is non-nil."
+  (if recentf-case-fold-search
+      (string-equal (downcase s1) (downcase s2))
+    (string-equal s1 s2)))
+
+(defun recentf-string-lessp (s1 s2)
+  "Return non-nil if string S1 is less than S2 in lexicographic order.
+Ignore case if `recentf-case-fold-search' is non-nil."
+  (if recentf-case-fold-search
+      (string-lessp (downcase s1) (downcase s2))
+    (string-lessp s1 s2)))
+
+(defun recentf-string-member (elt list)
+  "Return non-nil if string ELT is an element of LIST.
+LIST is a list of strings.  The value is actually the tail of LIST
+whose car is ELT.  Ignore case if `recentf-case-fold-search' is
+non-nil."
+  (if recentf-case-fold-search
+      (setq elt (downcase elt)))
+  (while (and list
+              (not (string-equal elt (if recentf-case-fold-search
+                                         (downcase (car list))
+                                       (car list)))))
+    (setq list (cdr list)))
+  list)
+
+(defun recentf-push (path)
+  "Push PATH into the `recentf-list'.
+That is move or add PATH at the beginning of `recentf-list'.  Also,
+ignore case when comparing pathes if `recentf-case-fold-search' is
+non-nil."
+  (let ((elt (if recentf-case-fold-search
+                 (downcase path)
+               path))
+        nl)
+    (while recentf-list
+      (or (string-equal elt (if recentf-case-fold-search
+                                (downcase (car recentf-list))
+                              (car recentf-list)))
+          (setq nl (cons (car recentf-list) nl)))
+      (setq recentf-list (cdr recentf-list)))
+    (setq recentf-list (cons path (nreverse nl)))))
+
 (defun recentf-windows-nt-virtual-drives ()
   "Return an alist of Windows NT virtual drive associations.
 This is the default `recentf-virtual-pathes-handler' when
@@ -273,11 +333,7 @@ This is the default `recentf-virtual-pathes-handler' when
 if you are adding/changing/removing virtual drives with the \"subst\"
 command during Emacs session!"
   (if (eq system-type 'windows-nt)
-      ;; Force use of the Windows NT built-in shell because some
-      ;; people may use other `shell-file-name' like bash.
-      (let ((shell-file-name (getenv "ComSpec"))
-            (shell-command-switch "/c")
-            (directory-sep-char ?/))
+      (let ((directory-sep-char ?/))
         (mapcar
          #'(lambda (line)
              (let ((vdrive (split-string line ": +=> +")))
@@ -286,11 +342,19 @@ command during Emacs session!"
                  (expand-file-name (nth 0 vdrive)))
                 (file-name-as-directory
                  (expand-file-name (nth 1 vdrive))))))
-         (delete "" ;; remove empty lines (XEmacs `split-string'
-                 ;; needs this)
+         (delete "" ;; XEmacs `split-string' can return empty lines so
+		    ;; remove them!
                  (split-string
-                  (shell-command-to-string "subst")
-                  "[\n]+"))))))
+                  ;; Force use of the Windows NT built-in shell
+                  ;; because some people may have setup other
+                  ;; `shell-file-name' like bash.  Also, on XEmacs
+                  ;; 21.4, `directory-sep-char' value must be ?\\ to
+                  ;; successfully execute Windows NT shell commands!
+                  (let ((shell-file-name (getenv "ComSpec"))
+                        (shell-command-switch "/c")
+                        (directory-sep-char ?\\))
+                    (shell-command-to-string "subst"))
+                    "[\n]+"))))))
 
 (defvar recentf-virtual-pathes-alist nil
   "Hold the alist of virtual pathes associations.
@@ -353,33 +417,29 @@ The behavior depends on `recentf-link-behavior'."
        ((eq recentf-link-behavior 'only-one-version)
         (setq r-list (copy-sequence recentf-list))
         (while (and (not found) r-list)
-          (setq found (string-equal (recentf-file-truename (car r-list))
-                                    true-filename)
+          (setq found (recentf-string-equal
+                       (recentf-file-truename (car r-list))
+                       true-filename)
                 r-list (cdr r-list)))
         ;; There is no "identical" file in the `recentf-list' so we
         ;; must add it now.
-        (if (not found)
-            (setq recentf-list
-                  (cons filename (delete filename recentf-list)))))
+        (or found (recentf-push filename)))
 
        ;; Add the `recentf-file-truename' to the list, so we never
        ;; have a file twice in the list with different names.
        ((eq recentf-link-behavior 'always-link-source)
-        (setq recentf-list
-              (cons true-filename
-                    (delete true-filename
-                            (delete filename recentf-list)))))
+        (recentf-push true-filename))
 
        ;; Simply add or move the file at the beginning.
        (t
-        (setq recentf-list (cons filename
-                                 (delete filename recentf-list)))))
+        (recentf-push filename)))
       (setq recentf-update-menu-p t))))
 
 (defun recentf-remove-if-non-readable (filename)
   "Remove FILENAME from `recentf-list' if not readable."
   (unless (file-readable-p filename)
-    (setq recentf-list (delete filename recentf-list))
+    (recentf-push filename)
+    (setq recentf-list (cdr recentf-list))
     (setq recentf-update-menu-p t)))
 
 (defun recentf-find-file (filename)
@@ -389,8 +449,7 @@ If FILENAME is not readable it is removed from `recentf-list'."
       (find-file filename)
     (progn
       (message "File `%s' not found." filename)
-      (setq recentf-list (delete filename recentf-list))
-      (setq recentf-update-menu-p t))))
+      (recentf-remove-if-non-readable filename))))
 
 (defun recentf-trunc-list (l n)
   "Return from L the list of its first N elements."
@@ -544,8 +603,9 @@ The MENU-ITEM part of each menu element is compared."
   (sort (copy-sequence l)
         (function
          (lambda (e1 e2)
-           (string-lessp (recentf-menu-element-item e1)
-                         (recentf-menu-element-item e2))))))
+           (recentf-string-lessp
+            (recentf-menu-element-item e1)
+            (recentf-menu-element-item e2))))))
 
 (defun recentf-sort-descending (l)
   "Sort the list of menu elements L in descending order.
@@ -553,8 +613,9 @@ The MENU-ITEM part of each menu element is compared."
   (sort (copy-sequence l)
         (function
          (lambda (e1 e2)
-           (string-lessp (recentf-menu-element-item e2)
-                         (recentf-menu-element-item e1))))))
+           (recentf-string-lessp
+            (recentf-menu-element-item e2)
+            (recentf-menu-element-item e1))))))
 
 (defun recentf-sort-basenames-ascending (l)
   "Sort the list of menu elements L in ascending order.
@@ -562,7 +623,7 @@ Only file names (without directories) are compared."
   (sort (copy-sequence l)
         (function
          (lambda (e1 e2)
-           (string-lessp
+           (recentf-string-lessp
             (file-name-nondirectory (recentf-menu-element-value e1))
             (file-name-nondirectory (recentf-menu-element-value e2)))))))
 
@@ -572,7 +633,7 @@ Only file names (without directories) are compared."
   (sort (copy-sequence l)
         (function
          (lambda (e1 e2)
-           (string-lessp
+           (recentf-string-lessp
             (file-name-nondirectory (recentf-menu-element-value e2))
             (file-name-nondirectory (recentf-menu-element-value e1)))))))
 
@@ -583,9 +644,9 @@ Return non-nil if P1 is less than P2."
         (f1 (file-name-nondirectory p1))
         (d2 (file-name-directory    p2))
         (f2 (file-name-nondirectory p2)))
-    (if (string= d1 d2)
-        (string-lessp f1 f2)
-      (string-lessp d1 d2))))
+    (if (recentf-string-equal d1 d2)
+        (recentf-string-lessp f1 f2)
+      (recentf-string-lessp d1 d2))))
 
 (defun recentf-sort-directories-ascending (l)
   "Sort the list of menu elements L in ascending order.
@@ -627,7 +688,8 @@ in the menu.  When file names are duplicated their directory component is added.
       (setq pos   (1+ pos))
       (setq filtered-list
             (cons (recentf-make-menu-element
-                   (if (or (member item names) (member item filtered-items))
+                   (if (or (recentf-string-member item names)
+                           (recentf-string-member item filtered-items))
                        (concat item " (" (nth pos dirs) ")")
                      item)
                    (nth pos pathes))
@@ -705,7 +767,7 @@ defined."
 Nil means no filter.  See also `recentf-menu-filter'.  You can't use
 `recentf-arrange-by-rule' itself here!"
   :group 'recentf-filters
-  :type 'function
+  :type '(choice (const nil) function)
   :set (lambda (sym val)
          (if (eq val 'recentf-arrange-by-rule)
              (error "Can't use `recentf-arrange-by-rule' itself here!")
@@ -830,14 +892,14 @@ Arrange them in sub-menus following rules in `recentf-arrange-rules'."
              (lambda (e)
                (let ((dir (file-name-directory
                            (recentf-menu-element-value e))))
-                 (or (member dir dirs)
+                 (or (recentf-string-member dir dirs)
                      (setq dirs (cons dir dirs))))))
             l)
     (mapcar (function
              (lambda (d)
                (cons (concat d " (%d)")
                      (concat "\\`" d))))
-            (nreverse (sort dirs 'string-lessp)))))
+            (nreverse (sort dirs 'recentf-string-lessp)))))
 
 (defun recentf-file-name-nondir (l)
   "Filter the list of menu-elements L to show only filenames.
