@@ -1,4 +1,4 @@
-;; jmaker.el --- Java Makefile generator
+;;; jmaker.el --- Java Makefile generator
 
 ;; Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003 David Ponce
 
@@ -6,10 +6,9 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: July 22 1998
 ;; Keywords: tools
-;; X-RCS: $Id: jmaker.el,v 1.25 2003/04/18 10:17:26 ponce Exp $
+;; Revision: $Id: jmaker.el,v 1.26 2003/04/25 11:29:15 ponced Exp $
 
-(defconst jmaker-version "2.2"
-  "Current version of jmaker.")
+(defconst jmaker-version "2.3")
 
 ;; This file is not part of GNU Emacs
 
@@ -29,7 +28,7 @@
 ;; Boston, MA 02111-1307, USA.
 
 ;;; Commentary:
-
+;;
 ;; This package is an add-on to the Java Development Environment for
 ;; Emacs (JDEE).  It automatically generates Makefiles to build Java
 ;; projects using make. The default Makefile template provided uses
@@ -37,57 +36,47 @@
 ;; to compile all .java files in the current directory and its
 ;; sub-directories.
 ;;
-;; This program is available at <http://www.dponce.com/>. Any
-;; comments, suggestions, bug reports or upgrade requests are welcome.
-;; Please send them to David Ponce at <david@dponce.com>.
-;;
-;; Installation:
-;;
-;; Put this file in a directory in your Emacs `load-path'.
-;; Into your Emacs startup file, add:
-;;   (require 'jmaker)
-;; Or better:
-;;   (autoload 'jmaker-generate-makefile "jmaker"
-;;     "Generate and edit a Java Makefile in directory ROOT." t nil)
-;;   (autoload 'jmaker-customize "jmaker"
-;;     "Customize jmaker options." t nil)
-;;
-;; A "JMaker" menu item is added to the menu bar in `jde-mode' after
-;; jmaker has been loaded.
-;;
-;; Usage:
-;;
-;; M-x `jmaker-customize' to change jmaker options.
-;; M-x `jmaker-generate-makefile' to generate Java Makefiles.
+;; M-x `jmaker-generate-makefile' generate Java Makefiles.
 ;;
 ;; CAUTION: jmaker doesn't take back any modifications you could have
 ;; made to existing Makefiles!
 ;;
 ;; To build a project with make you can use the `compile' command or
 ;; the `jde-build' command if `jde-build-function' is `jde-make'.
+;;
+;; To install and use, put this file on your Emacs-Lisp load path and
+;; add the following into your ~/.emacs startup file:
+;;
+;; (autoload 'jmaker-generate-makefile "jmaker"
+;;   "Generate and edit a Java Makefile in directory ROOT." t)
+;;
+;; A "JMaker" menu item is added to the menu bar in `jde-mode' after
+;; jmaker has been loaded.
+;;
 
 ;;; History:
 ;;
-;; See the jmaker.changelog file.
 
 ;;; Code:
-;;
 (require 'compile)
 (require 'wid-edit)
+(eval-when-compile (require 'cl))
 
 ;;; Compatibility
 ;;
-(if (featurep 'xemacs)
-    (progn
-      (defalias 'jmaker-overlay-delete 'delete-extent)
-      (defalias 'jmaker-overlay-lists
-        '(lambda () (list (extent-list))))
-      )
-  (defalias 'jmaker-overlay-delete 'delete-overlay)
-  (defalias 'jmaker-overlay-lists 'overlay-lists)
-  )
+(if (fboundp 'overlay-lists)
+    (defalias 'jmaker-overlay-lists
+      'overlay-lists)
+  (defalias 'jmaker-overlay-lists
+    '(lambda () (list (extent-list)))))
 
-;;; Customization
+(if (fboundp 'delete-overlay)
+    (defalias 'jmaker-delete-overlay
+      'delete-overlay)
+  (defalias 'jmaker-delete-overlay
+    'delete-extent))
+
+;;; Options
 ;;
 (defgroup jmaker nil
   "Java Makefile generator."
@@ -350,13 +339,11 @@ If the Makefile already exists it is overwritten."
 
 (defun jmaker-generall-dialog-setup-selected-aux (dir)
   "Starting from DIR, add directories where to generate a Makefile."
-  (mapcar
-   #'(lambda (file)
-       (and (jmaker-contains-java-files-p file)
-            (add-to-list 'jmaker-generall-dialog-selected
-                         (file-name-as-directory file))
-            (jmaker-generall-dialog-setup-selected-aux file)))
-   (directory-files dir t)))
+  (dolist (file (directory-files dir t))
+    (and (jmaker-contains-java-files-p file)
+         (add-to-list 'jmaker-generall-dialog-selected
+                      (file-name-as-directory file))
+         (jmaker-generall-dialog-setup-selected-aux file))))
 
 (defun jmaker-generall-dialog-setup-selected (root)
   "Create the list of directories where to generate a Makefile.
@@ -378,11 +365,10 @@ WIDGET is the target checkbox widget.  IGNORE other arguments."
         (progn
           (setq jmaker-generall-dialog-selected
                 (delq value jmaker-generall-dialog-selected))
-          (message "%s removed from selection." item))
+          (message "%s removed from selection" item))
       ;; else add it
-      (setq jmaker-generall-dialog-selected
-            (cons value jmaker-generall-dialog-selected))
-      (message "%s added to selection." item))))
+      (push value jmaker-generall-dialog-selected)
+      (message "%s added to selection" item))))
 
 (defun jmaker-cancel-dialog (&rest ignore)
   "Cancel the current dialog.
@@ -409,13 +395,13 @@ IGNORE arguments."
   (use-local-map jmaker-dialog-mode-map))
 
 (defconst jmaker-generall-dialog-header
-  "Select/Unselect Makefiles to be generated by `jmaker'
-in directory tree: %s
+  "\
+Select which Makefiles `jmaker' will generate in directory %s.
+Then choose OK to generate, or Cancel to quit.
 
-  (NEW)  indicates that this Makefile does not exist and will be created.
-  (OVER) indicates that this Makefile exists and will be overwritten.
-
-Click on Ok to generate or on Cancel to quit.\n\n"
+ (NEW)  indicate that this Makefile don't exist and will be created.
+ (OVER) indicate that this Makefile exists and will be overwritten.
+\n\n"
   "jmaker dialog header.")
 
 (defvar jmaker-generall-dialog-callback-fun nil
@@ -441,12 +427,14 @@ ROOT, after Makefile have been generated."
     (setq jmaker-generall-dialog-callback-fun callback)
     (setq jmaker-generall-dialog-callback-arg root)
     
-    ;; Cleanup buffer.
-    (let ((inhibit-read-only t))
-      (erase-buffer))
-    (let ((all (jmaker-overlay-lists)))
-      (mapcar 'jmaker-delete-overlay (car all))
-      (mapcar 'jmaker-delete-overlay (cdr all)))
+    ;; Cleanup buffer
+    (kill-all-local-variables)
+    (let ((inhibit-read-only t)
+          (ol (jmaker-overlay-lists)))
+      (erase-buffer)
+      ;; Delete all the overlays.
+      (mapc 'jmaker-delete-overlay (car ol))
+      (mapc 'jmaker-delete-overlay (cdr ol)))
     
     ;; Pre-select directories where to generate a Makefile.
     (jmaker-generall-dialog-setup-selected root)
