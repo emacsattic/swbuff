@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 25 February 2003
 ;; Keywords: convenience
-;; Revision: $Id: tabbar.el,v 1.36 2004/04/21 08:04:50 ponced Exp $
+;; Revision: $Id: tabbar.el,v 1.37 2004/08/13 16:15:50 ponced Exp $
 
 (defconst tabbar-version "1.4")
 
@@ -806,16 +806,18 @@ See the variable `tabbar-button-widget' for details."
 ;;; Separator
 ;;
 (defconst tabbar-separator-widget
-  '(cons (string)
+  '(cons (choice (string)
+                 (number :tag "Space width" 0.2))
          (repeat :tag "Image"
                  :extra-offset 2
                  (restricted-sexp :tag "Spec"
                                   :match-alternatives (listp))))
   "Widget for editing a tab bar separator.
-A separator is specified as a pair (STRING . IMAGE) where STRING is a
-string value, and IMAGE a list of image specifications.
-If IMAGE is non-nil, try to use that image, else use STRING.
-The value (\"\") hide separators.")
+A separator is specified as a pair (STRING-OR-WIDTH . IMAGE) where
+STRING-OR-WIDTH is a string value or a space width, and IMAGE a list
+of image specifications.
+If IMAGE is non-nil, try to use that image, else use STRING-OR-WIDTH.
+The value (\"\"), or (0) hide separators.")
 
 (defvar tabbar-separator-value nil
   "Text of the separator used between tabs.")
@@ -1066,9 +1068,21 @@ The separator element is cached in variable `tabbar-separator-value'."
   (let ((image (tabbar-find-image (cdr tabbar-separator))))
     (and image (tabbar-normalize-image image))
     (setq tabbar-separator-value
-          (propertize (or (car tabbar-separator) " ")
-                      'face 'tabbar-separator-face
-                      'display image))))
+          (cond
+           (image
+            (propertize " "
+                        'face 'tabbar-separator-face
+                        'display image)
+            )
+           ((numberp (car tabbar-separator))
+            (propertize " "
+                        'face 'tabbar-separator-face
+                        'display (list 'space
+                                       :width (car tabbar-separator)))
+            )
+           ((propertize (or (car tabbar-separator) " ")
+                        'face 'tabbar-separator-face)
+            )))))
 
 (defsubst tabbar-line-tab (tab)
   "Return an `header-line-format' template element for TAB.
