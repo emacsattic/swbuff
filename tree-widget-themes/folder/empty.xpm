@@ -1,7 +1,7 @@
 /* XPM */
 static char *empty[] = {
 /* width height num_colors chars_per_pixel */
-"    16    21      256            2",
+"    16    22      256            2",
 /* colors */
 "`` c #424242",
 "`. c #6b6b6b",
@@ -260,6 +260,7 @@ static char *empty[] = {
 "a7 c #ffffff",
 "a8 c #ffffff",
 /* pixels */
+"`h`h`h`h`h`h`h`h`h`h`h`h`h`h`h`h",
 "`h`h`h`h`h`h`h`h`h`h`h`h`h`h`h`h",
 "`h`h`h`h`h`h`h`h`h`h`h`h`h`h`h`h",
 "`h`h`h`h`h`h`h`h`h`h`h`h`h`h`h`h",

@@ -1,7 +1,7 @@
 /* XPM */
 static char *open[] = {
 /* width height num_colors chars_per_pixel */
-"    16    21      256            2",
+"    16    22      256            2",
 /* colors */
 "`` c #848400",
 "`. c #a5a5c6",
@@ -265,6 +265,7 @@ static char *open[] = {
 "`k`k`k`k`k`k`k`k`k`k`k`k`k`k`k`k",
 "`k`k`k`k`k`k`k`k`k`k`k`k`k`k`k`k",
 "`k`k`k`k`k`k`k`k`k`k`k`k`k`k`k`k",
+"`k`k`k`k`k`k`k`k`k`k`k`k`k`k`k`k",
 "`k`````````k`k`k`k`k`k`k`k`k`k`k",
 "```j`i`i`h```````````k`k`k`k`k`k",
 "```i`i`h`h`f`f`d`d`c```k`k`k`k`k",
@@ -275,10 +276,10 @@ static char *open[] = {
 "`````a`b`b`c`d`d`e`e`f```k`k`k`k",
 "```a`b`b`c`d`d`e`e`f`g```k`k`k`k",
 "```````````````````````k`k`k`k`k",
+"`k`k`k`k`k`k`k`k`k`k`k`k`k`k`k`k",
 "`k`k`k`k`k`.`k`k`k`k`k`k`k`k`k`k",
+"`k`k`k`k`k`k`k`k`k`k`k`k`k`k`k`k",
 "`k`k`k`k`k`.`k`k`k`k`k`k`k`k`k`k",
-"`k`k`k`k`k`.`k`k`k`k`k`k`k`k`k`k",
-"`k`k`k`k`k`.`k`k`k`k`k`k`k`k`k`k",
-"`k`k`k`k`k`.`k`k`k`k`k`k`k`k`k`k",
+"`k`k`k`k`k`k`k`k`k`k`k`k`k`k`k`k",
 "`k`k`k`k`k`.`k`k`k`k`k`k`k`k`k`k"
 };
