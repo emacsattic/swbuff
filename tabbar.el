@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 25 February 2003
 ;; Keywords: convenience
-;; X-RCS: $Id: tabbar.el,v 1.1 2003/03/07 22:34:19 ponce Exp $
+;; X-RCS: $Id: tabbar.el,v 1.2 2003/03/09 11:33:05 ponce Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -28,41 +28,109 @@
 ;;; Commentary:
 ;;
 ;; This library provides a minor mode to display tabs in the header
-;; line.  It works only on GNU Emacs 21.  It don't work when using a
-;; text-only terminal, that lacks mouse support!
+;; line.  It works only on GNU Emacs 21, when a mouse is available.
 ;;
-;; The core of tab bar minor mode is just a lightweight framework that
-;; provides some useful entry points, and handles hide/show of the tab
-;; bar, depending on the mode status.
+;; M-x `tabbar-mode' toggle the display of the tab bar, globally.
 ;;
-;; Composition of tabs is delegated to the customizable function
-;; `tabbar-make-tabs-function'.
+;; M-x `tabbar-local-mode' toggle the display of the tab bar, locally
+;; in the current buffer, when the global mode in on.  This mode
+;; permit to see the tab bar in a buffer where the header line is
+;; already used by another mode (like `info' buffers).  That command
+;; is particularly useful when it is given a keyboard shortcut, like
+;; this:
 ;;
-;; A default implementation is provided: `tabbar-buffer-tabs', that
-;; displays each buffer in a dedicated tab.  Selecting a tab switch
-;; (mouse-1) or pop (mouse-2) to the buffer it contains.
+;;   (global-set-key [(control f10)] 'tabbar-local-mode)
 ;;
-;; There is also a fixed button to the left of the tab bar, for which
-;; two customizable callback functions are provided:
+;; Core
+;; ----
 ;;
-;; `tabbar-button-help-function', to return the button help string.
-;; `tabbar-button-callback-function', to handle mouse events.
+;; The content of the tab bar is represented by an internal data
+;; structure: a tab set.  A tab set is a collection of tabs,
+;; identified by an unique name.  In a tab set, at any time, one and
+;; only one tab is designated as selected within the tab set.
 ;;
-;; Here is the default implementation provided, associated to buffer
-;; tabs.
+;; A tab is a simple data structure giving: the value of the tab, and
+;; a reference to its tab set container.  A tab value can be any Lisp
+;; object, even if the most common value is probably a string.  Each
+;; tab object is guaranteed to be unique.
+
+;; A tab set is displayed on the tab bar through a "view" defined by
+;; the index of the leftmost tab shown.  Thus, it is possible to
+;; scroll the tab bar horizontally, by changing the start index of the
+;; tab set view.
 ;;
-;; As the length of the header line is limited, the number of visible
-;; tabs is limited too.  That can be annoying when working with a lot
-;; of buffers.  To bypass that issue, only buffers that have the same
-;; major mode are shown in the tab bar at a time.  Clicking with
-;; mouse-1 on the tab bar button, popup a menu to select another group
-;; of tabs, for buffers with a different major mode.  In the worst
-;; case two mouse clicks are necessary to switch to another buffer.
+;; The visual representation of a tab set is a list a
+;; `header-line-format' template elements.  Each template element is
+;; the visual representation of a tab.  When the visual representation
+;; of a tab is required, the function specified in the variable
+;; `tabbar-tab-label-function' is called to obtain a label (a text
+;; representation) for that tab.  Also, the function specified in the
+;; variable `tabbar-help-on-tab-function' is called when the mouse is
+;; on a tab.  That function is passed the tab and can return a help
+;; string to display.  Finally, when a tab is selected by clicking on
+;; it, the function specified in the variable
+;; `tabbar-select-tab-function' is called with the mouse event
+;; received, and the tab.
 ;;
-;; Finally, clicking with mouse-2 on the tab bar button close the
-;; selected tab, that is kill the current buffer.
+;; To increase performance, the tab set automatically maintains its
+;; visual representation in a cache.  As far as possible, that cache
+;; is used to display the tab set, and refreshed only when necessary.
 ;;
-;; A great thing to do: implement horizontal scrolling of the tab bar!
+;; Several tab sets can be maintained at the same time.  Only one is
+;; displayed on the tab bar, it is obtained by calling the function
+;; specified in the variable `tabbar-current-tabset-function'.
+;;
+;; A special tab set is maintained, that contains the list of
+;; currently selected tabs, in existing tab sets.  For example, a such
+;; tab set can be used to display a tab bar with a tab for each
+;; created tab set, allowing to switch to another tab set by clicking
+;; on the corresponding tab.
+;;
+;; Three buttons are displayed to the left, on the tab bar: the "home"
+;; button, the "scroll left" and the "scroll right" buttons.  The
+;; "home" button is a general purpose button used to change something
+;; on the tab bar.  The scroll left and scroll right buttons are used
+;; to scroll tabs horizontally.  The following variables are
+;; available, for respectively the `home', `scroll-left' and
+;; `scroll-right' value of `<button>':
+;;
+;; `tabbar-<button>-function'
+;;    Specify a function called when clicking on the button.  The
+;;    function is passed the mouse event received.
+;;
+;; `tabbar-<button>-help-function'
+;;    Specify a function to obtain a help string displayed when the
+;;    mouse is onto the button.  The function is called with no
+;;    arguments.
+;;
+;; The appearance of tabs and buttons is also customizable (see the
+;; code for more details).
+;;
+;; Buffer tabs
+;; -----------
+;;
+;; The default tab bar implementation provided, displays buffers in
+;; dedicated tabs.  Selecting a tab, switch (mouse-1), or pop
+;; (mouse-2), to the buffer it contains.
+;;
+;; The list of buffers put in tabs is provided by the function
+;; specified in the variable `tabbar-buffer-list-function'.  The
+;; default function: `tabbar-buffer-list', excludes buffers that are
+;; not visiting a file and whose name starts with a space.
+;;
+;; Buffers are organized in groups, each one represented by a tab set.
+;; A buffer can have no group, or belong to more than one group.  The
+;; function specified by the variable `tabbar-buffer-groups-function'
+;; is called for each buffer to obtain its groups.  The default
+;; function provided: `tabbar-buffer-groups' organizes buffers
+;; depending on their major mode (see that function for details).
+;;
+;; The "home" button toggles display of buffer groups on the tab bar,
+;; allowing to easily choose another buffer group by clicking on its
+;; tab.
+;;
+;; The scroll buttons permit to scroll tabs when some of them are
+;; outside the tab bar visible area.
 
 ;;; History:
 ;;
@@ -77,7 +145,7 @@
   :group 'convenience)
 
 (defcustom tabbar-current-tabset-function
-  'tabbar-buffer-current-tabset
+  'tabbar-buffer-tabs
   "Function called with no argument to obtain the current tab set.
 This is the tab set displayed on the tab bar."
   :group 'tabbar
@@ -103,11 +171,9 @@ selected tab."
   "Function to obtain a help string for a tab.
 The help string is displayed when the mouse is onto the button.  The
 function is passed the tab and should return a help string or nil for
-none.  For details, see the documentation on the `help-echo' text
-property, on the Emacs Lisp manual."
+none."
   :group 'tabbar
-  :type 'function
-  :link '(custom-manual "(elisp)Special Properties"))
+  :type 'function)
 
 (defcustom tabbar-home-function
   'tabbar-buffer-toggle-group-mode
@@ -128,7 +194,7 @@ The function is called with no arguments."
   'tabbar-scroll-left
   "Function that scrolls tabs on left.
 The function is passed the mouse event received when clicking on the
-scroll left button.  It should scroll the current tabset."
+scroll left button.  It should scroll the current tab set."
   :group 'tabbar
   :type 'function)
 
@@ -144,7 +210,7 @@ The function is called with no arguments."
   'tabbar-scroll-right
   "Function that scrolls tabs on right.
 The function is passed the mouse event received when clicking on the
-scroll right button.  It should scroll the current tabset."
+scroll right button.  It should scroll the current tab set."
   :group 'tabbar
   :type 'function)
 
@@ -340,7 +406,7 @@ current cached copy."
   tabbar-current-tabset)
 
 (defun tabbar-get-tabsets-tabset ()
-  "Return the tabset of selected tabs in existing tabsets."
+  "Return the tab set of selected tabs in existing tab sets."
   (let ((tabsets-tabset
          (or (tabbar-get-tabset tabbar-tabsets-tabset-name)
              (tabbar-make-tabset tabbar-tabsets-tabset-name))))
@@ -701,7 +767,7 @@ P2
 ;;; Wrappers
 ;;
 (defun tabbar-scroll-left (event)
-  "On mouse EVENT, scroll current tabset on left."
+  "On mouse EVENT, scroll current tab set on left."
   (when (eq (event-basic-type event) 'mouse-1)
     (tabbar-scroll (tabbar-current-tabset) 1)
     ))
@@ -711,7 +777,7 @@ P2
   "mouse-1: scroll tabs left.")
 
 (defun tabbar-scroll-right (event)
-  "On mouse EVENT, scroll current tabset on right."
+  "On mouse EVENT, scroll current tab set on right."
   (when (eq (event-basic-type event) 'mouse-1)
     (tabbar-scroll (tabbar-current-tabset) -1)
     ))
@@ -774,9 +840,9 @@ Call `tabbar-tab-label-function' to obtain a label for TAB."
 
 (defun tabbar-line ()
   "Return the header line templates that represent the tab bar.
-Call `tabbar-current-tabset-function' to obtain the current tabset to
-display.  Then call `tabbar-line-element' on each tab in current
-tabset's view to build a list of template elements for
+Call `tabbar-current-tabset-function' to obtain the current tab set to
+display.  Then call `tabbar-line-element' on each tab in current tab
+set's view to build a list of template elements for
 `header-line-format'."
   (let ((tabset (tabbar-current-tabset t)))
     (when tabset
@@ -801,13 +867,13 @@ tabset's view to build a list of template elements for
                                           (tabbar-view tabset))))
             tabbar-pad))))
 
-;;; Minor mode
+;;; Minor modes
 ;;
-(defvar tabbar-saved-header-line-format nil
-  "The previous default value of `header-line-format'.")
+(defvar tabbar-old-global-hlf nil
+  "Global value of the header line when entering tab bar mode.")
 
 (defconst tabbar-header-line-format '(:eval (tabbar-line))
-  "The header line format used.")
+  "The tab bar header line format.")
 
 ;;;###autoload
 (define-minor-mode tabbar-mode
@@ -816,47 +882,59 @@ With prefix argument ARG, turn on if positive, otherwise off.
 Returns non-nil if the new state is enabled."
   :global t
   :group 'tabbar
-  (unless window-system
-    (message "Sorry, tab bar don't work on a text-only terminal")
+  (unless (display-mouse-p)
+    (message "Sorry, tab bar don't work without a mouse")
     (setq tabbar-mode nil))
   (if tabbar-mode
-      
 ;;; ON
       (unless (eq header-line-format tabbar-header-line-format)
         ;; Save current default value of `header-line-format'.
-        (setq tabbar-saved-header-line-format
-              (default-value 'header-line-format))
-        ;; Disable use of header line in Info mode.
-        (add-hook 'Info-mode-hook
-                  'tabbar-tell-info-not-use-header-line)
-        (add-hook 'kill-buffer-hook
-                  'tabbar-buffer-kill-buffer-hook)
-        ;; Set the tabbar mode header line format.
-        (setq-default header-line-format tabbar-header-line-format)
+        (setq tabbar-old-global-hlf (default-value 'header-line-format))
+        (add-hook 'kill-buffer-hook 'tabbar-buffer-kill-buffer-hook)
         (tabbar-init-tabsets-store)
-        )
-    
+        (setq-default header-line-format tabbar-header-line-format))
 ;;; OFF
     ;; Restore previous `header-line-format', if it has not changed.
     (when (eq (default-value 'header-line-format)
               tabbar-header-line-format)
-      (setq-default header-line-format
-                    tabbar-saved-header-line-format))
-    ;; Re-enable use of header line in Info mode.
-    (remove-hook 'Info-mode-hook
-                 'tabbar-tell-info-not-use-header-line)
-    (remove-hook 'kill-buffer-hook
-                 'tabbar-buffer-kill-buffer-hook)
+      (setq-default header-line-format tabbar-old-global-hlf))
+    (remove-hook 'kill-buffer-hook 'tabbar-buffer-kill-buffer-hook)
     (tabbar-free-tabsets-store)
-    
+    ;; Turn off locals tab bar mode
+    (mapc #'(lambda (b)
+              (with-current-buffer b
+                (tabbar-local-mode -1)))
+          (buffer-list))
     ))
 
-(defun tabbar-tell-info-not-use-header-line ()
-  "Hook run when `info-mode' is called.
-Tell info mode to not use the header line, when tabbar mode is on."
-  (when tabbar-mode
-    (kill-local-variable 'header-line-format)
-    (set (make-local-variable 'Info-use-header-line) nil)))
+(defvar tabbar-old-local-hlf nil
+  "Local value of the header line when entering tab bar local mode.")
+(make-variable-buffer-local 'tabbar-old-local-hlf)
+
+;;;###autoload
+(define-minor-mode tabbar-local-mode
+  "Toggle local display of the tab bar.
+With prefix argument ARG, turn on if positive, otherwise off.
+Returns non-nil if the new state is enabled.
+When on and tab bar global mode is on, if a buffer local value of
+`header-line-format' exists, it is saved, then the local header line
+is killed to show the tab bar.  When off, the saved local value of the
+header line is restored, hiding the tab bar."
+  :global nil
+  :group 'tabbar
+;;; ON
+  (if tabbar-local-mode
+      (if (and tabbar-mode (local-variable-p 'header-line-format)
+               (not (local-variable-p 'tabbar-old-local-hlf)))
+          (progn
+            (setq tabbar-old-local-hlf header-line-format)
+            (kill-local-variable 'header-line-format))
+        (setq tabbar-local-mode nil))
+;;; OFF
+    (when (local-variable-p 'tabbar-old-local-hlf)
+      (setq header-line-format tabbar-old-local-hlf)
+      (kill-local-variable 'tabbar-old-local-hlf))
+    ))
 
 (defun tabbar-buffer-kill-buffer-hook ()
   "Hook run just before actually killing a buffer.
@@ -866,6 +944,7 @@ after the current one, then the buffer in tab before.  On success, put
 the sibling buffer in front of the buffer list, so it will be selected
 first."
   (and tabbar-mode
+       (eq tabbar-current-tabset-function 'tabbar-buffer-tabs)
        (eq (current-buffer) (window-buffer (selected-window)))
        (let ((bl (tabbar-tab-values (tabbar-current-tabset)))
              (bn (buffer-name))
@@ -916,7 +995,9 @@ with a space."
 Return only one group for each buffer."
   (with-current-buffer (get-buffer buffer)
     (cond
-     ((get-buffer-process (current-buffer))
+     ((or (get-buffer-process (current-buffer))
+          (memq major-mode
+                '(comint-mode compilation-mode)))
       '("Process")
       )
      ((member (buffer-name)
@@ -991,8 +1072,8 @@ Return the the first group where the current buffer is."
 (defvar tabbar-buffer-group-mode nil
   "Display tabs for group of buffers, when non-nil.")
 
-(defun tabbar-buffer-current-tabset ()
-  "Return the tab set to display."
+(defun tabbar-buffer-tabs ()
+  "Return the buffers to display on the tab bar, in a tab set."
   (let ((group (tabbar-buffer-update-groups))
         (buffer (buffer-name))
         tabset curtab)
