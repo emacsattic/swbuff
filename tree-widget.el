@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 16 Feb 2001
 ;; Keywords: extensions
-;; Revision: $Id: tree-widget.el,v 1.14 2003/10/03 15:30:27 ponced Exp $
+;; Revision: $Id: tree-widget.el,v 1.15 2003/10/06 12:41:59 ponced Exp $
 
 (defconst tree-widget-version "2.0")
 
@@ -192,10 +192,6 @@ no-handle    an invisible handle
       (and tree-widget-image-enable
            widget-glyph-enable
            (console-on-window-system-p)))
-    (defsubst tree-widget-image-type-available-p (type)
-      "Return non-nil if image type TYPE is available.
-Image types are symbols like `xbm' or `jpeg'."
-      (valid-image-instantiator-format-p type))
     (defsubst tree-widget-create-image (type file)
       "Create an image of type TYPE from FILE.
 Give the image the specified `tree-widget-image-properties-xemacs'
@@ -206,7 +202,11 @@ properties.  Return the new image."
     (defsubst tree-widget-image-formats ()
       "Return the list of image formats, file name suffixes associations.
 See also the option `widget-image-file-name-suffixes'."
-      widget-image-file-name-suffixes)
+      (delq nil
+            (mapcar
+             #'(lambda (fmt)
+                 (and (valid-image-instantiator-format-p (car fmt)) fmt))
+             widget-image-file-name-suffixes)))
     )
    ;; GNU Emacs
    (t
@@ -215,10 +215,6 @@ See also the option `widget-image-file-name-suffixes'."
       (and tree-widget-image-enable
            widget-image-enable
            (display-images-p)))
-    (defsubst tree-widget-image-type-available-p (type)
-      "Return non-nil if image type TYPE is available.
-Image types are symbols like `xbm' or `jpeg'."
-      (image-type-available-p type))
     (defsubst tree-widget-create-image (type file)
       "Create an image of type TYPE from FILE.
 Give the image the specified `tree-widget-image-properties-emacs'
@@ -229,7 +225,11 @@ properties.  Return the new image."
     (defsubst tree-widget-image-formats ()
       "Return the list of image formats, file name suffixes associations.
 See also the option `widget-image-conversion'."
-      widget-image-conversion)
+      (delq nil
+            (mapcar
+             #'(lambda (fmt)
+                 (and (image-type-available-p (car fmt)) fmt))
+             widget-image-conversion)))
     ))
   )
 
@@ -280,18 +280,22 @@ Return the image found or nil if not found."
         (setq tree-widget--theme
               (or tree-widget--theme tree-widget-theme "default"))
         (let* ((default-directory dir)
-               (path (mapcar 'expand-file-name
-                             (list tree-widget--theme "default")))
-               (fmts (tree-widget-image-formats))
-               fmt file image)
-          (while (and fmts (not file))
-            (setq fmt  (car fmts)
-                  fmts (cdr fmts))
-            (when (tree-widget-image-type-available-p (car fmt))
-              (setq file (locate-library
-                          (concat image-name (nth 1 fmt)) t path))))
+               (formats (tree-widget-image-formats))
+               (path (if (equal tree-widget--theme "default")
+                         (list tree-widget--theme)
+                       (list tree-widget--theme "default")))
+               file image type fmts load-path load-suffixes)
+          (while (and path (not file))
+            (setq load-path (list (expand-file-name (car path)))
+                  path (cdr path)
+                  fmts formats)
+            (while (and fmts (not file))
+              (setq type (caar fmts)
+                    load-suffixes (cdar fmts)
+                    fmts (cdr fmts)
+                    file (locate-library image-name))))
           (when file
-            (setq image (tree-widget-create-image (car fmt) file))
+            (setq image (tree-widget-create-image type file))
             ;; Add the image into the cache.
             (push (cons image-name image) tree-widget--image-cache)
             image))))
