@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 16 Feb 2001
 ;; Keywords: extensions
-;; Revision: $Id: tree-widget.el,v 1.13 2003/10/03 11:47:50 ponced Exp $
+;; Revision: $Id: tree-widget.el,v 1.14 2003/10/03 15:30:27 ponced Exp $
 
 (defconst tree-widget-version "2.0")
 
@@ -248,6 +248,15 @@ use.  By default it is the global theme defined by the option
   (setq tree-widget--image-cache nil
         tree-widget--theme (or name tree-widget-theme "default")))
 
+(defsubst tree-widget-themes-directory ()
+  "Return the directory where to search for image themes.
+Return nil if not found."
+  (let ((dir (if tree-widget-themes-directory
+                 (expand-file-name tree-widget-themes-directory)
+               (expand-file-name "../tree-widget-themes"
+                                 (locate-library "tree-widget")))))
+    (and (file-directory-p dir) dir)))
+
 (defun tree-widget-find-image (image-name)
   "Create the image with IMAGE-NAME found in current theme.
 IMAGE-NAME must be a file name sans extension located in the current
@@ -264,12 +273,7 @@ Return the image found or nil if not found."
     )
    ;; Search for an image with IMAGE-NAME
    (t
-    (let ((dir (and (stringp tree-widget-themes-directory)
-                    tree-widget-themes-directory)))
-      (unless dir
-        (when (setq dir (locate-library "tree-widget"))
-          (setq dir (expand-file-name "tree-widget-themes"
-                                      (file-name-directory dir)))))
+    (let ((dir (tree-widget-themes-directory)))
       (when dir
         ;; Don't use `tree-widget-set-theme' here, because it clears
         ;; the image cache.
