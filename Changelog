@@ -1,3 +1,18 @@
+2004-04-27  David Ponce  <david@dponce.com>
+
+	* tree-widget.el
+
+	(tree-widget-themes-directory): Doc fix.
+	(tree-widget--image-cache, tree-widget--image-properties): Remove.
+	(tree-widget--theme): Don't `make-variable-buffer-local'.
+	(tree-widget-theme-name): New function.
+	(tree-widget-set-theme): Use new theme cache.  Doc fix.
+	(tree-widget-set-image-properties): Likewise.
+	(tree-widget-image-properties): Likewise.
+	(tree-widget-find-image): Likewise.
+	(tree-widget-themes-directory): Use new theme cache.  Fix
+	compatibility with XEmacs.
+
 2004-04-23  David Ponce  <david@dponce.com>
 
 	* tree-widget.el
