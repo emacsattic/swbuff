@@ -1,3 +1,16 @@
+2004-04-21  David Ponce  <david@dponce.com>
+
+	* recentf.el
+
+	(recentf-save-list): Catch and display about errors.
+
+2004-04-14  David Ponce  <david@dponce.com>
+
+	* tabbar.el
+
+	(tabbar-buffer-kill-buffer-hook): Check for an actually displayed
+	tab bar instead of tab bar mode.
+
 2004-03-31  David Ponce  <david@dponce.com>
 
 	* tabbar.el
