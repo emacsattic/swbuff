@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 25 February 2003
 ;; Keywords: convenience
-;; Revision: $Id: tabbar.el,v 1.45 2004/10/11 09:11:06 ponced Exp $
+;; Revision: $Id: tabbar.el,v 1.46 2005/02/24 11:20:00 ponced Exp $
 
 (defconst tabbar-version "1.4")
 
@@ -1396,13 +1396,12 @@ first."
 ;;; Buffer tabs
 ;;
 (defcustom tabbar-buffer-home-button
-  (cons (cons "[-]" tabbar-home-button-disabled-image)
-        (cons "[+]" tabbar-home-button-enabled-image))
+  (cons (cons "[+]" tabbar-home-button-enabled-image)
+        (cons "[-]" tabbar-home-button-disabled-image))
   "The home button displayed when showing buffer tabs.
 The enabled button value is displayed when showing tabs for groups of
-buffers, and the disabled button value is disabled when showing buffer
-tabs.
-Images default to the enabled image specified in `tabbar-home-button'.
+buffers, and the disabled button value is displayed when showing
+buffer tabs.
 The variable `tabbar-button-widget' gives details on this widget."
   :group 'tabbar
   :type tabbar-button-widget
