@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 25 February 2003
 ;; Keywords: convenience
-;; Revision: $Id: tabbar.el,v 1.30 2004/02/14 16:50:33 ponced Exp $
+;; Revision: $Id: tabbar.el,v 1.31 2004/03/03 09:46:30 ponced Exp $
 
 (defconst tabbar-version "1.4")
 
@@ -286,18 +286,15 @@ The function is called with no arguments."
 ;;; Misc.
 ;;
 (eval-when-compile
-  (if (fboundp 'force-window-update)
-      (defsubst tabbar-display-update (&optional window)
-        "Update display of the tab bar.
-If optional argument WINDOW is a window, it specifies to redisplay the
-tab bar on this particular window."
-        (force-window-update window))
-    (defsubst tabbar-display-update (&optional window)
-      "Update display of the tab bar.
-Optional argument WINDOW is ignored."
-      (force-mode-line-update)
-      (sit-for 0))
-    ))
+  (defalias 'tabbar-display-update
+    (if (fboundp 'force-window-update)
+        'force-window-update
+      'force-mode-line-update))
+  )
+
+(defsubst tabbar-click-p (event)
+  "Return non-nil if EVENT is a mouse click event."
+  (memq 'click (event-modifiers event)))
 
 (defun tabbar-shorten (str width)
   "Return a shortened string from STR that fits in the given display WIDTH.
@@ -673,13 +670,13 @@ CALLBACK is passed the received mouse event."
   "Handle a mouse EVENT on the home button.
 Call `tabbar-home-function'."
   (interactive "e")
-  (when tabbar-home-function
-    (save-selected-window
-      (let ((window (posn-window (event-start event))))
-        (select-window window)
-        (funcall tabbar-home-function event)
-        (tabbar-display-update window)
-        ))))
+  (and tabbar-home-function
+       (tabbar-click-p event)
+       (let ((window (posn-window (event-start event))))
+         (select-window window)
+         (funcall tabbar-home-function event)
+         (tabbar-display-update)
+         )))
 
 (defun tabbar-home-button-help (window object position)
   "Return a help string or nil for none, for the home button.
@@ -738,13 +735,13 @@ See the variable `tabbar-button-widget' for details."
   "Handle a mouse EVENT on the scroll left button.
 Call `tabbar-scroll-left-function'."
   (interactive "e")
-  (when tabbar-scroll-left-function
-    (save-selected-window
-      (let ((window (posn-window (event-start event))))
-        (select-window window)
-        (funcall tabbar-scroll-left-function event)
-        (tabbar-display-update window)
-        ))))
+  (and tabbar-scroll-left-function
+       (tabbar-click-p event)
+       (let ((window (posn-window (event-start event))))
+         (select-window window)
+         (funcall tabbar-scroll-left-function event)
+         (tabbar-display-update)
+         )))
 
 (defun tabbar-scroll-left-button-help (window object position)
   "Return a help string or nil for none, for the scroll left button.
@@ -801,13 +798,13 @@ See the variable `tabbar-button-widget' for details."
   "Handle a mouse EVENT on the scroll right button.
 Call `tabbar-scroll-right-function'."
   (interactive "e")
-  (when tabbar-scroll-right-function
-    (save-selected-window
-      (let ((window (posn-window (event-start event))))
-        (select-window window)
-        (funcall tabbar-scroll-right-function event)
-        (tabbar-display-update window)
-        ))))
+  (and tabbar-scroll-right-function
+       (tabbar-click-p event)
+       (let ((window (posn-window (event-start event))))
+         (select-window window)
+         (funcall tabbar-scroll-right-function event)
+         (tabbar-display-update)
+         )))
 
 (defun tabbar-scroll-right-button-help (window object position)
   "Return a help string or nil for none, for the scroll right button.
@@ -961,12 +958,13 @@ mouse event and TAB."
           (window (make-symbol "window")))
       `(lambda (,event)
          (interactive "e")
-         (setq tabbar-last-selected-tab ,tab)
-         (when tabbar-select-tab-function
-           (let ((,window (posn-window (event-start ,event))))
-             (select-window ,window)
-             (funcall tabbar-select-tab-function ,event ,tab)
-             (tabbar-display-update ,window))))))
+         (and tabbar-select-tab-function
+              (tabbar-click-p ,event)
+              (let ((,window (posn-window (event-start ,event))))
+                (select-window ,window)
+                (setq tabbar-last-selected-tab ,tab)
+                (funcall tabbar-select-tab-function ,event ,tab)
+                (tabbar-display-update))))))
 
   (defun tabbar-make-help-on-tab-function (tab)
     "Return a function that return a help string on TAB.
@@ -1089,12 +1087,15 @@ Inhibit display of the tab bar in current window if any of the
 ;;; Cyclic navigation through tabs
 ;;
 (defsubst tabbar-make-mouse-event (&optional type)
-  "Return a basic mouse event.
-Optional argument TYPE is a mouse event type.  That is one of the
-symbols `mouse-1', `mouse-2' or `mouse-3'.  The default is `mouse-1'."
-  (list (or (memq type '(mouse-2 mouse-3)) 'mouse-1)
-        (or (event-start nil) ;; Emacs 21.4
-            (list (selected-window) (point) '(0 . 0) 0))))
+  "Return a mouse-click event.
+Optional argument TYPE is a mouse-click event or one of the
+symbols `mouse-1', `mouse-2' or `mouse-3'.
+The default is `mouse-1'."
+  (if (tabbar-click-p type)
+      type
+    (list (or (memq type '(mouse-2 mouse-3)) 'mouse-1)
+          (or (event-start nil) ;; Emacs 21.4
+              (list (selected-window) (point) '(0 . 0) 0)))))
 
 (defmacro tabbar-click-on-tab (tab &optional type)
   "Simulate a mouse click event on tab TAB.
@@ -1103,12 +1104,14 @@ Optional argument TYPE is a mouse event type (see the function
   `(,(tabbar-make-select-tab-command tab)
     (tabbar-make-mouse-event ,type)))
 
-(defun tabbar-cycle (&optional backward)
+(defun tabbar-cycle (&optional backward type)
   "Cycle to the next available tab.
+The scope of the cyclic navigation through tabs is specified by the
+option `tabbar-cycling-scope'.
 If optional argument BACKWARD is non-nil, cycle to the previous tab
 instead.
-The scope of the cyclic navigation through tabs is specified by the
-option `tabbar-cycling-scope'."
+Optional argument TYPE is a mouse event type (see the function
+`tabbar-make-mouse-event' for details)."
   (let ((tabset (tabbar-current-tabset t))
         selected tab)
     (when tabset
@@ -1150,7 +1153,7 @@ option `tabbar-cycling-scope'."
           (setq tabset (tabbar-tabs (tabbar-tab-tabset tab))
                 tab (car (if backward (last tabset) tabset))))
         ))
-      (tabbar-click-on-tab tab))))
+      (tabbar-click-on-tab tab type))))
 
 ;;;###autoload
 (defun tabbar-backward ()
@@ -1458,12 +1461,12 @@ mouse-2: pop to buffer, mouse-3: delete other windows"
   (let ((mouse-button (event-basic-type event))
         (buffer (tabbar-tab-value tab)))
     (cond
-     ((eq mouse-button 'mouse-1)
-      (switch-to-buffer buffer))
      ((eq mouse-button 'mouse-2)
       (pop-to-buffer buffer t))
      ((eq mouse-button 'mouse-3)
-      (delete-other-windows)))
+      (delete-other-windows))
+     (t
+      (switch-to-buffer buffer)))
     ;; Disable group mode.
     (setq tabbar-buffer-group-mode nil)
     ))
