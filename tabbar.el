@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 25 February 2003
 ;; Keywords: convenience
-;; Revision: $Id: tabbar.el,v 1.14 2003/04/20 12:57:42 ponce Exp $
+;; Revision: $Id: tabbar.el,v 1.15 2003/04/23 09:11:29 ponced Exp $
 
 (defconst tabbar-version "1.2")
 
@@ -299,13 +299,16 @@ TABSET is the tab set the tab belongs to."
 (defvar tabbar-last-selected-tab nil
   "The last selected tab.")
 
-(defun tabbar-init-tabsets-store ()
-  "Initialize the tab set store."
-  (setq tabbar-tabsets (make-vector 31 0)))
-
-(defun tabbar-free-tabsets-store ()
+(defsubst tabbar-free-tabsets-store ()
   "Free the tab set store."
-  (setq tabbar-tabsets nil))
+  (setq tabbar-tabsets nil
+        tabbar-current-tabset nil
+        tabbar-last-selected-tab nil))
+
+(defsubst tabbar-init-tabsets-store ()
+  "Initialize the tab set store."
+  (tabbar-free-tabsets-store)
+  (setq tabbar-tabsets (make-vector 31 0)))
 
 (defmacro tabbar-map-tabsets (function)
   "Apply FUNCTION to each existing tab set.
@@ -848,30 +851,35 @@ See the variable `tabbar-button-widget' for details."
   "Return the help string shown when mouse is onto the scroll right button."
   "mouse-1: scroll tabs right.")
 
-(defun tabbar-make-select-tab-command (tab)
-  "Return a command to handle TAB selection.
+ ;; These functions can be called at compilation time.
+(eval-and-compile
+  
+  (defun tabbar-make-select-tab-command (tab)
+    "Return a command to handle TAB selection.
 That command calls `tabbar-select-tab-function' with the received
 mouse event and TAB."
-  (let ((event (make-symbol "event")))
-    `(lambda (,event)
-       (interactive "e")
-       (setq tabbar-last-selected-tab ,tab)
-       (when tabbar-select-tab-function
-         (select-window (posn-window (event-start ,event)))
-         (funcall tabbar-select-tab-function ,event ,tab)
-         (force-mode-line-update)
-         (sit-for 0)))))
+    (let ((event (make-symbol "event")))
+      `(lambda (,event)
+         (interactive "e")
+         (setq tabbar-last-selected-tab ,tab)
+         (when tabbar-select-tab-function
+           (select-window (posn-window (event-start ,event)))
+           (funcall tabbar-select-tab-function ,event ,tab)
+           (force-mode-line-update)
+           (sit-for 0)))))
 
-(defun tabbar-make-help-on-tab-function (tab)
-  "Return a function that return a help string on TAB.
+  (defun tabbar-make-help-on-tab-function (tab)
+    "Return a function that return a help string on TAB.
 That command calls `tabbar-help-on-tab-function' with TAB."
-  (let ((window (make-symbol "window"))
-        (object (make-symbol "object"))
-        (position (make-symbol "position"))
-        )
-    `(lambda (,window ,object ,position)
-       (when tabbar-help-on-tab-function
-         (funcall tabbar-help-on-tab-function ,tab)))))
+    (let ((window (make-symbol "window"))
+          (object (make-symbol "object"))
+          (position (make-symbol "position"))
+          )
+      `(lambda (,window ,object ,position)
+         (when tabbar-help-on-tab-function
+           (funcall tabbar-help-on-tab-function ,tab)))))
+
+  )
 
 (defun tabbar-line-element (tab)
   "Return an `header-line-format' template element from TAB.
@@ -946,8 +954,8 @@ symbols `mouse-1', `mouse-2' or `mouse-3'.  The default is `mouse-1'."
   "Simulate a mouse click event on tab TAB.
 Optional argument TYPE is a mouse event type (see the function
 `tabbar-make-mouse-event' for details)."
-  `(funcall ,(tabbar-make-select-tab-command tab)
-            (tabbar-make-mouse-event ,type)))
+  `(,(tabbar-make-select-tab-command tab)
+    (tabbar-make-mouse-event ,type)))
 
 (defun tabbar-cycle (&optional backward)
   "Cycle to the next available tab.
@@ -955,9 +963,10 @@ If optional argument BACKWARD is non-nil, cycle to the previous tab
 instead.
 The scope of the cyclic navigation through tabs is specified by the
 option `tabbar-cycling-scope'."
-  (when tabbar-mode
-    (let ((selected (tabbar-selected-tab (tabbar-current-tabset)))
-          tabset tab)
+  (let ((tabset (tabbar-current-tabset))
+        selected tab)
+    (when tabset
+      (setq selected (tabbar-selected-tab (tabbar-current-tabset)))
       (cond
        ;; Cycle through visible tabs only.
        ((eq tabbar-cycling-scope 'tabs)
