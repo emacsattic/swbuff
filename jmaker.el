@@ -1,5 +1,5 @@
 ;;; jmaker.el -- Java Makefile generator add-on to JDE.
-;; $Revision: 1.9 $
+;; $Revision: 1.10 $
 
 ;; Copyright (C) 1998 by David Ponce
 
@@ -59,17 +59,13 @@
 ;; `jde-build' command if `jde-build-use-make' is set to a non-nil value.
 ;; To build a set of projects you can use the `compile' command and give it
 ;; the file name of the meta Makefile (make [other options] -f Makefile.meta)
+;;
+;; A Jmaker menu item is added to the menu bar in jde-mode (only for FSF emacs).
 
 ;;; Customization:
 
 ;; While editing a Java file use:
 ;;   M-x `jmaker-customize' to change jmaker options
-;;
-;; If the `jmaker-hook-jde-menu' variable is non-nil (the default) the JDE
-;; `Generate' and `Options' sub-menus will have respectively new `Makefile'
-;; and `meta-Makefile' items to generate Makefiles and a new `jmaker' item
-;; to change jmaker options. The jmaker version number is also added to the
-;; JDE `Help' sub-menu.
 
 ;;; Support:
 
@@ -87,7 +83,7 @@
 (require 'jde)
 (require 'tempo)
 
-(defconst jmaker-version "$Revision: 1.9 $"
+(defconst jmaker-version "$Revision: 1.10 $"
   "jmaker version number.")
 
 (defgroup jmaker nil
@@ -178,12 +174,6 @@ command `jmaker-insert-meta-makefile', as a side-effect."
                                    nil
                                    "Insert a Java Makefile.meta in the current buffer."))
           (set-default sym val)))
-
-(defcustom jmaker-hook-jde-menu t
-  "*If on add Makefile items in JDE Generate and Options sub-menus.
-The jmaker version number is also added to the JDE Help sub-menu."
-  :group 'jmaker
-  :type 'boolean)
 
 (defun jmaker-customize ()
   "Show the jmaker customization global options panel."
@@ -335,32 +325,25 @@ to overwrite it."
       (goto-char (point-min))
       (switch-to-buffer (current-buffer)))))
 
-(defun jmaker-jde-hook ()
-  "JDE hook to add jmaker items to JDE sub-menus."
-  ;; jmaker JDE sub-menus are not supported by XEmacs!
-  (when (and jmaker-hook-jde-menu (not jde-xemacsp))
-    (define-key-after
-      (lookup-key jde-mode-map [menu-bar JDE Options])
-      [jmaker-opt] '("jmaker" . jmaker-customize)
-      'Autocode)
-    (define-key-after
-      (lookup-key jde-mode-map [menu-bar JDE Generate])
-      [jmaker-gen0] '("Makefile" . jmaker-generate-makefile)
-      'jmaker-gen0)
-    (define-key-after
-      (lookup-key jde-mode-map [menu-bar JDE Generate])
-      [jmaker-gen1] '("meta-Makefile" . jmaker-generate-meta-makefile)
-      'jmaker-gen1)
-    (define-key-after
-      (lookup-key jde-mode-map [menu-bar JDE Help])
-      [jmaker-ver] (list (concat "jmaker " (jmaker-version-number)))
-      'jmaker-ver)
-    )
+(defvar jmaker-menu 
+  (list "JMaker"
+        (list "New"
+              ["Makefile..."       jmaker-generate-makefile t]
+              ["Meta-makefile..."  jmaker-generate-meta-makefile t]
+              )
+        ["Options..."              jmaker-customize t]
+	      ["-"                       ignore nil]
+        (concat "jmaker " (jmaker-version-number))
+        )
+  "Menu for jmaker."
   )
 
-(if (and (>= emacs-major-version 20) (>= emacs-minor-version 3))
-    (add-hook 'jde-mode-hook 'jmaker-jde-hook)
-  (add-hook 'jde-mode-hooks 'jmaker-jde-hook))
+(if (not jde-xemacsp)
+    (easy-menu-do-define 'jmaker-menu 
+                         jde-mode-map
+                         "Menu for jmaker."
+                         jmaker-menu)
+)
 
 (provide 'jmaker)
 
@@ -368,6 +351,11 @@ to overwrite it."
 
 ;;
 ;; $Log: jmaker.el,v $
+;; Revision 1.10  1998/11/27 09:23:51  ebat311
+;; Compatibility issue. jmaker now has its own menu item on
+;; the menu bar (GNU Emacs only!). This avoid compatibility
+;; problem when the JDE menu structure change (as in 2.1.2).
+;;
 ;; Revision 1.9  1998/10/20 10:05:21  ebat311
 ;; Have run `untabify' on the whole source (follows a remark from ricky@siemensdc.com).
 ;;
