@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 25 February 2003
 ;; Keywords: convenience
-;; Revision: $Id: tabbar.el,v 1.26 2003/12/17 09:07:43 ponced Exp $
+;; Revision: $Id: tabbar.el,v 1.27 2004/01/20 14:30:27 ponced Exp $
 
 (defconst tabbar-version "1.4")
 
@@ -910,6 +910,13 @@ See the variable `tabbar-button-widget' for details."
     )
   "Face used for the select mode button."
   :group 'tabbar)
+
+(defcustom tabbar-background-color nil
+  "*Background color of the tab bar.
+If nil, use the `tabbar-default-face' background color."
+  :group 'tabbar
+  :type '(choice (const :tag "Default" nil)
+                 (color)))
 
 ;;; Wrappers
 ;;
@@ -1003,7 +1010,8 @@ Call `tabbar-tab-label-function' to obtain a label for TAB."
                         (string-width tabbar-scroll-right-button-enabled)
                         (string-width tabbar-separator-value)))
              (seloffset width)
-             (padcolor (face-background 'tabbar-default-face))
+             (padcolor (or tabbar-background-color
+                           (face-background 'tabbar-default-face)))
              tab elt elts sizes maxscroll)
         (when tabbar-show-selected
           (while (not (memq sel tabs))
