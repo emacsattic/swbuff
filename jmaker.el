@@ -7,7 +7,7 @@
 ;; Created: July 22 1998
 ;; Version: 2.0
 ;; Keywords: tools
-;; VC: $Id: jmaker.el,v 1.22 2000/08/18 14:49:18 david_ponce Exp $
+;; VC: $Id: jmaker.el,v 1.23 2001/10/26 22:12:00 ponce Exp $
 
 ;; This file is not part of Emacs
 
@@ -73,6 +73,31 @@
 ;;; Change Log:
 
 ;; $Log: jmaker.el,v $
+;; Revision 1.23  2001/10/26 22:12:00  ponce
+;; Require 'jde-compile instead of 'jde.
+;;
+;; (jmaker-make-use-jde-settings): New option.  If non-nil use JDE's
+;; current compilation options else use value of jmaker variables
+;; `jmaker-make-compiler' and `jmaker-make-compiler-options'.
+;;
+;; (jmaker-make-compiler): New option.  The default compiler used by
+;; jmaker.
+;;
+;; (jmaker-make-compiler-options):  New option.  The default compiler
+;; options used by jmaker.
+;;
+;; (jmaker-make-compiler): New function.  Return the Java compiler to
+;; use.
+;;
+;; (jmaker-make-compiler-options): New function.  Return the Java
+;; compiler args.
+;;
+;; (jmaker-makefile-buffer-template): Use `jmaker-make-compiler' and
+;; `jmaker-make-compiler-options'.
+;;
+;; (jmaker-makefile-generator): Don't load JDE project file if
+;; `jmaker-make-use-jde-settings' is nil.
+;;
 ;; Revision 1.22  2000/08/18 14:49:18  david_ponce
 ;; New major version 2.0 of jmaker.el.
 ;;
@@ -194,11 +219,11 @@
 ;;
 
 ;;; Code:
-(require 'jde)
+(require 'jde-compile)
 (require 'compile)
 (require 'wid-edit)
 
-(defconst jmaker-version "2.0 $Date: 2000/08/18 14:49:18 $"
+(defconst jmaker-version "2.0 $Date: 2001/10/26 22:12:00 $"
   "jmaker version  information.")
 
 (defgroup jmaker nil
@@ -215,8 +240,8 @@
     "\"####\" 'n"
     "'n"
     "\"#### Java compiler settings\" 'n"
-    "\"JAVAC       = \" jde-compiler  'n"
-    "\"JAVAC_FLAGS = \" (jde-get-compile-options) 'n"
+    "\"JAVAC       = \" (jmaker-make-compiler)  'n"
+    "\"JAVAC_FLAGS = \" (jmaker-make-compiler-options) 'n"
     "'n"
     "\"#### Targets settings\" 'n"
     "\"CLASS_FILES   = \" (jmaker-make-get-file-targets) 'n"
@@ -357,6 +382,49 @@ variable `jmaker-end-of-line-style')."
 ;;;
 ;;; Makefile parameters
 ;;;
+(defcustom jmaker-make-use-jde-settings t
+  "*non-nil to use JDE's current compilation options.
+Otherwise use value of jmaker variables `jmaker-make-compiler' and
+`jmaker-make-compiler-options'."
+  :group 'jmaker
+  :type 'boolean)
+
+(defcustom jmaker-make-compiler "javac"
+  "The default compiler used by jmaker."
+  :group 'jmaker
+  :type 'string)
+
+(defcustom jmaker-make-compiler-options "-g -deprecation"
+  "The default compiler options used by jmaker."
+  :group 'jmaker
+  :type 'string)
+
+(defun jmaker-make-compiler ()
+  "Return the Java compiler to use.
+That is the current JDE's one if not the server or value of the
+variable `jmaker-make-compiler' by default."
+  (let ((compiler (jde-compile-get-the-compiler)))
+    (if (or (not jmaker-make-use-jde-settings)
+            (oref compiler :use-server-p))
+        jmaker-make-compiler
+      (expand-file-name (oref compiler :path)))))
+
+(defun jmaker-make-compiler-options ()
+  "Return the Java compiler args.
+That is args of the current JDE's compiler or value of the variable
+`jmaker-make-compiler-options' by default."
+  (let ((compiler (jde-compile-get-the-compiler)))
+    (if (not jmaker-make-use-jde-settings)
+        jmaker-make-compiler-options
+      (concat
+       (let* ((jde-quote-classpath nil)
+              (cp (jde-compile-classpath-arg
+                   (jde-compile-get-the-compiler))))
+         (format "%s %S " (car cp) (cadr cp)))
+       (mapconcat
+        #'identity
+        (nthcdr 2 (jde-compile-get-args compiler))
+        " ")))))
 
 (defun jmaker-make-get-file-targets ()
   "Return a string containing the list of target .class files."
@@ -378,7 +446,8 @@ variable `jmaker-end-of-line-style')."
 (defun jmaker-makefile-generator ()
   "Generate a full java Makefile in the current buffer.
 Call `jde-load-project-file' to update the JDE project settings."
-  (jde-load-project-file)
+  (if jmaker-make-use-jde-settings
+      (jde-load-project-file))
   (jmaker-insert-makefile))
 
 (defun jmaker-generate-file-noselect (dir name generator &optional over)
