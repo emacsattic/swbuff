@@ -1,12 +1,20 @@
-;;; jmaker.el -- Java Makefile generator add-on to JDE.
-;; $Revision: 1.10 $
+;; @(#) jmaker.el -- Java Makefile generator
+;; @(#) $Id: jmaker.el,v 1.11 1999/04/22 21:50:36 ebat311 Exp $
+
+;; This file is not part of Emacs
 
 ;; Copyright (C) 1998 by David Ponce
+;; Author:       David Ponce david.ponce@wanadoo.fr
+;; Maintainer:   David Ponce david.ponce@wanadoo.fr
+;; Created:      July 22 1998
 
-;; Author: David Ponce <david.ponce@wanadoo.fr>
-;; Maintainer: David Ponce <david.ponce@wanadoo.fr>
-;; Keywords: java, tools
+;; LCD Archive Entry:
+;; jmaker|David Ponce|david.ponce@wanadoo.fr|
+;; Java Makefile generator|
+;; $Date: 1999/04/22 21:50:36 $|$Revision: 1.11 $|~/misc/jmaker.el|
 
+;; COPYRIGHT NOTICE
+;;
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
 ;; the Free Software Foundation; either version 2, or (at your option)
@@ -23,7 +31,7 @@
 ;; Boston, MA 02111-1307, USA.
 
 ;;; Description:
-
+;;
 ;; This package is an add-on to the Java Development Environment
 ;; (JDE) for Emacs. It automatically generates Makefiles to improve
 ;; Java projects building using make. The default Makefile template
@@ -35,14 +43,14 @@
 ;; Makefiles found in a directory tree.
 
 ;;; Installation:
-
+;;
 ;; Put the following in your .emacs file:
 ;;   (require 'jmaker)
 ;;
 ;; As jmaker does (require 'jde) you can omit it in your .emacs.
 
 ;;; Usage:
-
+;;
 ;; While editing a Java file use:
 ;;   M-x `jmaker-generate-makefile' to generate a new Makefile in the current
 ;;   directory. If an old one already exists the command requires confirmation
@@ -63,12 +71,12 @@
 ;; A Jmaker menu item is added to the menu bar in jde-mode (only for FSF emacs).
 
 ;;; Customization:
-
+;;
 ;; While editing a Java file use:
 ;;   M-x `jmaker-customize' to change jmaker options
 
 ;;; Support:
-
+;;
 ;; Any comments, suggestions, bug reports or upgrade requests are welcome.
 ;; Please send them to David Ponce at david.ponce@wanadoo.fr.
 ;;
@@ -83,7 +91,7 @@
 (require 'jde)
 (require 'tempo)
 
-(defconst jmaker-version "$Revision: 1.10 $"
+(defconst jmaker-version "$Revision: 1.11 $"
   "jmaker version number.")
 
 (defgroup jmaker nil
@@ -175,6 +183,7 @@ command `jmaker-insert-meta-makefile', as a side-effect."
                                    "Insert a Java Makefile.meta in the current buffer."))
           (set-default sym val)))
 
+;;;###autoload
 (defun jmaker-customize ()
   "Show the jmaker customization global options panel."
   (interactive)
@@ -185,6 +194,7 @@ command `jmaker-insert-meta-makefile', as a side-effect."
   (string-match "[0123456789.]+" jmaker-version)
   (match-string 0 jmaker-version))
 
+;;;###autoload
 (defun jmaker-display-version ()
   "Displays jmaker version."
   (interactive)
@@ -291,6 +301,7 @@ given `root' directory. Each file path is relative to the `root' directory."
                     (jmaker-get-makefiles-in-tree-aux root rel-f)))))
             (directory-files dir))))
 
+;;;###autoload
 (defun jmaker-generate-makefile ()
   "Generates a Java `Makefile' file which could be used to compile Java files
 in the current directory.
@@ -308,6 +319,7 @@ to overwrite it."
       (goto-char (point-min))
       (switch-to-buffer (current-buffer)))))
 
+;;;###autoload
 (defun jmaker-generate-meta-makefile (root)
   "Generates the file `root'/Makefile.meta which could be used to recursively make
 all `Makefile' files found in the subdirectories of the given `root' directory.
@@ -343,7 +355,7 @@ to overwrite it."
                          jde-mode-map
                          "Menu for jmaker."
                          jmaker-menu)
-)
+  )
 
 (provide 'jmaker)
 
@@ -351,6 +363,9 @@ to overwrite it."
 
 ;;
 ;; $Log: jmaker.el,v $
+;; Revision 1.11  1999/04/22 21:50:36  ebat311
+;; Added `autoload' cookies.
+;;
 ;; Revision 1.10  1998/11/27 09:23:51  ebat311
 ;; Compatibility issue. jmaker now has its own menu item on
 ;; the menu bar (GNU Emacs only!). This avoid compatibility
