@@ -1,5 +1,5 @@
 ;; @(#) jmaker.el -- Java Makefile generator
-;; @(#) $Id: jmaker.el,v 1.19 2000/05/12 13:16:48 david_ponce Exp $
+;; @(#) $Id: jmaker.el,v 1.20 2000/05/25 09:43:22 david_ponce Exp $
 
 ;; This file is not part of Emacs
 
@@ -11,7 +11,7 @@
 ;; LCD Archive Entry:
 ;; jmaker|David Ponce|<david@dponce.com>|
 ;; Java Makefile generator|
-;; $Date: 2000/05/12 13:16:48 $|$Revision: 1.19 $|~/misc/jmaker.el|
+;; $Date: 2000/05/25 09:43:22 $|$Revision: 1.20 $|~/misc/jmaker.el|
 
 ;; COPYRIGHT NOTICE
 ;;
@@ -100,7 +100,7 @@
 (eval-when-compile
   (require 'wid-edit))
 
-(defconst jmaker-version "$Revision: 1.19 $"
+(defconst jmaker-version "$Revision: 1.20 $"
   "jmaker version tag.")
 
 (defgroup jmaker nil
@@ -586,8 +586,11 @@ If Makefile.meta already exists the command requires confirmation to overwrite i
         )
   "Menu for jmaker.")
 
-(require 'easymenu)
-(easy-menu-do-define 'jmaker-menu jde-mode-map "Menu for jmaker." jmaker-menu)
+(add-hook 'jde-mode-hook
+          (function
+           (lambda ()
+             (require 'easymenu)
+             (easy-menu-add-item jde-mode-map '("menu-bar") jmaker-menu))))
 
 (provide 'jmaker)
 
@@ -595,6 +598,9 @@ If Makefile.meta already exists the command requires confirmation to overwrite i
 
 ;;
 ;; $Log: jmaker.el,v $
+;; Revision 1.20  2000/05/25 09:43:22  david_ponce
+;; JMaker menu setup now done in `jde-mode-hook'.
+;;
 ;; Revision 1.19  2000/05/12 13:16:48  david_ponce
 ;; Added new function `jmaker-set-buffer-end-of-line-style' to force the
 ;; end-of-line style used when writing a Makefile (for example, this can
