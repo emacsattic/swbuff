@@ -1,5 +1,5 @@
 ;; @(#) swbuff.el -- Quick switch between Emacs buffers.
-;; @(#) $Id: swbuff.el,v 1.7 1999/05/17 09:28:45 ebat311 Exp $
+;; @(#) $Id: swbuff.el,v 1.8 1999/07/26 16:54:30 ebat311 Exp $
 
 ;; This file is not part of Emacs
 
@@ -11,7 +11,7 @@
 ;; LCD Archive Entry:
 ;; swbuff|David Ponce|david.ponce@wanadoo.fr|
 ;; Quick switch between Emacs buffers|
-;; $Date: 1999/05/17 09:28:45 $|$Revision: 1.7 $|~/misc/|
+;; $Date: 1999/07/26 16:54:30 $|$Revision: 1.8 $|~/misc/|
 
 ;; COPYRIGHT NOTICE
 ;;
@@ -84,7 +84,7 @@
 ;;; Code:
 (require 'cl)
 
-(defconst swbuff-version "$Revision: 1.7 $"
+(defconst swbuff-version "$Revision: 1.8 $"
   "swbuff version number."
   )
 
@@ -256,21 +256,12 @@ If there are no buffers, then the message is \"No buffers eligible for switching
       (setq l (cdr l))))
   )
 
-
 (defun swbuff-default-load-hook ()
   "Default hook run when package has been loaded. It maps the global keys
 `C-f6' and `C-S-f6' respectively to the `swbuff-switch-to-next-buffer'
 and `swbuff-switch-to-previous-buffer' commands."
-  (if (string-match "XEmacs" emacs-version)
-      (progn
-        (global-set-key [(control f6)]       'swbuff-switch-to-next-buffer)
-        (global-set-key [(control shift f6)] 'swbuff-switch-to-previous-buffer)
-        )
-    (progn
-      (global-set-key [C-f6]   'swbuff-switch-to-next-buffer)
-      (global-set-key [C-S-f6] 'swbuff-switch-to-previous-buffer)
-      )
-    )
+  (global-set-key [(control f6)]       'swbuff-switch-to-next-buffer)
+  (global-set-key [(control shift f6)] 'swbuff-switch-to-previous-buffer)
   )
 
 (provide 'swbuff)
@@ -280,7 +271,10 @@ and `swbuff-switch-to-previous-buffer' commands."
 
 ;;
 ;; $Log: swbuff.el,v $
-;; Revision 1.7  1999/05/17 09:28:45  ebat311
+;; Revision 1.8  1999/07/26 16:54:30  ebat311
+;; Use Emacs/XEmacs compatible key mapping in `swbuff-default-load-hook'.
+;;
+;; Revision 1.7  1999-05-17 11:28:45+02  ebat311
 ;; Improved buffer list display:
 ;;   - The current highlighted buffer name is always visible.
 ;;     Previously, when the buffer list exceeded the size
