@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 25 February 2003
 ;; Keywords: convenience
-;; Revision: $Id: tabbar.el,v 1.33 2004/03/30 14:07:28 ponced Exp $
+;; Revision: $Id: tabbar.el,v 1.34 2004/03/31 09:22:10 ponced Exp $
 
 (defconst tabbar-version "1.4")
 
@@ -1008,62 +1008,95 @@ line, to display a separator on the tab bar."
 (defun tabbar-scroll-right-help ()
   "Return the help string shown when mouse is onto the scroll right button."
   "mouse-1: scroll tabs right.")
+
+;;; Tab callbacks
+;;
+(defun tabbar-help-on-tab (window object position)
+  "Return a help string or nil for none, for the tab under the mouse.
+WINDOW is the window in which the help was found (unused).
+OBJECT is the tab label under the mouse.
+POSITION is the position in that label (unused). 
+Call `tabbar-help-on-tab-function' with the associated tab."
+  (when tabbar-help-on-tab-function
+    (let ((tab (get-text-property 0 'tabbar-tab object)))
+      (funcall tabbar-help-on-tab-function tab))))
+
+(defsubst tabbar-make-mouse-event (&optional type)
+  "Return a mouse click event.
+Optional argument TYPE is a mouse-click event or one of the
+symbols `mouse-1', `mouse-2' or `mouse-3'.
+The default is `mouse-1'."
+  (if (tabbar-click-p type)
+      type
+    (list (or (memq type '(mouse-2 mouse-3)) 'mouse-1)
+          (or (event-start nil) ;; Emacs 21.4
+              (list (selected-window) (point) '(0 . 0) 0)))))
+
+(defsubst tabbar-click-on-tab (tab &optional type)
+  "Handle a mouse click event on tab TAB.
+Call `tabbar-select-tab-function' with the received, or simulated
+mouse click event, and TAB.
+Optional argument TYPE is a mouse click event type (see the function
+`tabbar-make-mouse-event' for details)."
+  (when tabbar-select-tab-function
+    (setq tabbar-last-selected-tab tab)
+    (funcall tabbar-select-tab-function
+             (tabbar-make-mouse-event type) tab)))
+
+(defun tabbar-select-tab-callback (event)
+  "Handle a mouse EVENT on a tab.
+Pass mouse click events on a tab to `tabbar-click-on-tab'."
+  (interactive "@e")
+  (and (tabbar-click-p event)
+       (tabbar-click-on-tab
+        (get-text-property
+         0 'tabbar-tab (car (posn-object (event-start event))))
+        event)))
+
+(defvar tabbar-select-tab-keymap
+  (let ((km (make-sparse-keymap)))
+    (define-key km [header-line down-mouse-1] 'ignore)
+    (define-key km [header-line down-mouse-2] 'ignore)
+    (define-key km [header-line down-mouse-3] 'ignore)
+    (define-key km [header-line mouse-1] 'tabbar-select-tab-callback)
+    (define-key km [header-line mouse-2] 'tabbar-select-tab-callback)
+    (define-key km [header-line mouse-3] 'tabbar-select-tab-callback)
+    km)
+  "Tab keymap.")
 
 ;;; Tab bar contruction
 ;;
+(defun tabbar-make-tab-keymap (tab)
+  "Return a command to handle TAB selection.
+Return a keymap to handle mouse click events on TAB."
+  (if (fboundp 'posn-object)
+      tabbar-select-tab-keymap
+    (let* ((event (make-symbol "event"))
+           (km    (make-sparse-keymap))
+           (cmd   `(lambda (,event)
+                     (interactive "@e")
+                     (and (tabbar-click-p ,event)
+                          (tabbar-click-on-tab ',tab ,event)))))
+      (set-keymap-parent km tabbar-select-tab-keymap)
+      (define-key km [header-line mouse-1] cmd)
+      (define-key km [header-line mouse-2] cmd)
+      (define-key km [header-line mouse-3] cmd)
+      km)))
 
-;; These functions can be called at compilation time.
-(eval-and-compile
-  
-  (defun tabbar-make-select-tab-command (tab)
-    "Return a command to handle TAB selection.
-That command calls `tabbar-select-tab-function' with the received
-mouse event and TAB."
-    (let ((event (make-symbol "event"))
-          (window (make-symbol "window")))
-      `(lambda (,event)
-         (interactive "@e")
-         (when (and tabbar-select-tab-function (tabbar-click-p ,event))
-           (setq tabbar-last-selected-tab ,tab)
-           (funcall tabbar-select-tab-function ,event ,tab)))))
-
-  (defun tabbar-make-help-on-tab-function (tab)
-    "Return a function that return a help string on TAB.
-That command calls `tabbar-help-on-tab-function' with TAB."
-    (let ((window (make-symbol "window"))
-          (object (make-symbol "object"))
-          (position (make-symbol "position"))
-          )
-      `(lambda (,window ,object ,position)
-         (when tabbar-help-on-tab-function
-           (funcall tabbar-help-on-tab-function ,tab)))))
-  
-  )
-
-(defun tabbar-line-element (tab)
+(defsubst tabbar-line-element (tab)
   "Return an `header-line-format' template element from TAB.
 Call `tabbar-tab-label-function' to obtain a label for TAB."
-  (let* ((keymap (make-sparse-keymap))
-         (qtab   (list 'quote tab))
-         (select (tabbar-make-select-tab-command qtab))
-         (help   (tabbar-make-help-on-tab-function qtab))
-         (label  (if tabbar-tab-label-function
-                     (funcall tabbar-tab-label-function tab)
-                   tab)))
-    ;; Call `tabbar-select-tab-function' on mouse events.
-    (define-key keymap [header-line down-mouse-1] 'ignore)
-    (define-key keymap [header-line mouse-1] select)
-    (define-key keymap [header-line down-mouse-2] 'ignore)
-    (define-key keymap [header-line mouse-2] select)
-    (define-key keymap [header-line down-mouse-3] 'ignore)
-    (define-key keymap [header-line mouse-3] select)
-    ;; Return the tab followed by a separator.
-    (list (propertize label 'local-map keymap 'help-echo help
-                      'face (if (tabbar-selected-p
-                                 tab (tabbar-current-tabset))
-                                'tabbar-selected-face
-                              'tabbar-unselected-face))
-          tabbar-separator-value)))
+  (list (propertize
+         (if tabbar-tab-label-function
+             (funcall tabbar-tab-label-function tab)
+           tab)
+         'tabbar-tab tab
+         'local-map (tabbar-make-tab-keymap tab)
+         'help-echo 'tabbar-help-on-tab
+         'face (if (tabbar-selected-p tab (tabbar-current-tabset))
+                   'tabbar-selected-face
+                 'tabbar-unselected-face))
+        tabbar-separator-value))
 
 (defun tabbar-line-format (tabset)
   "Return the `header-line-format' value to display TABSET."
@@ -1146,24 +1179,6 @@ Inhibit display of the tab bar in current window if any of the
 
 ;;; Cyclic navigation through tabs
 ;;
-(defsubst tabbar-make-mouse-event (&optional type)
-  "Return a mouse-click event.
-Optional argument TYPE is a mouse-click event or one of the
-symbols `mouse-1', `mouse-2' or `mouse-3'.
-The default is `mouse-1'."
-  (if (tabbar-click-p type)
-      type
-    (list (or (memq type '(mouse-2 mouse-3)) 'mouse-1)
-          (or (event-start nil) ;; Emacs 21.4
-              (list (selected-window) (point) '(0 . 0) 0)))))
-
-(defmacro tabbar-click-on-tab (tab &optional type)
-  "Simulate a mouse click event on tab TAB.
-Optional argument TYPE is a mouse event type (see the function
-`tabbar-make-mouse-event' for details)."
-  `(,(tabbar-make-select-tab-command tab)
-    (tabbar-make-mouse-event ,type)))
-
 (defun tabbar-cycle (&optional backward type)
   "Cycle to the next available tab.
 The scope of the cyclic navigation through tabs is specified by the
