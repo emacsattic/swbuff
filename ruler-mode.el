@@ -93,7 +93,7 @@
 
 (defgroup ruler-mode nil
   "Display a ruler in the header line."
-  :version "21.1"
+  :version "21.2"
   :group 'environment)
 
 ;; IMPORTANT: This function must be defined before the following
