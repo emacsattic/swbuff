@@ -1,5 +1,5 @@
 ;; @(#) swbuff.el -- Quick switch between Emacs buffers.
-;; @(#) $Id: swbuff.el,v 1.8 1999/07/26 16:54:30 ebat311 Exp $
+;; @(#) $Id: swbuff.el,v 1.9 2000/01/17 10:56:57 ebat311 Exp $
 
 ;; This file is not part of Emacs
 
@@ -11,7 +11,7 @@
 ;; LCD Archive Entry:
 ;; swbuff|David Ponce|david.ponce@wanadoo.fr|
 ;; Quick switch between Emacs buffers|
-;; $Date: 1999/07/26 16:54:30 $|$Revision: 1.8 $|~/misc/|
+;; $Date: 2000/01/17 10:56:57 $|$Revision: 1.9 $|~/misc/|
 
 ;; COPYRIGHT NOTICE
 ;;
@@ -84,7 +84,7 @@
 ;;; Code:
 (require 'cl)
 
-(defconst swbuff-version "$Revision: 1.8 $"
+(defconst swbuff-version "$Revision: 1.9 $"
   "swbuff version number."
   )
 
@@ -146,13 +146,17 @@ See also `swbuff-default-load-hook'."
 
 (defun swbuff-buffer-list ()
   "Returns a buffer list without the ones whose name matches `swbuff-exclude-buffer-regexps'."
-  (mapcan '(lambda (buff)
-             (and
-              (notany '(lambda (rexp)
-                         (string-match rexp (buffer-name buff)))
-                      swbuff-exclude-buffer-regexps)
-              (list buff)))
-          (buffer-list))
+  (let ((sw-buf-list
+         (mapcan '(lambda (buff)
+                    (and
+                     (notany '(lambda (rexp)
+                                (string-match rexp (buffer-name buff)))
+                             swbuff-exclude-buffer-regexps)
+                     (list buff)))
+                 (buffer-list))))
+    (unless (memq (current-buffer) sw-buf-list)
+      (setq sw-buf-list (cons (current-buffer) sw-buf-list)))
+    sw-buf-list)
   )
 
 (defvar swbuff-buffer-list-string-holder nil
@@ -203,7 +207,9 @@ If there are no buffers, then the message is \"No buffers eligible for switching
               (if (sit-for swbuff-clear-delay)
                   (swbuff-undisplay-buffer-list))
               )))
-      (message "No buffers eligible for switching.")))
+      (progn
+        (setq swbuff-buffer-list-string-holder nil)
+        (message "No buffers eligible for switching."))))
   )
 
 (defvar swbuff-mini-buffer nil
@@ -271,7 +277,13 @@ and `swbuff-switch-to-previous-buffer' commands."
 
 ;;
 ;; $Log: swbuff.el,v $
-;; Revision 1.8  1999/07/26 16:54:30  ebat311
+;; Revision 1.9  2000/01/17 10:56:57  ebat311
+;; Fixed a little problem when switching to next buffer and current buffer
+;; is excluded from the list of ones eligible for switching.
+;;
+;; Thanks to "Joe Casadonte" <joc@netaxs.com> who has reported this.
+;;
+;; Revision 1.8  1999-07-26 18:54:30+02  ebat311
 ;; Use Emacs/XEmacs compatible key mapping in `swbuff-default-load-hook'.
 ;;
 ;; Revision 1.7  1999-05-17 11:28:45+02  ebat311
