@@ -1,5 +1,5 @@
 ;; @(#) recentf.el -- Setup a menu of recently opened files
-;; @(#) $Id: recentf.el,v 1.3 1999/07/21 10:10:46 ebat311 Exp $
+;; @(#) $Id: recentf.el,v 1.4 1999/07/23 09:19:05 ebat311 Exp $
 
 ;; This file is not part of Emacs
 
@@ -11,7 +11,7 @@
 ;; LCD Archive Entry:
 ;; recentf|David Ponce|david.ponce@wanadoo.fr|
 ;; Setup a menu of recently opened files|
-;; $Date: 1999/07/21 10:10:46 $|$Revision: 1.3 $|~/misc/recentf.el|
+;; $Date: 1999/07/23 09:19:05 $|$Revision: 1.4 $|~/misc/recentf.el|
 
 ;; COPYRIGHT NOTICE
 ;;
@@ -102,10 +102,9 @@
 ;;  Please, let me know if it works with other OS and versions of Emacs.
 
 ;;; Code:
-(require 'cl)
 (require 'easymenu)
 
-(defconst recentf-version "$Revision: 1.3 $"
+(defconst recentf-version "$Revision: 1.4 $"
   "recentf version number.")
 
 (defconst recentf-save-file-header
@@ -289,7 +288,7 @@ files and keep them is the list of recently opened files."
   "Add or move FILENAME at the beginning of `recentf-list'.
 Does nothing if FILENAME matches one of the `recentf-exclude' regexps."
   (when (recentf-include-p filename)
-    (setq recentf-list (cons filename (remove filename recentf-list)))
+    (setq recentf-list (cons filename (delete filename recentf-list)))
     (setq recentf-update-menu-p t)
     )
   )
@@ -301,7 +300,7 @@ If FILENAME is not readable it is removed from `recentf-list'."
       (find-file filename)
     (progn
       (message "File `%s' not found." filename)
-      (setq recentf-list (remove filename recentf-list))
+      (setq recentf-list (delete filename recentf-list))
       (setq recentf-update-menu-p t)))
   )
 
@@ -331,7 +330,11 @@ If FILENAME is not readable it is removed from `recentf-list'."
 
 ;;
 ;; $Log: recentf.el,v $
-;; Revision 1.3  1999/07/21 10:10:46  ebat311
+;; Revision 1.4  1999/07/23 09:19:05  ebat311
+;; As recommended by "Richard Stallman" <rms@gnu.org>, replaced
+;; the `remove' function by `delete' to avoid recentf depending on cl.
+;;
+;; Revision 1.3  1999-07-21 12:10:46+02  ebat311
 ;; FIXED:
 ;;   User customization of the recentf menu was not correctly handled.
 ;;   Thanks to "Steve Kemp" <stevek@epc.co.uk> who has reported this bug.
