@@ -7,7 +7,7 @@
 ;; Created: 12 Nov 1998
 ;; Version: 3.0
 ;; Keywords: extensions convenience
-;; VC: $Id: swbuff.el,v 1.16 2001/03/26 06:09:56 ponce Exp $
+;; VC: $Id: swbuff.el,v 1.17 2001/09/19 11:13:00 ponce Exp $
 
 ;; This file is not part of Emacs
 
@@ -61,6 +61,29 @@
 ;;; Change Log:
 
 ;; $Log: swbuff.el,v $
+;; Revision 1.17  2001/09/19 11:13:00  ponce
+;; (swbuff-window-lines): Use `swbuff-count-lines' instead of
+;; `count-lines'.
+;;
+;; (swbuff-ignore): Alias of `ignore' used to prevent discarding the
+;; status window on some mouse event.
+;;
+;; In compatibility code: Use mouse-1, mouse-3 on mode line buffer
+;; identification to respectively switch to previous or next buffer.  And
+;; mouse-2 to kill the current buffer.
+;;
+;; (swbuff-timer): New variable.  Timer used to discard the status
+;; window.
+;;
+;; (swbuff-show-status-window, swbuff-pre-command-hook):  Use timer to
+;; discard the status window.
+;;
+;; (swbuff-pre-command-hook):  Added `swbuff-kill-this-buffer' and
+;; `swbuff-ignore' to the list of commands that do not discard the status
+;; window.
+;;
+;; (swbuff-kill-this-buffer): New command to kill the current buffer.
+;;
 ;; Revision 1.16  2001/03/26 06:09:56  ponce
 ;; `swbuff-layout-status-line' hide Emacs 21 header line.
 ;;
@@ -161,8 +184,9 @@
 ;;
 
 ;;; Code:
+(require 'timer)
 
-(defconst swbuff-version "3.0 $Date: 2001/03/26 06:09:56 $"
+(defconst swbuff-version "3.0 $Date: 2001/09/19 11:13:00 $"
   "swbuff version information.")
 
 (defconst swbuff-status-buffer-name "*swbuff*"
@@ -294,7 +318,7 @@ and the greater of them is not at the start of a line."
   "Return the number of lines in current buffer.
 This number may be greater than the number of actual lines in the
 buffer if any wrap on the display due to their length."
-  (count-lines (point-min) (point-max)))
+  (swbuff-count-lines (point-min) (point-max)))
 
 (defun swbuff-adjust-window (&optional text-height)
   "Adjust window height to fit its buffer contents.
@@ -310,18 +334,41 @@ value."
       (enlarge-window (- lines height))))
   (goto-char (point-min)))
 
+;; Used to prevent discarding the status window on some mouse event.
+(defalias 'swbuff-ignore 'ignore)
+
 ;;; Compatibility
-(if (and (not (featurep 'xemacs))
-         (> emacs-major-version 20))
+(cond
+ ;; GNU Emacs 21
+ ((and (not (featurep 'xemacs))
+       (> emacs-major-version 20))
+  
+  (defun swbuff-scroll-window (position)
+    "Adjust horizontal scrolling to ensure that POSITION is visible."
+    (setq truncate-lines t)
+    (let ((automatic-hscrolling t))
+      (goto-char position)))
 
-    ;; GNU Emacs 21
-    (defun swbuff-scroll-window (position)
-      "Adjust horizontal scrolling to ensure that POSITION is visible."
-      (setq truncate-lines t)
-      (let ((automatic-hscrolling t))
-        (goto-char position)))
+  ;; Use mouse-1, mouse-3 on mode line buffer identification to
+  ;; respectively switch to previous or next buffer.  And mouse-2 to
+  ;; kill the current buffer.
+  (let ((map mode-line-buffer-identification-keymap))
+    (define-key map [mode-line mouse-1]
+      'swbuff-switch-to-previous-buffer)
+    (define-key map [mode-line drag-mouse-1]
+      'swbuff-ignore)
+    (define-key map [mode-line down-mouse-1]
+      'swbuff-ignore)
+    (define-key map [mode-line mouse-2]
+      'swbuff-kill-this-buffer)
+    (define-key map [mode-line mouse-3]
+      'swbuff-switch-to-next-buffer))
 
-  ;; GNU Emacs 20 or XEmacs
+  )
+ 
+ ;; GNU Emacs 20 or XEmacs
+ (t
+
   (defconst swbuff-extra-space 3
     "Extra space left in a line of the status window.
 The default value correspond to the truncated glyphs + one space.")
@@ -340,7 +387,7 @@ The default value correspond to the truncated glyphs + one space.")
         (if (< position hscr)
             (set-window-hscroll window (- position swbuff-extra-space))))))
   
-  )
+  ))
 
 (defun swbuff-one-window-p (window)
   "Return non-nil if there is only one window in this frame ignoring
@@ -409,6 +456,9 @@ BCURR is the buffer name to highlight."
         (swbuff-adjust-window 1)
         (swbuff-scroll-window end)))))
 
+(defvar swbuff-timer nil
+  "Timer used to discard the status window.")
+
 (defun swbuff-show-status-window ()
   "Pop-up a status window at the bottom of the selected window. The
 status window shows the list of switchable buffers where the switched
@@ -426,8 +476,11 @@ delay specified by `swbuff-clear-delay'."
             (set-window-buffer w (current-buffer))
             (swbuff-layout-status-line w bcurr)
             (add-hook 'pre-command-hook 'swbuff-pre-command-hook)
-            (if (sit-for swbuff-clear-delay)
-                (swbuff-discard-status-window)))))
+            (if (timerp swbuff-timer)
+                (cancel-timer swbuff-timer))
+            (setq swbuff-timer (run-with-timer
+                                swbuff-clear-delay nil
+                                #'swbuff-discard-status-window)))))
     (message "No buffers eligible for switching.")))
 
 (defun swbuff-discard-status-window ()
@@ -439,10 +492,16 @@ delay specified by `swbuff-clear-delay'."
 
 (defun swbuff-pre-command-hook ()
   "`pre-command-hook' used to track successive calls to switch commands."
-  (when (not (or (eq 'swbuff-switch-to-previous-buffer this-command)
-                 (eq 'swbuff-switch-to-next-buffer this-command)))
+  (if (memq this-command '(swbuff-switch-to-previous-buffer
+                           swbuff-switch-to-next-buffer
+                           swbuff-kill-this-buffer
+                           swbuff-ignore))
+      nil
     (swbuff-discard-status-window)
     (setq swbuff-buffer-list-holder nil))
+  (if (timerp swbuff-timer)
+      (cancel-timer swbuff-timer))
+  (setq swbuff-timer nil)
   (remove-hook 'pre-command-hook 'swbuff-pre-command-hook))
 
 (defun swbuff-previous-buffer ()
@@ -478,6 +537,15 @@ buffer list."
   (interactive)
   (swbuff-next-buffer)
   (swbuff-show-status-window))
+
+;;;###autoload
+(defun swbuff-kill-this-buffer ()
+  "Kill the current buffer.
+And update the status window if showing."
+  (interactive)
+  (kill-buffer (current-buffer))
+  (and (get-buffer-window swbuff-status-buffer-name)
+       (swbuff-show-status-window)))
 
 (defun swbuff-default-load-hook ()
   "Default hook run when package has been loaded.  Map the global keys
