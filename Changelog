@@ -1,3 +1,11 @@
+2003-10-03  David Ponce  <david@dponce.com>
+
+	* tree-widget.el
+
+	(tree-widget-image-conversion): Rename to...
+	(tree-widget-image-formats): New.  Update all references.
+	(tree-widget-find-image): Only locate images of supported type.
+
 2003-10-01  David Ponce  <david@dponce.com>
 
 	* tree-widget.el
