@@ -7,7 +7,7 @@
 ;; Created: 16 Feb 2001
 ;; Version: 1.0
 ;; Keywords: extensions
-;; VC: $Id: tree-widget.el,v 1.3 2001/03/16 14:23:15 ponce Exp $
+;; VC: $Id: tree-widget.el,v 1.4 2001/05/11 23:02:14 ponce Exp $
 
 ;; This file is not part of Emacs
 
@@ -115,6 +115,10 @@
 ;;; History:
 ;; 
 ;; $Log: tree-widget.el,v $
+;; Revision 1.4  2001/05/11 23:02:14  ponce
+;; (tree-widget-value-create): Fixed a bug when the dynamic tree :dynargs
+;; function returns nil (no children).
+;;
 ;; Revision 1.3  2001/03/16 14:23:15  ponce
 ;; (tree-widget-example-1): removed unused free variable
 ;; `tree-widget-sample'.
@@ -373,33 +377,37 @@ WIDGET is a tree leaf node and ESCAPE a format character."
                    widget tree-widget-node-handle-widget
                    :value nil :help-echo "Hide node")
                   buttons))
-      (insert (widget-get widget :open-handle))
+      (insert (widget-get widget (if args
+                                     :open-handle
+                                   :close-handle)))
       (widget-put widget :tree-widget-node
                   (widget-create-child-and-convert widget node))
       (setq prefix
             (concat (or (widget-get widget :tree-widget-prefix) "")
                     (or (widget-get widget :tree-widget-guide)
                         (widget-get widget :no-guide))))
-      (while (cdr args)
+      (if (null args)
+          nil
+        (while (cdr args)
+          (insert prefix)
+          (setq children
+                (cons (widget-create-child-and-convert
+                       widget (car args)
+                       :tree-widget-prefix prefix
+                       :tree-widget-guide (widget-get widget :guide)
+                       :tree-widget-leaf-handle
+                       (widget-get widget :leaf-handle))
+                      children)
+                args (cdr args)))
+        ;; The last non tree child uses the :last-leaf-handle.
         (insert prefix)
         (setq children
               (cons (widget-create-child-and-convert
                      widget (car args)
                      :tree-widget-prefix prefix
-                     :tree-widget-guide (widget-get widget :guide)
                      :tree-widget-leaf-handle
-                     (widget-get widget :leaf-handle))
-                    children)
-              args (cdr args)))
-      ;; The last non tree child uses the :last-leaf-handle.
-      (insert prefix)
-      (setq children
-            (cons (widget-create-child-and-convert
-                   widget (car args)
-                   :tree-widget-prefix prefix
-                   :tree-widget-leaf-handle
-                   (widget-get widget :last-leaf-handle))
-                  children)))
+                     (widget-get widget :last-leaf-handle))
+                    children))))
 
      ;; Folded node.
      (t
