@@ -6,9 +6,9 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 27 Nov 2001
 ;; Keywords: extensions
-;; Revision: $Id: tree-widget-examples.el,v 1.2 2003/04/25 11:31:58 ponced Exp $
+;; Revision: $Id: tree-widget-examples.el,v 1.3 2003/09/29 10:26:27 ponced Exp $
 
-(defconst tree-widget-examples-version "1.1")
+(defconst tree-widget-examples-version "1.2")
 
 ;; This file is not part of Emacs
 
@@ -33,7 +33,7 @@
 ;;
 
 ;;; History:
-;; 
+;;
 
 ;;; Code:
 (require 'tree-widget)
@@ -71,9 +71,7 @@ IGNORE arguments."
   (let ((all (tree-widget-example-overlay-lists)))
     (mapcar #'tree-widget-example-delete-overlay (car all))
     (mapcar #'tree-widget-example-delete-overlay (cdr all)))
-
   (widget-insert (format "%s. \n\n" (buffer-name)))
-
   (widget-create
    ;; Open this level.
    'tree-widget :open t
@@ -85,16 +83,15 @@ IGNORE arguments."
            (lambda (&rest ignore)
              (message "This is the Root node")))
    ;; Add subtrees (their nodes defaut to items).
-   '(tree-widget :tag "Child-1")
-   '(tree-widget :tag "Child-2"
-                 (tree-widget :tag "Child-2.1")
-                 (tree-widget :tag "Child-2.2"
-                              (tree-widget :tag "Child-2.2.1")
-                              (tree-widget :tag "Child-2.2.2")))
-   '(tree-widget :tag "Child-3"
-                 (tree-widget :tag "Child-3.1")
-                 (tree-widget :tag "Child-3.2")))
-  
+   '(tree-widget :tag "Node-1")
+   '(tree-widget :tag "Node-2"
+                 (tree-widget :tag "Empty-2.1")
+                 (tree-widget :tag "Node-2.2"
+                              (item :tag "Leaf-2.2.1")
+                              (item :tag "Leaf-2.2.2")))
+   '(tree-widget :tag "Node-3"
+                 (tree-widget :tag "Empty-3.1")
+                 (item        :tag "Leaf-3.2")))
   (widget-insert "\n")
   ;; Insert the Close button
   (widget-create 'push-button
@@ -102,7 +99,6 @@ IGNORE arguments."
                  :keymap        tree-widget-button-keymap ; Emacs
                  :notify 'tree-widget-example-close
                  "Close")
-    
   (use-local-map widget-keymap)
   (widget-setup))
 
@@ -137,13 +133,11 @@ command."
   (let ((all (tree-widget-example-overlay-lists)))
     (mapcar #'tree-widget-example-delete-overlay (car all))
     (mapcar #'tree-widget-example-delete-overlay (cdr all)))
-  
   (make-local-hook 'tree-widget-after-toggle-functions)
   (add-hook 'tree-widget-after-toggle-functions
             'tree-widget-example-11-after-toggle-fcn nil t)
 
   (widget-insert (format "%s. \n\n" (buffer-name)))
-  
   (widget-create
    ;; Open this level.
    'tree-widget
@@ -190,15 +184,13 @@ command."
                               :node-name "3.2"
                               :open ,(tree-widget-example-11-open-p "3.2")
                               )))
-  
-    (widget-insert "\n")
-    ;; Insert the Close button
-    (widget-create 'push-button
-                   :button-keymap tree-widget-button-keymap ; XEmacs
-                   :keymap        tree-widget-button-keymap ; Emacs
-                   :notify 'tree-widget-example-close
-                   "Close")
-    
+  (widget-insert "\n")
+  ;; Insert the Close button
+  (widget-create 'push-button
+                 :button-keymap tree-widget-button-keymap ; XEmacs
+                 :keymap        tree-widget-button-keymap ; Emacs
+                 :notify 'tree-widget-example-close
+                 "Close")
   (use-local-map widget-keymap)
   (widget-setup))
 
@@ -206,11 +198,11 @@ command."
   "Return the children definitions of WIDGET.
 Reuse the cached :args property value if exists."
   (or (widget-get widget :args)
-      '((tree-widget :tag "Child-2.1")
-        (tree-widget :tag "Child-2.2"
-                     (tree-widget :tag "Child-2.2.1")
-                     (tree-widget :tag "Child-2.2.2")))))
-  
+      '((tree-widget :tag "Empty-2.1")
+        (tree-widget :tag "Node-2.2"
+                     (item :tag "Leaf-2.2.1")
+                     (item :tag "Leaf-2.2.2")))))
+
 (defun tree-widget-example-2 ()
   "A simple usage of the `tree-widget' with dynamic expansion."
   (interactive)
@@ -235,15 +227,14 @@ Reuse the cached :args property value if exists."
            (lambda (&rest ignore)
              (message "This is the Root node")))
    ;; Add subtrees (their nodes defaut to items).
-   '(tree-widget :tag "Child-1")
+   '(tree-widget :tag "Node-1")
    ;; Dynamically retrieve children of this node.
-   '(tree-widget :tag "Child-2"
+   '(tree-widget :tag "Node-2"
                  :dynargs tree-widget-example-2-dynargs
                  :has-children t)
-   '(tree-widget :tag "Child-3"
-                 (tree-widget :tag "Child-3.1")
-                 (tree-widget :tag "Child-3.2")))
-  
+   '(tree-widget :tag "Node-3"
+                 (tree-widget :tag "Empty-3.1")
+                 (item        :tag "Leaf-3.2")))
   (widget-insert "\n")
   ;; Insert the Close button
   (widget-create 'push-button
@@ -251,7 +242,6 @@ Reuse the cached :args property value if exists."
                  :keymap        tree-widget-button-keymap ; Emacs
                  :notify 'tree-widget-example-close
                  "Close")
-    
   (use-local-map widget-keymap)
   (widget-setup))
 
