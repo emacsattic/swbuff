@@ -5,6 +5,7 @@
 ;; Author: David Ponce <david@dponce.com>
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 12 Feb 2001
+;; X-RCS: $Id: overlay-fix.el,v 1.2 2001/08/29 14:53:31 ponce Exp $
 
 ;; This file is not part of Emacs
 
@@ -25,35 +26,47 @@
 
 ;;; Commentary:
 ;; 
-;; This library advices the built-in functions `make-overlay' and
-;; `overlay-put' to ensure that the overlay 'face property is never
-;; nil but `overlay-empty-face' instead.  In Emacs versions before 21
-;; when the overlay 'face property is nil it can disable the overlayed
-;; text face property.  The most visible issue is that overlayed text
-;; is not syntax highlighted.
+;; In GNU Emacs versions before 21 when the overlay 'face property is
+;; nil it can disable the overlayed text face property.  The most
+;; visible issue is that overlayed text is not syntax highlighted.
+;; This library advices the built-in functions `make-overlay',
+;; `overlay-put' and `overlay-get' to ensure that the overlay 'face
+;; property will never be nil but `overlay-fix-empty-face' instead.
+;; And that callers will continue to see nil for the corresponding
+;; 'face property.
 
 ;;; History:
 ;; 
 
 ;;; Code:
 (if (or (featurep 'xemacs) (> emacs-major-version 20))
-    ;; Not needed for Emacs since v21 and XEmacs
+    ;; Not needed for Emacs since v21 nor XEmacs
     nil
 
   ;; Define an empty face
-  (make-empty-face 'overlay-empty-face)
+  (make-empty-face 'overlay-fix-empty-face)
 
   (defadvice make-overlay (after after-make-overlay activate)
     "Ensure overlay 'face property is never nil."
     (or (overlay-get ad-return-value 'face)
-        (overlay-put ad-return-value 'face 'overlay-empty-face)))
+        (overlay-put ad-return-value 'face 'overlay-fix-empty-face)))
 
-  (defadvice overlay-put (before before-overlay-put activate)
+  (defadvice overlay-put (around before-overlay-put activate)
     "Ensure overlay 'face property is never nil."
-    (and (eq (ad-get-arg 1) 'face)
-         (null (ad-get-arg 2))
-         (ad-set-arg 2 'overlay-empty-face)))
+    (if (and (eq (ad-get-arg 1) 'face)
+             (null (ad-get-arg 2)))
+        (ad-set-arg 2 'overlay-fix-empty-face))
+    ad-do-it
+    (and  (eq (ad-get-arg 1) 'face)
+          (eq (ad-get-arg 2) 'overlay-fix-empty-face)
+          (setq ad-return-value nil)))
   
+  (defadvice overlay-get (after after-overlay-get activate)
+    "Ensure overlay 'face property is never nil."
+    (if (and (eq (ad-get-arg 1) 'face)
+             (eq ad-return-value 'overlay-fix-empty-face))
+        (setq ad-return-value nil)))
+
   )
 
 (provide 'overlay-fix)
