@@ -1,5 +1,5 @@
 ;; @(#) recentf.el -- Setup a menu of recently opened files
-;; @(#) $Id: recentf.el,v 1.7 1999/08/24 07:50:54 ebat311 Exp $
+;; @(#) $Id: recentf.el,v 1.8 1999/09/30 21:37:03 ebat311 Exp $
 
 ;; This file is not part of Emacs
 
@@ -11,7 +11,7 @@
 ;; LCD Archive Entry:
 ;; recentf|David Ponce|david.ponce@wanadoo.fr|
 ;; Setup a menu of recently opened files|
-;; $Date: 1999/08/24 07:50:54 $|$Revision: 1.7 $|~/misc/recentf.el|
+;; $Date: 1999/09/30 21:37:03 $|$Revision: 1.8 $|~/misc/recentf.el|
 
 ;; COPYRIGHT NOTICE
 ;;
@@ -100,6 +100,12 @@
 ;;     The given function will receive one argument, the list of filenames to be
 ;;     displayed in the menu and must return a new list of filenames.
 ;;
+;;  o  `recentf-menu-append-commands-p'
+;;     If not-nil (default) command items are appended to the menu.
+;;
+;;  o  `recentf-keep-non-readable-files-p'
+;;     If nil (default) non readable files are not kept in `recentf-list'.
+;;
 ;;  o `recentf-load-hook'
 ;;     Hook run when package has been loaded.
 
@@ -108,14 +114,14 @@
 ;;  Any comments, suggestions, bug reports or upgrade requests are welcome.
 ;;  Please send them to David Ponce at david.ponce@wanadoo.fr.
 ;;
-;;  This elisp package was developed with NTEmacs 20.3.11b on MS Windows
+;;  This elisp package was developed with NTEmacs 20.4.1 on MS Windows
 ;;  NT 4 WKS SP5 and also tested with Emacs 20.3.1 on Sun Solaris 2.5.1.
 ;;  Please, let me know if it works with other OS and versions of Emacs.
 
 ;;; Code:
 (require 'easymenu)
 
-(defconst recentf-version "$Revision: 1.7 $"
+(defconst recentf-version "$Revision: 1.8 $"
   "recentf version number.")
 
 (defconst recentf-save-file-header
@@ -133,6 +139,13 @@
 
 (defvar recentf-initialized-p nil
   "Non-nil if recentf already initialized."
+  )
+
+;; WORKAROUND:
+;; In some Emacs/XEmacs version the `custom-set-default' function is missing.
+(if (not (fboundp 'custom-set-default))
+    (defun custom-set-default (variable value)
+      (set-default variable value))
   )
 
 (defun recentf-menu-customization-changed (sym val)
@@ -225,6 +238,24 @@ displayed in the menu and must return a new list of filenames."
   :set 'recentf-menu-customization-changed
   )
 
+(defcustom recentf-menu-append-commands-p t
+  "*If not-nil command items are appended to the menu."
+  :group 'recentf
+  :type 'boolean
+  :set 'recentf-menu-customization-changed
+  )
+
+(defcustom recentf-keep-non-readable-files-p nil
+  "*If nil (default) non readable files are not kept in `recentf-list'."
+  :group 'recentf
+  :type 'boolean
+  :set  '(lambda (sym val)
+           (if val
+               (remove-hook 'kill-buffer-hook 'recentf-remove-file-hook)
+             (add-hook 'kill-buffer-hook 'recentf-remove-file-hook))
+           (custom-set-default sym val))
+  )
+
 (defcustom recentf-load-hook nil
    "*Hook run when package has been loaded."
   :group 'recentf
@@ -274,6 +305,12 @@ displayed in the menu and must return a new list of filenames."
   nil
   )
 
+(defun recentf-remove-file-hook ()
+  "When a buffer is killed remove a non readable file from `recentf-list'."
+  (and buffer-file-name (recentf-remove-if-non-readable buffer-file-name))
+  nil
+  )
+
 (defun recentf-update-menu-hook ()
   "Update the recentf menu from the current `recentf-list'."
   (when recentf-update-menu-p
@@ -307,12 +344,34 @@ displayed in the menu and must return a new list of filenames."
   nil
   )
 
+;;;###autoload
+(defun recentf-cleanup ()
+  "Remove all non-readable files from `recentf-list'."
+  (interactive)
+  (setq recentf-list (delq nil (mapcar '(lambda (f)
+                                          (and (file-readable-p f) f))
+                                       recentf-list)))
+  (setq recentf-update-menu-p t)
+  )
+
+(defvar recentf-menu-items-for-commands
+  (list ["Cleanup list" recentf-cleanup t]
+        ["Save list now" recentf-save-list t]
+        (vector (format "Recentf %s Options..." (recentf-version-number))
+                'recentf-customize t))
+  "List of menu items for recentf commands."
+  )
+
 (defun recentf-make-menu-items ()
   "Make menu items from `recentf-list'."
-  (mapcar '(lambda (entry)
-             (vector entry (list recentf-menu-action entry) t))
-          (funcall (or recentf-menu-filter 'identity)
-                   (recentf-elements recentf-max-menu-items)))
+  (let ((file-items (mapcar '(lambda (entry)
+                               (vector entry (list recentf-menu-action entry) t))
+                            (funcall (or recentf-menu-filter 'identity)
+                                     (recentf-elements recentf-max-menu-items)))))
+    (append (or file-items (list ["No files" t nil]))
+            (and recentf-menu-append-commands-p
+                 (cons ["---" nil nil]
+                       recentf-menu-items-for-commands))))
   )
 
 (defun recentf-add-file (filename)
@@ -320,6 +379,14 @@ displayed in the menu and must return a new list of filenames."
 Does nothing if FILENAME matches one of the `recentf-exclude' regexps."
   (when (recentf-include-p filename)
     (setq recentf-list (cons filename (delete filename recentf-list)))
+    (setq recentf-update-menu-p t)
+    )
+  )
+
+(defun recentf-remove-if-non-readable (filename)
+  "Remove FILENAME from `recentf-list' if non readable."
+  (unless (file-readable-p filename)
+    (setq recentf-list (delete filename recentf-list))
     (setq recentf-update-menu-p t)
     )
   )
@@ -371,7 +438,25 @@ If FILENAME is not readable it is removed from `recentf-list'."
 
 ;;
 ;; $Log: recentf.el,v $
-;; Revision 1.7  1999/08/24 07:50:54  ebat311
+;; Revision 1.8  1999/09/30 21:37:03  ebat311
+;; New features:
+;;   - Command items can be appended to the menu depending of
+;;     a new customizable option `recentf-menu-append-commands-p'.
+;;
+;;   - Non readable files are not kept in `recentf-list' depending
+;;     of a new customizable option `recentf-keep-non-readable-files-p'.
+;;
+;;   - New command `recentf-cleanup' to remove all non-readable
+;;     files from `recentf-list'.
+;;
+;; Fixes:
+;;   - In some Emacs/XEmacs version the `custom-set-default' function
+;;     is missing. A workaround is included.
+;;
+;;   - When the `recentf-list' is empty a disabled "No files" item
+;;     is displayed on the menu.
+;;
+;; Revision 1.7  1999-08-24 09:50:54+02  ebat311
 ;; FIXED:
 ;;
 ;;   When vm-mail is called, emacs started beeping and was hanging.
