@@ -1,5 +1,5 @@
 ;; @(#) jsee.el -- Javadoc viewer
-;; @(#) $Id: jsee.el,v 1.2 1999/03/01 13:56:25 ebat311 Exp $
+;; @(#) $Id: jsee.el,v 1.3 1999/04/22 21:28:44 ebat311 Exp $
 
 ;; This file is not part of Emacs
 
@@ -9,9 +9,9 @@
 ;; Created:      December 3 1998
 
 ;; LCD Archive Entry:
-;; <el>|David Ponce|david.ponce@wanadoo.fr|
-;; <docum>|
-;; <date>|$Revision: 1.2 $|~/misc/|
+;; jsee|David Ponce|david.ponce@wanadoo.fr|
+;; Javadoc viewer|
+;; $Date: 1999/04/22 21:28:44 $|$Revision: 1.3 $|~/misc/jsee.el|
 
 ;; COPYRIGHT NOTICE
 ;;
@@ -130,7 +130,7 @@
 (require 'jde)
 (require 'browse-url)
 
-(defconst jsee-version "$Revision: 1.2 $"
+(defconst jsee-version "$Revision: 1.3 $"
   "jsee version number.")
 
 ;; I USE A SUBGROUP OF `jde' AND PREFIXED ALL VARIABLES WITH `jde-jsee-'
@@ -242,6 +242,7 @@ conventions. See `jsee-get-javadoc-url' for details."
   :type 'hook
   )
 
+;;;###autoload
 (defun jsee-customize ()
   "Customization of the group jde-jsee."
   (interactive)
@@ -252,6 +253,7 @@ conventions. See `jsee-get-javadoc-url' for details."
   (string-match "[0123456789.]+" jsee-version)
   (match-string 0 jsee-version))
 
+;;;###autoload
 (defun jsee-display-version ()
   "Displays jsee version."
   (interactive)
@@ -406,6 +408,7 @@ produces an HTML file /tmp/apidoc/my/package/MyProgram.html."
         ))
   )
 
+;;;###autoload
 (defun jsee-browse-api-doc ()
   "Runs the Java API Documentation Generator for the Java source file
 in the current buffer and browses the resulting HTML file."
@@ -428,7 +431,10 @@ in the current buffer and browses the resulting HTML file."
 
 ;;
 ;; $Log: jsee.el,v $
-;; Revision 1.2  1999/03/01 13:56:25  ebat311
+;; Revision 1.3  1999/04/22 21:28:44  ebat311
+;; Added `autoload' cookies.
+;;
+;; Revision 1.2  1999-03-01 14:56:25+01  ebat311
 ;; FIXED - when a java file doesn't have a package name the
 ;; `jsee-get-javadoc-url' and `jsee-get-javadoc1.2-url' functions
 ;; built invalid URL.
