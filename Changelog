@@ -1,5 +1,14 @@
 2003-09-29  David Ponce  <david@dponce.com>
 
+	* tree-widget.el
+
+	Byte-compile cleanly.
+	(tree-widget-use-image-p) [Emacs]: Use `display-images-p'.
+	(tree-widget-image-type-available-p): Use in-line definition
+	instead of defalias.
+
+2003-09-29  David Ponce  <david@dponce.com>
+
 	* tree-widget-examples.el
 
 	(tree-widget-example-1): Can prompt for an alternate image theme
