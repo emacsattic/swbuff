@@ -7,7 +7,7 @@
 ;; Created: 12 Nov 1998
 ;; Version: 3.0
 ;; Keywords: extensions convenience
-;; VC: $Id: swbuff.el,v 1.15 2001/03/06 12:16:24 ponce Exp $
+;; VC: $Id: swbuff.el,v 1.16 2001/03/26 06:09:56 ponce Exp $
 
 ;; This file is not part of Emacs
 
@@ -61,6 +61,9 @@
 ;;; Change Log:
 
 ;; $Log: swbuff.el,v $
+;; Revision 1.16  2001/03/26 06:09:56  ponce
+;; `swbuff-layout-status-line' hide Emacs 21 header line.
+;;
 ;; Revision 1.15  2001/03/06 12:16:24  ponce
 ;; New major version 3.0.
 ;; Now works with FSF Emacs 20.7, 21.1 and XEmacs 21.1.
@@ -159,7 +162,7 @@
 
 ;;; Code:
 
-(defconst swbuff-version "3.0 $Date: 2001/03/06 12:16:24 $"
+(defconst swbuff-version "3.0 $Date: 2001/03/26 06:09:56 $"
   "swbuff version information.")
 
 (defconst swbuff-status-buffer-name "*swbuff*"
@@ -366,6 +369,7 @@ BCURR is the buffer name to highlight."
         start end buffer bname fillr)
     (save-selected-window
       (select-window window)
+      (setq header-line-format nil) ;; Hide Emacs 21 header line.
       (erase-buffer)
       (setq start (point))
       (insert head)
