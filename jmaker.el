@@ -1,5 +1,5 @@
 ;; @(#) jmaker.el -- Java Makefile generator
-;; @(#) $Id: jmaker.el,v 1.18 2000/04/14 09:04:35 david_ponce Exp $
+;; @(#) $Id: jmaker.el,v 1.19 2000/05/12 13:16:48 david_ponce Exp $
 
 ;; This file is not part of Emacs
 
@@ -11,7 +11,7 @@
 ;; LCD Archive Entry:
 ;; jmaker|David Ponce|<david@dponce.com>|
 ;; Java Makefile generator|
-;; $Date: 2000/04/14 09:04:35 $|$Revision: 1.18 $|~/misc/jmaker.el|
+;; $Date: 2000/05/12 13:16:48 $|$Revision: 1.19 $|~/misc/jmaker.el|
 
 ;; COPYRIGHT NOTICE
 ;;
@@ -100,7 +100,7 @@
 (eval-when-compile
   (require 'wid-edit))
 
-(defconst jmaker-version "$Revision: 1.18 $"
+(defconst jmaker-version "$Revision: 1.19 $"
   "jmaker version tag.")
 
 (defgroup jmaker nil
@@ -191,6 +191,20 @@ command `jmaker-insert-meta-makefile', as a side-effect."
                                    nil
                                    "Insert a Java Makefile.meta in the current buffer."))
           (set-default sym val)))
+
+(defcustom jmaker-end-of-line-style 'unix
+  "*Specify end-of-line style used when writing a Makefile.
+The possible choices are:
+
+- - 'Default' does not change the default end-of-line conversion.
+- - 'Unix'    force UNIX end-of-line conversion (the default).
+- - 'Dos'     force DOS end-of-line conversion.
+- - 'Mac'     force MAC end-of-line conversion."
+  :group 'jmaker
+  :type '(choice (const :tag "Default" nil )
+                 (const :tag "Unix"    unix)
+                 (const :tag "Dos"     dos )
+                 (const :tag "Mac"     mac )))
 
 ;;;###autoload
 (defun jmaker-customize ()
@@ -332,6 +346,19 @@ Call `jde-load-project-file' to update the JDE project settings."
 ;; Generate a full java meta Makefile in the current buffer.
 (defalias 'jmaker-meta-makefile-generator 'jmaker-insert-meta-makefile)
 
+(defun jmaker-set-buffer-end-of-line-style ()
+  "Set the end-of-line style used when writing a Makefile (see
+variable `jmaker-end-of-line-style')."
+  (if (symbolp jmaker-end-of-line-style)
+      (let* ((style (symbol-name jmaker-end-of-line-style))
+             (oldcs (symbol-name buffer-file-coding-system))
+             (newcs (and (string-match "\\(dos\\|unix\\|mac\\)$" oldcs)
+                         (intern (replace-match style t t oldcs)))))
+        (and (coding-system-p newcs)
+             (not (eq newcs buffer-file-coding-system))
+             (setq buffer-file-coding-system newcs)
+             (message "end-of-line style set to %s" style)))))
+
 (defun jmaker-generate-file-noselect (dir name generator &optional over)
   "Edit the file NAME in directory DIR and return the updated file buffer.
 GENERATOR is the function used to generate the file buffer contents.
@@ -344,8 +371,7 @@ overwrite it unless OVER is non-nil."
                  (error "Command canceled."))))
     (with-current-buffer (find-file-noselect file)
       (erase-buffer)
-      ;; (jde-load-project-file)
-      ;; (jmaker-insert-makefile)
+      (jmaker-set-buffer-end-of-line-style)
       (funcall generator)
       (current-buffer))))
 
@@ -569,6 +595,14 @@ If Makefile.meta already exists the command requires confirmation to overwrite i
 
 ;;
 ;; $Log: jmaker.el,v $
+;; Revision 1.19  2000/05/12 13:16:48  david_ponce
+;; Added new function `jmaker-set-buffer-end-of-line-style' to force the
+;; end-of-line style used when writing a Makefile (for example, this can
+;; be useful when using a Unix make program, like the one provided in
+;; cygwin 1.1.0, under Windows). The default end-of-line style follows
+;; Unix convention (LF). This can be changed by customizing the new
+;; variable `jmaker-end-of-line-style'.
+;;
 ;; Revision 1.18  2000/04/14 09:04:35  david_ponce
 ;; With `directory-sep-char' value set to '\' jmaker did not
 ;; correctly handle directory pathes when generating meta Makefile.
