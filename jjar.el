@@ -1,17 +1,20 @@
 ;; @(#) jjar.el -- Java Archive builder
-;; @(#) $Id: jjar.el,v 1.6 2000/03/10 15:28:20 ebat311 Exp $
+;; @(#) $Id: jjar.el,v 1.7 2000/04/12 14:31:01 david_ponce Exp $
+
+(defconst jjar-version "1.7 (beta1) $Date: 2000/04/12 14:31:01 $"
+  "jjar version information.")
 
 ;; This file is not part of Emacs
 
 ;; Copyright (C) 1999 by David Ponce
-;; Author:       David Ponce david.ponce@wanadoo.fr
-;; Maintainer:   David Ponce david.ponce@wanadoo.fr
+;; Author:       David Ponce david@dponce.com
+;; Maintainer:   David Ponce david@dponce.com
 ;; Created:      June 14 1999
 
 ;; LCD Archive Entry:
-;; jjar|David Ponce|david.ponce@wanadoo.fr|
+;; jjar|David Ponce|david@dponce.com|
 ;; Java Archive builder|
-;; $Date: 2000/03/10 15:28:20 $|$Revision: 1.6 $|~/misc/jjar.el|
+;; $Date: 2000/04/12 14:31:01 $|1.7 (beta1)|~/misc/jjar.el|
 
 ;; COPYRIGHT NOTICE
 ;;
@@ -32,350 +35,168 @@
 
 ;;; Description:
 ;;
-;;  This elisp package provides commands to create or update (JDK 1.2) a
-;;  Java ARrchive files (JAR). The files to be archived are searched in choosen
-;;  sub-directories of a given base directory and selected by customized shell
-;;  wildcards.
+;; This library provides commands to create or update (since JDK 1.2) a
+;; Java ARrchive files (.jar). The files to be archived are searched in
+;; a given directory tree in this way:
+;;
+;; 1 - A dialog is shown to customize shell wildcard expressions used to
+;;     locate the files.
+;; 2 - When the files are located, a second dialog is shown to select the
+;;     ones to archive.
+;; 3 - The jar command is built and run in compile-mode.
 
 ;;; Installation:
 ;;
-;;  Put this file on your Emacs-Lisp load path and add following into your
-;;  ~/.emacs startup file
+;; Put this file on your Emacs-Lisp load path and add following into your
+;; ~/.emacs startup file
 ;;
-;;      (require 'jjar)
-;;  or 
-;;      (autoload 'jjar-create "jjar" "Create a new jar file." t nil)
-;;      (autoload 'jjar-update "jjar" "Update an existing jar file." t nil)
+;;   (require 'jjar)
+;;
+;; or
+;;
+;;   (autoload 'jjar-customize "jjar" "Customize jjar options."      t nil)
+;;   (autoload 'jjar-create    "jjar" "Create a new jar file."       t nil)
+;;   (autoload 'jjar-update    "jjar" "Update an existing jar file." t nil)
 
 ;;; Usage:
 ;;
-;;  M-x `jjar-create'
-;;     To create a JAR file.
+;; M-x `jjar-create'
 ;;
-;;  M-x `jjar-update'
-;;     To update an existing JAR file (JDK 1.2).
+;; To create a new jar file.
+;;
+;; M-x `jjar-update'
+;;
+;; To update an existing jar file (since JDK 1.2).
 
 ;;; Customization:
 ;;
-;;  M-x `jjar-customize' to customize all the jjar options.
+;; M-x `jjar-customize' to customize all the jjar options.
 ;;
-;;  The following variables could be set:
-;;
-;;  o `jjar-load-hook'
-;;        hook run when package has been loaded. The provided hook
-;;        `jjar-default-load-hook' does nothing.
-;;
-;;  o `jjar-jar-command'
-;;        Specifies the path to the the jar command to be used.
-;;
-;;  o `jjar-jar-nocompress-option'
-;;        If non-nil (default) jar uses no ZIP compression.
-;;
-;;  o `jjar-jar-verbose-option'
-;;        If non-nil (default) jar generates verbose output on standard error.
-;;
-;;  o `jjar-include-wildcards'
-;;     List of predefined shell wildcard expressions used to locate files.
-;;     The default setting includes .class and .properties files.
-;;
+;; You should at least customize the `jjar-jar-command' variable to setup
+;; the path of the jar command in your installation.
   
 ;;; Support:
 ;;
-;;  Any comments, suggestions, bug reports or upgrade requests are welcome.
-;;  Please send them to David Ponce at david.ponce@wanadoo.fr.
+;; Latest version of jjar can be downloaded from: <http://www.dponce.com/>
 ;;
-;;  Developed with NTEmacs 20.3.10 on MS Windows NT 4 WKS SP5.
-;;  Please, let me know if it works with other OS and versions of Emacs.
+;; Any comments, suggestions, bug reports or upgrade requests are welcome.
+;; Please send them to David Ponce at <david@dponce.com>
+;;
+;; I currently develop and test jjar with NTEmacs 20.6.1 under MS Windows
+;; NT 4 WKS SP5.
 
 ;;; Code:
 
 (require 'compile)
-;;(require 'cl)
 (require 'widget)
 (eval-when-compile
   (require 'wid-edit))
 
-(defconst jjar-version "$Revision: 1.6 $"
-  "jjar version number."
-  )
-
 (defgroup jjar nil
-  "jjar package customization."
+  "Java Archive builder."
   :group 'tools
-  :prefix "jjar-"
-  )
+  :prefix "jjar-")
 
-(defcustom jjar-jar-command "/jdk1.2/bin/jar.exe"
-  "*The path to the jar command to be used."
+(defcustom jjar-jar-command "jar"
+  "*Path to the Java JDK jar command."
   :group 'jjar
-  :type 'string
-  )
+  :type 'string)
 
 (defcustom jjar-jar-nocompress-option t
   "*If non-nil jar uses no ZIP compression."
   :group 'jjar
-  :type 'boolean
-  )
+  :type 'boolean)
 
 (defcustom jjar-jar-verbose-option t
   "*If non-nil jar generates verbose output on standard error."
   :group 'jjar
-  :type 'boolean
-  )
+  :type 'boolean)
 
 (defcustom jjar-include-wildcards '("*.class" "*.properties")
   "*List of predefined shell wildcard expressions used to locate files.
 The default setting includes class and properties files."
   :group 'jjar
-  :type '(repeat (regexp :format "%s"))
-  )
+  :type '(repeat (regexp :format "%s")))
 
-(defcustom jjar-load-hook '()
+(defcustom jjar-load-hook nil
   "*Hook run when package has been loaded."
   :group 'jjar
-  :type 'hook
-  )
-
-;;;###autoload
-(defun jjar-customize ()
-  "Customization of the group jjar."
-  (interactive)
-  (customize-group "jjar")
-  )
-
-(defun jjar-version-number ()
-  "Return jjar version number."
-  (string-match "[0123456789.]+" jjar-version)
-  (match-string 0 jjar-version)
-  )
-
-;;;###autoload
-(defun jjar-display-version ()
-  "Display jjar version."
-  (interactive)
-  (message "Using 'jjar' version %s." (jjar-version-number))
-  )
+  :type 'hook)
 
 (defvar jjar-build-option nil
-  "\"-c\" to create a new JAR file or \"-u\" to update an existing one.")
+  "\"-c\" to create a new jar file or \"-u\" to update an existing one.")
 
 (defvar jjar-base-directory nil
-  "The directory from which the JAR command is issued.")
-
-(defvar jjar-selected-subdirs nil
-  "List of sub-directories to scan.")
-
-(defvar jjar-selected-wildcards nil
-  "List of wildcards used to select files.")
+  "The jar command is issued (and the files are located) in this directory.")
 
 (defvar jjar-jar-file nil
-  "The name of the JAR file to be created/updated.")
+  "Name of the jar file to be created or updated.")
 
-;;;###autoload
-(defun jjar-create (base)
-  "Create a new jar file.
+(defvar jjar-wildcards nil
+  "List of shell wildcards used to locate the files to be archived.")
 
-BASE is the directory from which the JAR command is issued, that is
-where the files to be archived are searched.
+(defvar jjar-files nil
+  "List of file expressions to give to the jar command.")
 
-See also `jjar-choose-base-subdirs' and `jjar-choose-wildcards'.
-This function sets the `jjar-build-option', `jjar-base-directory'
-and `jjar-jar-file' variables then calls `jjar-choose-base-subdirs'.
-"
-  (interactive "DBase-directory: ")
-  (setq jjar-build-option "-c")
-  (setq jjar-base-directory (file-name-as-directory (expand-file-name base)))
-  (setq jjar-jar-file (file-relative-name (read-file-name "jar-file: "
-                                                          jjar-base-directory)
-                                          jjar-base-directory))
-  (jjar-choose-base-subdirs)
-  )
+(defun jjar-get-matching-files ()
+  "Return a list of file expressions to give to the jar command. File expressions
+are the shell wildcard expressions based on `jjar-wildcards' that match files in
+`jjar-base-directory' tree.
+Called by `jjar-files-dialog' to initialize `jjar-files'."
+  (message "Searching matching files...")
+  (let ((file-list
+         (nconc (and (file-directory-p jjar-base-directory)
+                     (jjar-get-matching-files-in-dir jjar-base-directory))
+                (jjar-get-matching-files-in-tree jjar-base-directory))))
+    (message "Searching matching files...Done")
+    file-list))
 
-;;;###autoload
-(defun jjar-update (base file)
-  "Update an existing jar file.
+(defun jjar-get-matching-files-in-dir (dir)
+  "Return a list file expressions corresponding to files in DIR that match
+one of `jjar-wildcards' expressions."
+  (delq nil
+        (mapcar '(lambda (wildcard)
+                   (and (directory-files dir nil (wildcard-to-regexp wildcard))
+                        (concat (file-name-as-directory
+                                 (file-relative-name dir jjar-base-directory))
+                                wildcard)))
+                jjar-wildcards)))
 
-BASE is the directory from which the JAR command is issued, that is
-where the files to be archived are searched.
-FILE is the name of the JAR file to update.
+(defun jjar-get-matching-files-in-tree (dir)
+  "Auxiliary function used by `jjar-get-matching-files'.
+DIR is a subdirectory in `jjar-base-directory' tree."
+  (apply 'nconc
+         (mapcar
+          '(lambda (entry)
+             (and (not (string= (substring entry -1) "."))
+                  (file-directory-p entry)
+                  (nconc (jjar-get-matching-files-in-dir  entry)
+                         (jjar-get-matching-files-in-tree entry))))
+          (directory-files dir t))))
 
-See also `jjar-choose-base-subdirs' and `jjar-choose-wildcards'.
+(defun jjar-make-jar-command ()
+  "Build and return the jar command.
+See `jjar-jar-command' `jjar-get-jar-options' `jjar-jar-file' `jjar-files'."
+  (and jjar-files
+       (concat jjar-jar-command " " 
+               (jjar-get-jar-options) " "
+               jjar-jar-file " "
+               (mapconcat 'identity jjar-files " "))))
 
-This function sets the `jjar-build-option', `jjar-base-directory'
-and `jjar-jar-file' variables then calls `jjar-choose-base-subdirs'.
-"
-  (interactive "DBase-directory: \nfJAR-file: ")
-  (setq jjar-build-option "-u")
-  (setq jjar-base-directory (file-name-as-directory (expand-file-name base)))
-  (setq jjar-jar-file (file-relative-name file jjar-base-directory))
-  (jjar-choose-base-subdirs)
-  )
-
-(defun jjar-choose-base-subdirs ()
-  "Choose the sub-directories of `jjar-base-directory' to scan.
-To scan `jjar-base-directory' select the sub-directory \".\".
-
-This function sets the `jjar-selected-subdirs' variable
-then calls `jjar-choose-wildcards'.
-"
-  (let ((subdirs (jjar-get-base-subdirs)))
-    (with-current-buffer (get-buffer-create "*jjar*" )
-      (switch-to-buffer (current-buffer))
-      (kill-all-local-variables)
-      (let ((inhibit-read-only t))
-        (erase-buffer))
-      (let ((all (overlay-lists)))
-        ;; Delete all the overlays.
-        (mapcar 'delete-overlay (car all))
-        (mapcar 'delete-overlay (cdr all)))
-      (setq jjar-selected-subdirs nil)
-      ;; Insert the dialog header
-      (widget-insert
-       (format "Select the sub-directories of '%s' to scan.\n\n" jjar-base-directory))
-      (widget-insert "Click Next to continue or Cancel to quit.\n" )
-      ;; Insert the list of sub-directories as checkboxes
-      (let (i n)
-        (setq i 0)
-        (setq n (length subdirs))
-        (while (< i n)
-          (let* ((subdir (nth i subdirs))
-                 (args (list  
-                        'checkbox
-                        :value nil      ; unselected checkbox
-                        :format "\n %[%v%]  %t"
-                        :tag subdir
-                        :notify (lambda (widget &rest ignore)
-                                  (let ((value (widget-get widget ':tag)))
-                                    ;; if value is already in the selected subdirs
-                                    (if (memq value jjar-selected-subdirs)
-                                        ;; then remove it
-                                        (progn
-                                          (setq jjar-selected-subdirs
-                                                (delq value jjar-selected-subdirs))
-                                          (message "You have deselected: %s" value))
-                                      ;; else add it
-                                      (progn
-                                        (setq jjar-selected-subdirs
-                                              (nconc (list value)
-                                                     jjar-selected-subdirs))
-                                        (message "You have selected: %s" value))))))))
-            (apply 'widget-create args)
-            (setq i (+ i 1)))))
-      ;; Insert the Next button
-      (widget-insert "\n\n")
-      (widget-create 'push-button
-                     :notify (lambda (&rest ignore)
-                               (let ((dialog-buffer (current-buffer)))
-                                 (if jjar-selected-subdirs
-                                     (progn (kill-buffer dialog-buffer)
-                                            (message "Sub-directories: %S"
-                                                     jjar-selected-subdirs)
-                                            (jjar-choose-wildcards)
-                                            )
-                                   (message "No sub-directory selected."))))
-                     "Next")
-      (widget-insert " ")
-      ;; Insert the Cancel button
-      (widget-create 'push-button
-                     :notify (lambda (&rest ignore)
-                               (let ((dialog-buffer (current-buffer)))
-                                 (kill-buffer dialog-buffer)
-                                 (message "Command canceled.")))
-                     "Cancel")
-      (use-local-map widget-keymap)
-      (widget-setup)))
-  )
-
-;; (defun jjar-get-base-subdirs ()
-;;   "Return the list of sub-directories of `jjar-base-directory'."
-;;   (mapcan '(lambda (f)
-;;              (let ((file (concat jjar-base-directory f)))
-;;                (if  (and (file-directory-p file)
-;;                          (not (string= f "..")))
-;;                    (list f))))
-;;           (directory-files jjar-base-directory))
-;;   )
-
-(defun jjar-get-base-subdirs ()
-  "Return the list of sub-directories of `jjar-base-directory'."
-  (cons jjar-base-directory
-        (jjar-directories-tree-aux jjar-base-directory)))
-
-
-(defun jjar-directories-tree-aux (dir)
-  (let ((dir (file-name-as-directory (expand-file-name dir))))
-    (apply 'nconc
-           (mapcar '(lambda (f)
-                      (let ((entry (concat dir f)))
-                        (unless (or (string= f "..")
-                                    (string= f ".")
-                                    (not (file-directory-p entry)))
-                          (cons (file-name-as-directory entry)
-                                (jjar-directories-tree-aux entry)))))
-                   (directory-files dir)))))
-
-(defun jjar-choose-wildcards ()
-  "Choose the wildcard expressions used to select files.
-
-This function sets the `jjar-selected-wildcards' variable
-then calls `jjar-execute'.
-"
-  (with-current-buffer (get-buffer-create "*jjar*" )
-    (switch-to-buffer (current-buffer))
-    (kill-all-local-variables)
-    (let ((inhibit-read-only t))
-      (erase-buffer))
-    (let ((all (overlay-lists)))
-      ;; Delete all the overlays.
-      (mapcar 'delete-overlay (car all))
-      (mapcar 'delete-overlay (cdr all)))
-    (setq jjar-selected-wildcards jjar-include-wildcards)
-    ;; Insert the dialog header
-    (widget-insert
-     "Customize the wildcard expressions used to select files.\n\n")
-    (widget-insert "Click OK to build the JAR file or Cancel to quit.\n\n")
-    ;; Insert an editable list of the predefined wildcard expressions
-    (widget-create 'editable-list
-                   :entry-format "%i %d %v"
-                   :notify (lambda (widget &rest ignore)
-                             (setq jjar-selected-wildcards (widget-value widget))
-                                   (message "%S" jjar-selected-wildcards))
-                   :value jjar-selected-wildcards
-                   '(editable-field :value ""))
-    ;; Insert the Ok button
-    (widget-insert "\n\n")
-    (widget-create 'push-button
-                   :notify (lambda (&rest ignore)
-                             (let ((dialog-buffer (current-buffer)))
-                               (if jjar-selected-wildcards
-                                   (progn (kill-buffer dialog-buffer)
-                                          (message "Wildcard expressions: %S"
-                                                   jjar-selected-wildcards)
-                                          (jjar-execute)
-                                          )
-                                 (message "No wildcard expression selected."))))
-                   "Ok")
-    (widget-insert " ")
-    ;; Insert the cancel button
-    (widget-create 'push-button
-                   :notify (lambda (&rest ignore)
-                             (let ((dialog-buffer
-                                    (current-buffer)))
-                               (kill-buffer dialog-buffer)
-                               (message "Command canceled.")))
-                   "Cancel")
-    (use-local-map widget-keymap)
-    (widget-setup))
-  )
+(defun jjar-get-jar-options ()
+  "Build and return the jar command options.
+See `jjar-jar-nocompress-option' and `jjar-jar-verbose-option'."
+  (let ((options jjar-build-option))
+    (if jjar-jar-nocompress-option
+        (setq options (concat options "0")))
+    (if jjar-jar-verbose-option
+        (setq options (concat options "v")))
+    (setq options (concat options "f"))
+    options))
 
 (defun jjar-execute ()
-  "Build and run the JAR command in compile mode.
-
-`jjar-base-directory'     - directory from which the command is issued.
-`jjar-jar-file'           - name of the JAR file to be created/updated.
-`jjar-selected-subdirs'   - list of sub-directories to scan.
-`jjar-selected-wildcards' - list of wildcards used to select files.
-"
+  "Build and run the jar command in compile mode.
+See `jjar-make-jar-command'."
   (let ((compile-command (jjar-make-jar-command)))
     (when compile-command
       ;; Force save-some-buffers to use the minibuffer
@@ -395,96 +216,162 @@ then calls `jjar-execute'.
         (save-some-buffers (not compilation-ask-about-save) nil))
       (let ((default-directory jjar-base-directory))
         ;;(message "%s" compile-command)
-        (compile-internal compile-command "No more errors"))))
-  )
+        (compile-internal compile-command "No more errors")
+        ))))
 
-(defun jjar-make-jar-command ()
-  "Build and return the jar command."
-  (let ((files (jjar-get-matching-wilcards)))
-    (and files
-         (concat jjar-jar-command " " 
-                 (jjar-get-jar-options) " "
-                 jjar-jar-file " "
-                 (mapconcat 'identity files " "))))
-  )
+(defun jjar-wildcards-dialog (wildcards)
+  "Show the dialog used to customize the shell wildcard expressions used to locate
+the files to archive.
+WILDCARDS is a list of wildcard expressions used to initialize the dialog."
+  (with-current-buffer (get-buffer-create "*jjar-wildcards-dialog*" )
+    (switch-to-buffer (current-buffer))
+    (kill-all-local-variables)
+    (let ((inhibit-read-only t))
+      (erase-buffer))
+    (let ((all (overlay-lists)))
+      ;; Delete all the overlays.
+      (mapcar 'delete-overlay (car all))
+      (mapcar 'delete-overlay (cdr all)))
 
-(defun jjar-get-jar-options ()
-  "Build and return the jar command options.
-See `jjar-jar-nocompress-option' and `jjar-jar-verbose-option'."
-  (let ((options jjar-build-option))
-    (if jjar-jar-nocompress-option
-        (setq options (concat options "0")))
-    (if jjar-jar-verbose-option
-        (setq options (concat options "v")))
-    (setq options (concat options "f"))
-    options)
-  )
+    ;; Initialize the wildcards with the predefined ones
+    (setq jjar-wildcards wildcards)
 
-(defun jjar-get-matching-wilcards ()
-  "Return a list of wildcard expressions corresponding to files in
-`jjar-selected-subdirs' that match one of `jjar-selected-wildcards'
-wildcard expressions. Each wildcard expression returned is relative
-to `jjar-base-directory'."
-  (message "Searching matching files, please wait...")
-  (apply 'nconc
-         (mapcar 'jjar-get-matching-wildcards-in-dir jjar-selected-subdirs)))
+    ;; Insert the dialog header
+    (widget-insert "Customize the wildcard expressions used to locate files.\n\n")
+    
+    ;; Insert an editable list of the wildcard expressions
+    (widget-create 'editable-list
+                   :entry-format "%i %d %v"
+                   :notify (lambda (widget &rest ignore)
+                             (setq jjar-wildcards (widget-value widget))
+                             ;;(message "%S" jjar-wildcards)
+                             )
+                   :value jjar-wildcards
+                   '(editable-field :value ""))
+    
+    ;; Insert the Next button
+    (widget-insert "\n\n")
+    (widget-create 'push-button
+                   :notify (lambda (&rest ignore)
+                             (if (not jjar-wildcards)
+                                 (message "No wildcard expression selected.")
+                               (kill-buffer (current-buffer))
+                               ;;(message "Wildcard expressions: %S" jjar-wildcards)
+                               (jjar-files-dialog)
+                               ))
+                   "Next")
 
-(defun jjar-get-matching-wildcards-in-dir (dir)
-  "Return a list of wildcard expressions corresponding to files in
-DIR that match one of `jjar-selected-wildcards' wildcard expressions."
-  (delq nil
-        (mapcar '(lambda (wildcard)
-                   (and (directory-files dir nil (wildcard-to-regexp wildcard))
-                        (concat (file-name-as-directory
-                                 (file-relative-name dir jjar-base-directory))
-                                wildcard)))
-                jjar-selected-wildcards)))
+    ;; Insert the cancel button
+    (widget-insert " ")
+    (widget-create 'push-button
+                   :notify (lambda (&rest ignore)
+                             (kill-buffer (current-buffer))
+                             (error "Command canceled."))
+                   "Cancel")
+    (use-local-map widget-keymap)
+    (widget-setup)))
 
+(defun jjar-files-dialog-toggle-selection (widget &rest ignore)
+  "Checkbox widget action used by `jjar-files-dialog' to select or
+unselect a directory."
+  (let ((value (widget-get widget ':tag)))
+    ;; if value is already in the selected subdirs
+    (cond ((memq value jjar-files)
+           ;; then remove it
+           (setq jjar-files (delq value jjar-files))
+           (message "You have deselected: %s" value))
+          ;; else add it
+          (t
+           (setq jjar-files (nconc (list value) jjar-files))
+           (message "You have selected: %s" value)))))
 
-;; (defun jjar-get-matching-wilcards ()
-;;   "Return a list of wildcard expressions corresponding to files in
-;; `jjar-selected-subdirs' that match one of `jjar-selected-wildcards'
-;; wildcard expressions. Each wildcard expression returned is relative
-;; to `jjar-base-directory'."
-;;   (message "Searching matching files, please wait...")
-;;   (mapcan '(lambda (subdir)
-;;              (let ((dir (concat jjar-base-directory subdir)))
-;;                (if (string= subdir ".")
-;;                    (jjar-get-matching-wildcards-in-dir dir)
-;;                  (jjar-get-matching-wildcards-in-tree dir))))
-;;           jjar-selected-subdirs)
-;;   )
+(defun jjar-files-dialog ()
+  "Show the dialog used to select the file expressions given to the jar command."
+    (with-current-buffer (get-buffer-create "*jjar-files-dialog*")
+      (switch-to-buffer (current-buffer))
+      (kill-all-local-variables)
+      (let ((inhibit-read-only t))
+        (erase-buffer))
+      (let ((all (overlay-lists)))
+        ;; Delete all the overlays.
+        (mapcar 'delete-overlay (car all))
+        (mapcar 'delete-overlay (cdr all)))
 
-;; (defun jjar-get-matching-wildcards-in-tree (dir)
-;;   "Return a list of wildcard expressions corresponding to files in
-;; DIR tree that match one of `jjar-selected-wildcards' wildcard expressions."
-;;   (nconc (jjar-get-matching-wildcards-in-dir dir)
-;;          (jjar-get-matching-wildcards-in-tree-aux dir))
-;;   )
+      ;; Initialize the list of files
+      (setq jjar-files (jjar-get-matching-files))
 
-;; (defun jjar-get-matching-wildcards-in-tree-aux (dir)
-;;   "Auxiliary function used by `jjar-get-matching-wildcards-in-tree'."
-;;   (let ((dir (file-name-as-directory dir)))
-;;     (mapcan  '(lambda (f)
-;;                 (let ((file (concat dir f)))
-;;                   (unless (or (string= f "..")
-;;                               (string= f ".")
-;;                               (not (file-directory-p file)))
-;;                     (nconc (jjar-get-matching-wildcards-in-dir file)
-;;                            (jjar-get-matching-wildcards-in-tree-aux file)))))
-;;              (directory-files dir)))
-;;   )
+      ;; Insert the dialog header
+      (widget-insert (format "Select the files in '%s' to archive.\n\n"
+                             jjar-base-directory))
+      
+      ;; Insert the list of sub-directories as checkboxes
+      (mapcar '(lambda (dir)
+                 (widget-create 'checkbox
+                                :value (memq dir jjar-files)
+                                :format "\n %[%v%]  %t"
+                                :tag dir
+                                :notify 'jjar-files-dialog-toggle-selection))
+              jjar-files)
 
-;; (defun jjar-get-matching-wildcards-in-dir (dir)
-;;   "Return a list of wildcard expressions corresponding to files in
-;; DIR that match one of `jjar-selected-wildcards' wildcard expressions."
-;;   (mapcan '(lambda (wildcard)
-;;              (and (directory-files dir nil (wildcard-to-regexp wildcard))
-;;                   (list (concat (file-name-as-directory
-;;                                  (file-relative-name dir jjar-base-directory))
-;;                                 wildcard))))
-;;           jjar-selected-wildcards)
-;;   )
+      ;; Insert the Back button
+      (widget-insert "\n\n")
+      (widget-create 'push-button
+                     :notify (lambda (&rest ignore)
+                               (kill-buffer (current-buffer))
+                               (jjar-wildcards-dialog jjar-wildcards))
+                     "Back")
+      
+      ;; Insert the Next button
+      (widget-insert " ")
+      (widget-create 'push-button
+                     :notify (lambda (&rest ignore)
+                               (if (not jjar-files)
+                                   (message "No file selected.")  
+                                 (kill-buffer (current-buffer))
+                                 ;;(message "Files: %S" jjar-files)
+                                 (jjar-execute)
+                                 ))
+                     "Next")
+
+      ;; Insert the Cancel button
+      (widget-insert " ")
+      (widget-create 'push-button
+                     :notify (lambda (&rest ignore)
+                               (kill-buffer (current-buffer))
+                               (error "Command canceled."))
+                     "Cancel")
+      
+      (use-local-map widget-keymap)
+      (widget-setup)))
+
+;;;###autoload
+(defun jjar-customize ()
+  "Customize jjar options."
+  (interactive)
+  (customize-group "jjar"))
+
+;;;###autoload
+(defun jjar-create (base)
+  "Create a new jar file. BASE is the directory from which the jar command
+is issued, that is where the files to be archived are searched."
+  (interactive "DBase-directory: ")
+  (setq jjar-build-option "-c")
+  (setq jjar-base-directory (file-name-as-directory (expand-file-name base)))
+  (setq jjar-jar-file (file-relative-name (read-file-name "jar-file: "
+                                                          jjar-base-directory)
+                                          jjar-base-directory))
+  (jjar-wildcards-dialog jjar-include-wildcards))
+
+;;;###autoload
+(defun jjar-update (base file)
+  "Update an existing jar file. BASE is the directory from which the jar command
+is issued, that is where the files to be archived are searched. FILE is the name
+of the jar file to update."
+  (interactive "DBase-directory: \nfJAR-file: ")
+  (setq jjar-build-option "-u")
+  (setq jjar-base-directory (file-name-as-directory (expand-file-name base)))
+  (setq jjar-jar-file (file-relative-name file jjar-base-directory))
+  (jjar-wildcards-dialog jjar-include-wildcards))
 
 (provide 'jjar)
 (run-hooks 'jjar-load-hook)
@@ -493,6 +380,12 @@ DIR that match one of `jjar-selected-wildcards' wildcard expressions."
 
 ;;
 ;; $Log: jjar.el,v $
+;; Revision 1.7  2000/04/12 14:31:01  david_ponce
+;; New improved file selection scheme.
+;; The jar command path default value is now platform independant.
+;; Code cleanup.
+;; Documentation rewrite.
+;;
 ;; Revision 1.6  2000/03/10 15:28:20  ebat311
 ;; No more require cl.
 ;; New directory selection scheme.
