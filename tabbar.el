@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 25 February 2003
 ;; Keywords: convenience
-;; Revision: $Id: tabbar.el,v 1.37 2004/08/13 16:15:50 ponced Exp $
+;; Revision: $Id: tabbar.el,v 1.38 2004/09/10 09:56:51 ponced Exp $
 
 (defconst tabbar-version "1.4")
 
@@ -1087,17 +1087,17 @@ The separator element is cached in variable `tabbar-separator-value'."
 (defsubst tabbar-line-tab (tab)
   "Return an `header-line-format' template element for TAB.
 Call `tabbar-tab-label-function' to obtain a label for TAB."
-  (list (propertize
-         (if tabbar-tab-label-function
-             (funcall tabbar-tab-label-function tab)
-           tab)
-         'tabbar-tab tab
-         'local-map (tabbar-make-tab-keymap tab)
-         'help-echo 'tabbar-help-on-tab
-         'face (if (tabbar-selected-p tab (tabbar-current-tabset))
-                   'tabbar-selected-face
-                 'tabbar-unselected-face))
-        tabbar-separator-value))
+  (concat (propertize
+           (if tabbar-tab-label-function
+               (funcall tabbar-tab-label-function tab)
+             tab)
+           'tabbar-tab tab
+           'local-map (tabbar-make-tab-keymap tab)
+           'help-echo 'tabbar-help-on-tab
+           'face (if (tabbar-selected-p tab (tabbar-current-tabset))
+                     'tabbar-selected-face
+                   'tabbar-unselected-face))
+          tabbar-separator-value))
 
 (defun tabbar-line-format (tabset)
   "Return the `header-line-format' value to display TABSET."
@@ -1133,7 +1133,7 @@ Call `tabbar-tab-label-function' to obtain a label for TAB."
                 tabs   (cdr tabs)
                 elt    (tabbar-line-tab tab)
                 elts   (cons elt elts)
-                sizes  (cons (apply '+ (mapcar 'string-width elt)) sizes)
+                sizes  (cons (string-width elt) sizes)
                 offset (+ offset (car sizes)))
           (when (eq tab sel)
             (setq seloffset offset
@@ -1153,20 +1153,20 @@ Call `tabbar-tab-label-function' to obtain a label for TAB."
         ;; Cache and return the new tab bar.
         (tabbar-set-template
          tabset
-         (list (format "%s%s%s"
-                       (if tabbar-home-function
-                           tabbar-home-button-enabled
-                         tabbar-home-button-disabled)
-                       (if (> (tabbar-start tabset) 0)
-                           tabbar-scroll-left-button-enabled
-                         tabbar-scroll-left-button-disabled)
-                       (if (< (tabbar-start tabset)
-                              (1- (length (tabbar-tabs tabset))))
-                           tabbar-scroll-right-button-enabled
-                         tabbar-scroll-right-button-disabled))
-               tabbar-separator-value elts
-               (propertize "%-" 'face (list :background padcolor
-                                            :foreground padcolor))))
+         (list
+          (if tabbar-home-function
+              tabbar-home-button-enabled
+            tabbar-home-button-disabled)
+          (if (> (tabbar-start tabset) 0)
+              tabbar-scroll-left-button-enabled
+            tabbar-scroll-left-button-disabled)
+          (if (< (tabbar-start tabset)
+                 (1- (length (tabbar-tabs tabset))))
+              tabbar-scroll-right-button-enabled
+            tabbar-scroll-right-button-disabled)
+          tabbar-separator-value elts
+          (propertize "%-" 'face (list :background padcolor
+                                       :foreground padcolor))))
         )))
 
 (defun tabbar-line ()
