@@ -8,7 +8,7 @@
 ;; Maintainer: FSF
 ;; Keywords: files
 
-(defconst recentf-version "$Revision: 1.33 $")
+(defconst recentf-version "$Revision: 1.34 $")
 
 ;; This file is part of GNU Emacs.
 
@@ -121,9 +121,16 @@ Set VARIABLE with VALUE, and force a rebuild of the recentf menu."
   :type 'string
   :set 'recentf-menu-customization-changed)
 
-(defcustom recentf-menu-path (if (featurep 'xemacs)
-                                 '("File")
-                               '("files"))
+(defcustom recentf-menu-path (cond
+                              ;; XEmacs
+                              ((featurep 'xemacs)
+                               '("File"))
+                              ;; Emacs > 21.3
+                              ((lookup-key global-map [menu-bar file])
+                               '("file"))
+                              ;; Emacs <= 21.3
+                              (t
+                               '("files")))
   "*Path where to add the recentf menu.
 If nil add it at top level (see also `easy-menu-add-item')."
   :group 'recentf
