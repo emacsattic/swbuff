@@ -1,13 +1,14 @@
-;; findstr.el --- Use Windows NT findstr to match expression in files
+;;; findstr.el --- Use Windows NT findstr to match expression in files
 
-;; Copyright (C) 2000 by David Ponce
+;; Copyright (C) 2000, 2003 by David Ponce
 
 ;; Author: David Ponce <david@dponce.com>
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 21 Jul 2000
-;; Version: 1.0
 ;; Keywords: tools
-;; VC: $Id: findstr.el,v 1.3 2001/08/03 08:33:30 ponce Exp $
+;; Revision: $Id: findstr.el,v 1.4 2003/04/25 11:25:24 ponced Exp $
+
+(defconst findstr-version "1.1")
 
 ;; This file is not part of Emacs
 
@@ -27,35 +28,18 @@
 ;; Boston, MA 02111-1307, USA.
 
 ;;; Commentary:
-
+;;
 ;; This library use the Windows NT native command findstr to match
 ;; expressions in multiple files.
+;;
+;; To install and use, put this file on your Emacs-Lisp load path and
+;; add the following into your ~/.emacs startup file:
+;;
+;; (autoload 'findstr "findstr"
+;;   "Run Windows NT findstr to match expression in files." t)
+;;
 
-;; Installation
-;;
-;; Put this file on your Emacs load-path and add (require 'findstr)
-;; into your Emacs startup file.
-
-;; Support
-;;
-;; This program is available at <http://www.dponce.com/>. Any
-;; comments, suggestions, bug reports or upgrade requests are welcome.
-;; Please send them to David Ponce at <david@dponce.com>
-
-;;; Change Log:
-
-;; $Log: findstr.el,v $
-;; Revision 1.3  2001/08/03 08:33:30  ponce
-;; `findstr' is now Windows specific and no more modify `igrep-find'
-;;  behaviour.
-;;
-;; Many improvements ;-)
-;;
-;; Revision 1.2  2000/07/21 13:20:44  david_ponce
-;; Just changed the findstr `message' format!
-;;
-;; Revision 1.1  2000/07/21 13:12:30  david_ponce
-;; The first version.
+;;; History:
 ;;
 
 ;;; Code:
