@@ -1,3 +1,18 @@
+2004-10-12  Martin Renold  <martinxyz@gmx.ch>
+
+	* swbuff.el
+
+	(swbuff-version): Version 3.3
+	(swbuff-clear-delay-ends-switching)
+	(swbuff-display-original-buffer-first)
+	(swbuff-recent-buffers-first): New options.
+	(swbuff-start-switching, swbuff-end-switching)
+	(swbuff-clear-delay-hook): New functions.
+	(swbuff-show-status-window)
+	(swbuff-pre-command-hook)
+	(swbuff-switch-to-previous-buffer)
+	(swbuff-switch-to-next-buffer): Use them.
+
 2004-10-08  David Ponce  <david@dponce.com>
 
 	* tabbar.el
