@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 16 Feb 2001
 ;; Keywords: extensions
-;; Revision: $Id: tree-widget.el,v 1.10 2003/09/29 21:30:05 ponced Exp $
+;; Revision: $Id: tree-widget.el,v 1.11 2003/09/30 10:16:24 ponced Exp $
 
 (defconst tree-widget-version "2.0")
 
@@ -122,13 +122,6 @@
 
 ;;; Customization
 ;;
-(defvar tree-widget--image-cache nil)
-
-(defun tree-widget--clear-images-and-set (var val)
-  "Set variable VAR with value VAL, and clear the image cache."
-  (setq tree-widget--image-cache nil)
-  (set-default var val))
-
 (defgroup tree-widget nil
   "Customization support for the Tree Widget Library."
   :group 'widgets)
@@ -146,8 +139,7 @@ where the tree-widget library is located."
   :type '(choice (const :tag "Default" nil)
                  (directory :format "%{%t%}:\n%v")
                  )
-  :group 'tree-widget
-  :set 'tree-widget--clear-images-and-set)
+  :group 'tree-widget)
 
 (defcustom tree-widget-theme nil
   "*Name of the theme to use to lookup for images.
@@ -171,22 +163,19 @@ no-handle    an invisible handle
 -----------  ------------------------------------------------"
   :type '(choice (const  :tag "Default" nil)
                  (string :tag "Name"))
-  :group 'tree-widget
-  :set 'tree-widget--clear-images-and-set)
+  :group 'tree-widget)
 
 (defcustom tree-widget-image-properties-emacs
   '(:ascent center :mask (heuristic t))
   "*Properties of GNU Emacs images."
   :type 'plist
-  :group 'tree-widget
-  :set 'tree-widget--clear-images-and-set)
+  :group 'tree-widget)
 
 (defcustom tree-widget-image-properties-xemacs
   nil
   "*Properties of XEmacs images."
   :type 'plist
-  :group 'tree-widget
-  :set 'tree-widget--clear-images-and-set)
+  :group 'tree-widget)
 
 ;;; Image support
 ;;
@@ -240,6 +229,8 @@ See also the option `widget-image-conversion'."
     ))
   )
 
+(defvar tree-widget--image-cache nil)
+(make-variable-buffer-local 'tree-widget--image-cache)
 (defvar tree-widget--theme nil)
 (make-variable-buffer-local 'tree-widget--theme)
 
