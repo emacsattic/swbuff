@@ -6,9 +6,9 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 25 February 2003
 ;; Keywords: convenience
-;; Revision: $Id: tabbar.el,v 1.49 2005/03/14 15:48:29 ponced Exp $
+;; Revision: $Id: tabbar.el,v 1.50 2005/04/05 20:59:45 ponced Exp $
 
-(defconst tabbar-version "1.4")
+(defconst tabbar-version "1.5")
 
 ;; This file is not part of GNU Emacs.
 
@@ -77,8 +77,7 @@
 ;;
 ;; A tab is a simple data structure giving: the value of the tab, and
 ;; a reference to its tab set container.  A tab value can be any Lisp
-;; object, even if the most common value is probably a string.  Each
-;; tab object is guaranteed to be unique.
+;; object.  Each tab object is guaranteed to be unique.
 ;;
 ;; A tab set is displayed on the tab bar through a "view" defined by
 ;; the index of the leftmost tab shown.  Thus, it is possible to
@@ -350,9 +349,6 @@ room."
 
 ;;; Tab and tab set
 ;;
-(defconst tabbar-tabsets-tabset-name "tabbar-tabsets-tabset"
-  "Name of the special tab set of existing tab sets.")
-
 (defsubst tabbar-make-tab (object tabset)
   "Return a new tab with value OBJECT.
 TABSET is the tab set the tab belongs to."
@@ -369,6 +365,9 @@ TABSET is the tab set the tab belongs to."
 (defvar tabbar-tabsets nil
   "The tab sets store.")
 
+(defvar tabbar-tabsets-tabset nil
+  "The special tab set of existing tab sets.")
+
 (defvar tabbar-current-tabset nil
   "The tab set currently displayed on the tab bar.")
 (make-variable-buffer-local 'tabbar-current-tabset)
@@ -379,13 +378,16 @@ TABSET is the tab set the tab belongs to."
 (defsubst tabbar-free-tabsets-store ()
   "Free the tab set store."
   (setq tabbar-tabsets nil
+        tabbar-tabsets-tabset nil
         tabbar-current-tabset nil
         tabbar-last-selected-tab nil))
 
 (defsubst tabbar-init-tabsets-store ()
   "Initialize the tab set store."
   (tabbar-free-tabsets-store)
-  (setq tabbar-tabsets (make-vector 31 0)))
+  (setq tabbar-tabsets (make-vector 31 0)
+        tabbar-tabsets-tabset (make-symbol "tabbar-tabsets-tabset"))
+  (put tabbar-tabsets-tabset 'start 0))
 
 (defmacro tabbar-map-tabsets (function)
   "Apply FUNCTION to each existing tab set.
@@ -393,11 +395,10 @@ Return the list of the results."
   (let ((result (make-symbol "result"))
         (tabset (make-symbol "tabset")))
     `(let (,result)
-       (mapatoms #'(lambda (,tabset)
-                     (setq ,result
-                           (cons (funcall ,function ,tabset)
-                                 ,result)))
-                 tabbar-tabsets)
+       (mapatoms
+        #'(lambda (,tabset)
+            (push (funcall ,function ,tabset) ,result))
+        tabbar-tabsets)
        (nreverse ,result))))
 
 (defun tabbar-make-tabset (name &rest objects)
@@ -501,11 +502,12 @@ added at the end."
                       (cons tab tabs)))))))
 
 (defun tabbar-delete-tab (tab)
-  "Remove TAB from its TABSET."
+  "Remove TAB from its tabset."
   (let* ((tabset (tabbar-tab-tabset tab))
          (tabs   (tabbar-tabs tabset)))
     (tabbar-set-template tabset nil)
     (when (eq tab (tabbar-selected-tab tabset))
+      ;; Before to delete the selected tab, select the next one.
       (tabbar-select-tab (car (or (cdr (memq tab tabs)) (last tabs)))
                          tabset))
     (set tabset (delq tab tabs))))
@@ -545,18 +547,10 @@ current cached copy."
 
 (defun tabbar-get-tabsets-tabset ()
   "Return the tab set of selected tabs in existing tab sets."
-  (let ((tabsets-tabset
-         (or (tabbar-get-tabset tabbar-tabsets-tabset-name)
-             (tabbar-make-tabset tabbar-tabsets-tabset-name))))
-    (set tabsets-tabset
-         (delq t
-               (tabbar-map-tabsets
-                #'(lambda (tabset)
-                    (or (eq tabset tabsets-tabset)
-                        (tabbar-selected-tab tabset))))))
-    (tabbar-scroll tabsets-tabset 0)
-    (tabbar-set-template tabsets-tabset nil)
-    tabsets-tabset))
+  (set tabbar-tabsets-tabset (tabbar-map-tabsets 'tabbar-selected-tab))
+  (tabbar-scroll tabbar-tabsets-tabset 0)
+  (tabbar-set-template tabbar-tabsets-tabset nil)
+  tabbar-tabsets-tabset)
 
 ;;; Faces
 ;;
@@ -984,7 +978,8 @@ Optional argument TYPE is a mouse click event type (see the function
   (when tabbar-select-tab-function
     (setq tabbar-last-selected-tab tab)
     (funcall tabbar-select-tab-function
-             (tabbar-make-mouse-event type) tab)))
+             (tabbar-make-mouse-event type) tab)
+    (tabbar-display-update)))
 
 (defun tabbar-select-tab-callback (event)
   "Handle a mouse EVENT on a tab.
@@ -1387,15 +1382,15 @@ first."
        (eq tabbar-current-tabset-function 'tabbar-buffer-tabs)
        (eq (current-buffer) (window-buffer (selected-window)))
        (let ((bl (tabbar-tab-values (tabbar-current-tabset)))
-             (bn (buffer-name))
+             (b  (current-buffer))
              found sibling)
          (while (and bl (not found))
-           (if (equal bn (car bl))
+           (if (eq b (car bl))
                (setq found t)
              (setq sibling (car bl)))
            (setq bl (cdr bl)))
          (when (and (setq sibling (or (car bl) sibling))
-                    (get-buffer sibling))
+                    (buffer-live-p sibling))
            ;; Move sibling buffer in front of the buffer list.
            (save-current-buffer
              (switch-to-buffer sibling))))))
@@ -1446,14 +1441,25 @@ visiting a file."
                      (b)))
                 (buffer-list))))
 
+(defun tabbar-buffer-mode-derived-p (mode parents)
+  "Return non-nil if MODE derives from a mode in PARENTS."
+  (let (derived)
+    (while (and (not derived) mode)
+      (if (memq mode parents)
+          (setq derived t)
+        (setq mode (get mode 'derived-mode-parent))))
+    derived))
+
 (defun tabbar-buffer-groups (buffer)
   "Return the list of group names BUFFER belongs to.
 Return only one group for each buffer."
-  (with-current-buffer (get-buffer buffer)
+  (with-current-buffer buffer
     (cond
      ((or (get-buffer-process (current-buffer))
-          (memq major-mode
-                '(comint-mode compilation-mode)))
+          ;; Check if the major mode derives from `comint-mode' or
+          ;; `compilation-mode'.
+          (tabbar-buffer-mode-derived-p
+           major-mode '(comint-mode compilation-mode)))
       '("Process")
       )
      ((member (buffer-name)
@@ -1508,23 +1514,23 @@ BUFFERS.  Delete tab sets that no more contain tabs."
 (defun tabbar-buffer-update-groups ()
   "Update group of buffers.
 Return the the first group where the current buffer is."
-  ;; Ensure that the current buffer will always have a tab!
-  (let ((buffers (cons (current-buffer)
-                       (funcall tabbar-buffer-list-function)))
+  (let ((buffers (funcall tabbar-buffer-list-function))
         current-group)
     (mapc
      #'(lambda (buffer)
-         (let* ((name (buffer-name buffer))
-                (groups (funcall tabbar-buffer-groups-function name)))
+         (let ((groups (funcall tabbar-buffer-groups-function buffer)))
            (when (eq buffer (current-buffer))
              (setq current-group (car groups)))
            (mapc #'(lambda (group)
                      (let ((tabset (tabbar-get-tabset group)))
                        (if tabset
-                           (tabbar-add-tab tabset name t)
-                         (tabbar-make-tabset group name))))
+                           (tabbar-add-tab tabset buffer t)
+                         (tabbar-make-tabset group buffer))))
                  groups)))
-     buffers)
+     (if (memq (current-buffer) buffers)
+         buffers
+       ;; Ensure that the current buffer will always have a tab!
+       (cons (current-buffer) buffers)))
     (tabbar-buffer-cleanup-tabsets buffers)
     current-group))
 
@@ -1543,13 +1549,13 @@ Return the the first group where the current buffer is."
 (defun tabbar-buffer-tabs ()
   "Return the buffers to display on the tab bar, in a tab set."
   (let ((group (tabbar-buffer-update-groups))
-        (buffer (buffer-name))
+        (buffer (current-buffer))
         tabset curtab)
     (if tabbar-buffer-group-mode
         (progn
           (setq tabset (tabbar-get-tabsets-tabset)
                 curtab (tabbar-selected-tab (tabbar-current-tabset)))
-          (unless (and (equal buffer (tabbar-tab-value curtab))
+          (unless (and (eq buffer (tabbar-tab-value curtab))
                        (tabbar-select-tab curtab tabset))
             (tabbar-select-tab-value buffer tabset)))
       (setq tabset (tabbar-tab-tabset tabbar-last-selected-tab))
@@ -1609,10 +1615,10 @@ That is, a string used to represent it on the tab bar."
       (let* ((tabset (tabbar-tab-tabset tab))
              (tab (tabbar-selected-tab tabset)))
         (format "mouse-1: switch to buffer %S in group [%s]"
-                (tabbar-tab-value tab) tabset))
+                (buffer-name (tabbar-tab-value tab)) tabset))
     (format "mouse-1: switch to buffer %S\n\
 mouse-2: pop to buffer, mouse-3: delete other windows"
-            (tabbar-tab-value tab))
+            (buffer-name (tabbar-tab-value tab)))
     ))
 
 (defun tabbar-buffer-select-tab (event tab)
