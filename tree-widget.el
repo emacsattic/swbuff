@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 16 Feb 2001
 ;; Keywords: extensions
-;; Revision: $Id: tree-widget.el,v 1.8 2003/09/29 10:27:51 ponced Exp $
+;; Revision: $Id: tree-widget.el,v 1.9 2003/09/29 13:40:42 ponced Exp $
 
 (defconst tree-widget-version "2.0")
 
@@ -236,6 +236,19 @@ See also the option `widget-image-conversion'."
     ))
   )
 
+(defvar tree-widget--theme nil)
+(make-variable-buffer-local 'tree-widget--theme)
+
+(defsubst tree-widget-set-theme (&optional name)
+  "Define the current image theme to use.
+The theme is defined locally to the current buffer, where the tree
+widget is drawn.  Also clear the image cache.
+If optional argument NAME is non-nil, it is the name of the theme to
+use.  By default it is the global theme defined by the option
+`tree-widget-theme'."
+  (setq tree-widget--image-cache nil
+        tree-widget--theme (or name tree-widget-theme "default")))
+
 (defun tree-widget-find-image (image-name)
   "Create the image with IMAGE-NAME found in current theme.
 IMAGE-NAME must be a file name sans extension located in the current
@@ -254,15 +267,19 @@ Return the image or nil if not found, or image support is diabled."
    ;; Search for an image with IMAGE-NAME
    (t
     (let ((dir (and (stringp tree-widget-themes-directory)
-                    tree-widget-themes-directory))
-          (thm (or tree-widget-theme "default")))
+                    tree-widget-themes-directory)))
       (unless dir
         (when (setq dir (locate-library "tree-widget"))
           (setq dir (expand-file-name "tree-widget-themes"
                                       (file-name-directory dir)))))
       (when dir
+        ;; Don't use `tree-widget-set-theme' here, because it clears
+        ;; the image cache.
+        (setq tree-widget--theme
+              (or tree-widget--theme tree-widget-theme "default"))
         (let* ((default-directory dir)
-               (path (mapcar 'expand-file-name (list thm "default")))
+               (path (mapcar 'expand-file-name
+                             (list tree-widget--theme "default")))
                (types (tree-widget-image-conversion))
                type file image)
           (while (and types (not file))
