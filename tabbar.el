@@ -6,9 +6,9 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 25 February 2003
 ;; Keywords: convenience
-;; Revision: $Id: tabbar.el,v 1.10 2003/03/12 10:59:12 ponce Exp $
+;; Revision: $Id: tabbar.el,v 1.11 2003/04/03 18:48:00 ponce Exp $
 
-(defconst tabbar-version "1.0")
+(defconst tabbar-version "1.1")
 
 ;; This file is not part of GNU Emacs.
 
@@ -781,7 +781,7 @@ See the variable `tabbar-button-widget' for details."
 (defun tabbar-scroll-left (event)
   "On mouse EVENT, scroll current tab set on left."
   (when (eq (event-basic-type event) 'mouse-1)
-    (tabbar-scroll (tabbar-current-tabset) 1)
+    (tabbar-scroll (tabbar-current-tabset) -1)
     ))
 
 (defun tabbar-scroll-left-help ()
@@ -791,7 +791,7 @@ See the variable `tabbar-button-widget' for details."
 (defun tabbar-scroll-right (event)
   "On mouse EVENT, scroll current tab set on right."
   (when (eq (event-basic-type event) 'mouse-1)
-    (tabbar-scroll (tabbar-current-tabset) -1)
+    (tabbar-scroll (tabbar-current-tabset) 1)
     ))
 
 (defun tabbar-scroll-right-help ()
@@ -847,9 +847,6 @@ Call `tabbar-tab-label-function' to obtain a label for TAB."
                               'tabbar-unselected-face))
           tabbar-separator-value)))
 
-(defconst tabbar-pad
-  (propertize (make-string 1000 ?\ ) 'face 'tabbar-default-face))
-
 (defun tabbar-line ()
   "Return the header line templates that represent the tab bar.
 Call `tabbar-current-tabset-function' to obtain the current tab set to
@@ -858,17 +855,18 @@ set's view to build a list of template elements for
 `header-line-format'."
   (if (run-hook-with-args-until-success 'tabbar-inhibit-functions)
       (setq header-line-format nil)
-    (let ((tabset (tabbar-current-tabset t)))
+    (let ((tabset (tabbar-current-tabset t))
+          (padcolor (face-background 'tabbar-default-face)))
       (when tabset
         (list (format "%s%s%s"
                       (if tabbar-home-function
                           tabbar-home-button-enabled
                         tabbar-home-button-disabled)
-                      (if (< (tabbar-start tabset)
-                             (1- (length (tabbar-tabs tabset))))
+                      (if (> (tabbar-start tabset) 0)
                           tabbar-scroll-left-button-enabled
                         tabbar-scroll-left-button-disabled)
-                      (if (> (tabbar-start tabset) 0)
+                      (if (< (tabbar-start tabset)
+                             (1- (length (tabbar-tabs tabset))))
                           tabbar-scroll-right-button-enabled
                         tabbar-scroll-right-button-disabled))
               tabbar-separator-value
@@ -879,7 +877,9 @@ set's view to build a list of template elements for
                (tabbar-set-template tabset
                                     (mapcar 'tabbar-line-element
                                             (tabbar-view tabset))))
-              tabbar-pad)))))
+              (propertize "%-" 'face (list :background padcolor
+                                           :foreground padcolor))))
+      )))
 
 ;;; Minor modes
 ;;
