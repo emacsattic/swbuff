@@ -1,5 +1,5 @@
 ;; @(#) swbuff.el -- Quick switch between Emacs buffers.
-;; @(#) $Id: swbuff.el,v 1.2 1999/02/01 11:30:30 ebat311 Exp $
+;; @(#) $Id: swbuff.el,v 1.3 1999/05/06 10:13:09 ebat311 Exp $
 
 ;; This file is not part of Emacs
 
@@ -11,7 +11,7 @@
 ;; LCD Archive Entry:
 ;; <el>|David Ponce|david.ponce@wanadoo.fr|
 ;; <docum>|
-;; <date>|$Revision: 1.2 $|~/misc/|
+;; <date>|$Revision: 1.3 $|~/misc/|
 
 ;; COPYRIGHT NOTICE
 ;;
@@ -64,6 +64,13 @@
 ;;
 ;;  o `swbuff-current-buffer-face'
 ;;        Face used to display the current buffer name in the minibuffer message.
+;;
+;;  o `swbuff-exclude-buffer-regexps'
+;;        List of regular expressions for excluded buffers.
+;;        The default setting excludes buffers whose name begin with a blank character.
+;;        To exclude all the internal buffers (that is *scratch*, *Message*, etc...)
+;;        you could use the following regexps '("^ .*" "^\*.*\*").
+
 
 ;;; Support:
 ;;
@@ -76,7 +83,7 @@
 
 ;;; Code:
   
-(defconst swbuff-version "$Revision: 1.2 $"
+(defconst swbuff-version "$Revision: 1.3 $"
   "swbuff version number."
   )
 
@@ -100,6 +107,15 @@
     (t (:bold t)))
   "*Face used to display the current buffer name in the minibuffer message."
   :group 'swbuff
+  )
+
+(defcustom swbuff-exclude-buffer-regexps '("^ .*")
+  "*List of regular expressions for excluded buffers.
+The default setting excludes buffers whose name begin with a blank character.
+To exclude all the internal buffers (that is *scratch*, *Message*, etc...) you could
+use the following regexps (\"^ .*\" \"^\*.*\*\")."
+  :group 'swbuff
+  :type '(repeat (regexp :format "%v"))
   )
 
 (defcustom swbuff-load-hook '(swbuff-default-load-hook)
@@ -127,15 +143,22 @@ See also `swbuff-default-load-hook'."
   (message "Using 'swbuff' version %s." (swbuff-version-number))
   )
 
+(defun swbuff-buffer-list ()
+  "Returns a buffer list without the ones whose name matches `swbuff-exclude-buffer-regexps'."
+  (mapcan '(lambda (buff)
+             (and
+              (notany '(lambda (rexp)
+                         (string-match rexp (buffer-name buff)))
+                      swbuff-exclude-buffer-regexps)
+              (list buff)))
+          (buffer-list))
+  )
+
 (defun swbuff-buffer-list-string ()
   "Returns a string of buffer names in the buffer-list.
 Buffer names beginning with a ' ' are excluded."
-  (mapconcat 'buffer-name 
-             (mapcan '(lambda (buffer)
-                        (if (char-equal (aref (buffer-name buffer) 0) ?\ )
-                            nil
-                          (list buffer)))
-                     (buffer-list))
+  (mapconcat 'buffer-name
+             (swbuff-buffer-list)
              " ")
   )
 
@@ -185,10 +208,8 @@ the current buffer is highlighted with the `swbuff-current-buffer-face' face."
 
 (defun swbuff-previous-buffer ()
   "Displays and activates the buffer at the end of the buffer-list."
-  (let ((l (buffer-list)))
+  (let ((l (swbuff-buffer-list)))
     (switch-to-buffer (nth (1- (length l)) l)))
-  (if (char-equal (aref (buffer-name (current-buffer)) 0) ?\ )
-      (swbuff-previous-buffer))
   )
 
 (defun swbuff-switch-to-next-buffer ()
@@ -200,12 +221,10 @@ the current buffer is highlighted with the `swbuff-current-buffer-face' face."
 
 (defun swbuff-next-buffer ()
   "Displays and activates the next buffer in the buffer-list."
-  (let ((l (nreverse (buffer-list))))
+  (let ((l (nreverse (swbuff-buffer-list))))
     (while (cdr l)
       (switch-to-buffer (car l))
       (setq l (cdr l))))
-  (if (char-equal (aref (buffer-name (current-buffer)) 0) ?\ )
-      (swbuff-next-buffer))
   )
 
 
@@ -213,8 +232,16 @@ the current buffer is highlighted with the `swbuff-current-buffer-face' face."
   "Default hook run when package has been loaded. It maps the global keys
 `C-f6' and `C-S-f6' respectively to the `swbuff-switch-to-next-buffer'
 and `swbuff-switch-to-previous-buffer' commands."
-  (global-set-key [C-f6]   'swbuff-switch-to-next-buffer)
-  (global-set-key [C-S-f6] 'swbuff-switch-to-previous-buffer)
+  (if (string-match "XEmacs" emacs-version)
+      (progn
+        (global-set-key [(control f6)]       'swbuff-switch-to-next-buffer)
+        (global-set-key [(control shift f6)] 'swbuff-switch-to-previous-buffer)
+        )
+    (progn
+      (global-set-key [C-f6]   'swbuff-switch-to-next-buffer)
+      (global-set-key [C-S-f6] 'swbuff-switch-to-previous-buffer)
+      )
+    )
   )
 
 (provide 'swbuff)
@@ -224,7 +251,13 @@ and `swbuff-switch-to-previous-buffer' commands."
 
 ;;
 ;; $Log: swbuff.el,v $
-;; Revision 1.2  1999/02/01 11:30:30  ebat311
+;; Revision 1.3  1999/05/06 10:13:09  ebat311
+;; Added a new customisable feature to exclude buffers whose
+;; name matches a given list of regular expressions.
+;;
+;; Fixed - default key binding now works with XEmacs.
+;;
+;; Revision 1.2  1999-02-01 12:30:30+01  ebat311
 ;; No more use of `other-buffer' and `bury-buffer' so it
 ;; can now switch to any buffer in the `buffer-list'.
 ;;
