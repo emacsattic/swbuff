@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 25 February 2003
 ;; Keywords: convenience
-;; Revision: $Id: tabbar.el,v 1.42 2004/09/26 08:05:39 ponced Exp $
+;; Revision: $Id: tabbar.el,v 1.43 2004/09/29 14:46:06 ponced Exp $
 
 (defconst tabbar-version "1.4")
 
@@ -245,14 +245,14 @@ string to display."
   :type 'function)
 
 (defcustom tabbar-home-function
-  'tabbar-buffer-toggle-group-mode
+  'tabbar-buffer-click-on-home
   "Function called when clicking on the tab bar home button.
 The function is passed the mouse event received."
   :group 'tabbar
   :type 'function)
 
 (defcustom tabbar-home-help-function
-  'tabbar-buffer-toggle-group-mode-help
+  'tabbar-buffer-help-on-home
   "Function to obtain a help string for the tab bar home button.
 The help string is displayed when the mouse is onto the button.
 The function is called with no arguments."
@@ -821,7 +821,7 @@ The value (\"\"), or (0) hide separators.")
 (defvar tabbar-separator-value nil
   "Value of the separator used between tabs.")
 
-(defcustom tabbar-separator (list " ")
+(defcustom tabbar-separator (list 0.2)
   "Separator used between tabs.
 The variable `tabbar-separator-widget' gives details on this widget."
   :group 'tabbar
@@ -1088,18 +1088,9 @@ element."
                         'pointer 'arrow))))
     ))
 
-(defun tabbar-line-buttons (tabset)
+(defsubst tabbar-line-buttons (tabset)
   "Return a propertized string for tab bar buttons.
 TABSET is the tab set used to choose the appropriate buttons."
-  ;; If requested, refresh buttons and separator L&F.
-  (or tabbar-separator-value
-      (tabbar-line-separator))
-  (or tabbar-home-button-value
-      (tabbar-line-button 'home))
-  (or tabbar-scroll-left-button-value
-      (tabbar-line-button 'scroll-left))
-  (or tabbar-scroll-right-button-value
-      (tabbar-line-button 'scroll-right))
   (concat
    (if tabbar-home-function
        (car tabbar-home-button-value)
@@ -1153,6 +1144,15 @@ to display."
              (tabs (tabbar-view tabset))
              (padcolor (tabbar-background-color))
              atsel elts)
+        ;; Initialize buttons and separator values.
+        (or tabbar-separator-value
+            (tabbar-line-separator))
+        (or tabbar-home-button-value
+            (tabbar-line-button 'home))
+        (or tabbar-scroll-left-button-value
+            (tabbar-line-button 'scroll-left))
+        (or tabbar-scroll-right-button-value
+            (tabbar-line-button 'scroll-right))
         ;; Track the selected tab to ensure it is always visible.
         (when tabbar-show-selected
           (while (not (memq sel tabs))
@@ -1646,18 +1646,25 @@ mouse-2: pop to buffer, mouse-3: delete other windows"
     (tabbar-buffer-set-group-mode nil)
     ))
 
-(defun tabbar-buffer-toggle-group-mode (event)
-  "On mouse EVENT, toggle group mode.
-When enabled, display tabs for group of buffers, instead of buffer
-tabs."
-  (tabbar-buffer-set-group-mode (not tabbar-buffer-group-mode)))
+(defun tabbar-buffer-click-on-home (event)
+  "Handle a mouse click EVENT on the tab bar home button.
+mouse-1, toggle the display of tabs for group of buffers.
+mouse-3, close the current buffer."
+  (let ((mouse-button (event-basic-type event)))
+    (cond
+     ((eq mouse-button 'mouse-1)
+      (tabbar-buffer-set-group-mode (not tabbar-buffer-group-mode)))
+     ((eq mouse-button 'mouse-3)
+      (kill-buffer nil))
+     )))
 
-(defun tabbar-buffer-toggle-group-mode-help ()
+(defun tabbar-buffer-help-on-home ()
   "Return the help string shown when mouse is onto the toggle button."
-  (if tabbar-buffer-group-mode
-      "mouse-1: show buffers in selected group"
-    "mouse-1: show groups of buffers"
-    ))
+  (concat
+   (if tabbar-buffer-group-mode
+       "mouse-1: show buffers in selected group"
+     "mouse-1: show groups of buffers")
+   ", mouse-3: close current buffer"))
 
 (provide 'tabbar)
 
