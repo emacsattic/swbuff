@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 25 February 2003
 ;; Keywords: convenience
-;; Revision: $Id: tabbar.el,v 1.7 2003/03/10 16:55:40 ponce Exp $
+;; Revision: $Id: tabbar.el,v 1.8 2003/03/11 14:31:59 ponce Exp $
 
 (defconst tabbar-version "1.0")
 
@@ -144,6 +144,15 @@
 (defgroup tabbar nil
   "Display a tab bar in the header line."
   :group 'convenience)
+
+(defcustom tabbar-inhibit-functions
+  '(tabbar-default-inhibit-function)
+  "List of functions to be called before displaying the tab bar.
+Those functions are called one by one, with no arguments, until one of
+them returns a non-nil value, and thus, prevent to display the tab
+bar."
+  :group 'tabbar
+  :type 'hook)
 
 (defcustom tabbar-current-tabset-function
   'tabbar-buffer-tabs
@@ -844,28 +853,30 @@ Call `tabbar-current-tabset-function' to obtain the current tab set to
 display.  Then call `tabbar-line-element' on each tab in current tab
 set's view to build a list of template elements for
 `header-line-format'."
-  (let ((tabset (tabbar-current-tabset t)))
-    (when tabset
-      (list (format "%s%s%s"
-                    (if tabbar-home-function
-                        tabbar-home-button-enabled
-                      tabbar-home-button-disabled)
-                    (if (< (tabbar-start tabset)
-                           (1- (length (tabbar-tabs tabset))))
-                        tabbar-scroll-left-button-enabled
-                      tabbar-scroll-left-button-disabled)
-                    (if (> (tabbar-start tabset) 0)
-                        tabbar-scroll-right-button-enabled
-                      tabbar-scroll-right-button-disabled))
-            tabbar-separator-value
-            (or
-             ;; If a cached template exists, use it.
-             (tabbar-template tabset)
-             ;; Otherwise use a refeshed value.
-             (tabbar-set-template tabset
-                                  (mapcar 'tabbar-line-element
-                                          (tabbar-view tabset))))
-            tabbar-pad))))
+  (if (run-hook-with-args-until-success 'tabbar-inhibit-functions)
+      (setq header-line-format nil)
+    (let ((tabset (tabbar-current-tabset t)))
+      (when tabset
+        (list (format "%s%s%s"
+                      (if tabbar-home-function
+                          tabbar-home-button-enabled
+                        tabbar-home-button-disabled)
+                      (if (< (tabbar-start tabset)
+                             (1- (length (tabbar-tabs tabset))))
+                          tabbar-scroll-left-button-enabled
+                        tabbar-scroll-left-button-disabled)
+                      (if (> (tabbar-start tabset) 0)
+                          tabbar-scroll-right-button-enabled
+                        tabbar-scroll-right-button-disabled))
+              tabbar-separator-value
+              (or
+               ;; If a cached template exists, use it.
+               (tabbar-template tabset)
+               ;; Otherwise use a refeshed value.
+               (tabbar-set-template tabset
+                                    (mapcar 'tabbar-line-element
+                                            (tabbar-view tabset))))
+              tabbar-pad)))))
 
 ;;; Minor modes
 ;;
@@ -935,6 +946,15 @@ header line is restored, hiding the tab bar."
       (setq header-line-format tabbar-old-local-hlf)
       (kill-local-variable 'tabbar-old-local-hlf))
     ))
+
+;;; Hooks
+;;
+(defun tabbar-default-inhibit-function ()
+  "Inhibit display of the tab bar in specified windows.
+That is dedicated windows, and `checkdoc' status windows."
+  (or (window-dedicated-p (selected-window))
+      (member (buffer-name)
+              '(" *Checkdoc Status*"))))
 
 (defun tabbar-buffer-kill-buffer-hook ()
   "Hook run just before actually killing a buffer.
