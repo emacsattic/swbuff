@@ -1,3 +1,18 @@
+2004-05-14  David Ponce  <david@dponce.com>
+
+	* tree-widget.el 
+
+	Moved back into the main directory.
+	Sync. with version included in GNU Emacs.
+	(tree-widget-themes-directory): Change default.  Doc fix.  Add
+	new "With the library" choice.
+	(tree-widget-format-handler): Fix message.
+
+	* tree-widget-examples.el
+	* dir-tree.el
+	
+	Moved back into the main directory.
+
 2004-04-30  David Ponce  <david@dponce.com>
 
 	* tree-widget/tree-widget.el
