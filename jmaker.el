@@ -1,5 +1,5 @@
 ;; @(#) jmaker.el -- Java Makefile generator
-;; @(#) $Id: jmaker.el,v 1.11 1999/04/22 21:50:36 ebat311 Exp $
+;; @(#) $Id: jmaker.el,v 1.12 1999/06/04 15:55:19 ebat311 Exp $
 
 ;; This file is not part of Emacs
 
@@ -11,7 +11,7 @@
 ;; LCD Archive Entry:
 ;; jmaker|David Ponce|david.ponce@wanadoo.fr|
 ;; Java Makefile generator|
-;; $Date: 1999/04/22 21:50:36 $|$Revision: 1.11 $|~/misc/jmaker.el|
+;; $Date: 1999/06/04 15:55:19 $|$Revision: 1.12 $|~/misc/jmaker.el|
 
 ;; COPYRIGHT NOTICE
 ;;
@@ -90,8 +90,9 @@
 
 (require 'jde)
 (require 'tempo)
+(require 'compile)
 
-(defconst jmaker-version "$Revision: 1.11 $"
+(defconst jmaker-version "$Revision: 1.12 $"
   "jmaker version number.")
 
 (defgroup jmaker nil
@@ -344,6 +345,7 @@ to overwrite it."
               ["Meta-makefile..."  jmaker-generate-meta-makefile t]
               )
         ["Options..."              jmaker-customize t]
+        ["Make"                    compile t]
 	      ["-"                       ignore nil]
         (concat "jmaker " (jmaker-version-number))
         )
@@ -363,7 +365,11 @@ to overwrite it."
 
 ;;
 ;; $Log: jmaker.el,v $
-;; Revision 1.11  1999/04/22 21:50:36  ebat311
+;; Revision 1.12  1999/06/04 15:55:19  ebat311
+;; Added a "Make" option to the menu  (GNU Emacs only)
+;; to launch the standard `compile' command.
+;;
+;; Revision 1.11  1999-04-22 23:50:36+02  ebat311
 ;; Added `autoload' cookies.
 ;;
 ;; Revision 1.10  1998/11/27 09:23:51  ebat311
