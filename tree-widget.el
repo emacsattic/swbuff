@@ -1,13 +1,14 @@
 ;;; tree-widget.el --- Tree widget
 
-;; Copyright (C) 2001 by David Ponce
+;; Copyright (C) 2001, 2003 by David Ponce
 
 ;; Author: David Ponce <david@dponce.com>
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 16 Feb 2001
-;; Version: 1.1
 ;; Keywords: extensions
-;; VC: $Id: tree-widget.el,v 1.6 2001/11/27 21:36:06 ponce Exp $
+;; Revision: $Id: tree-widget.el,v 1.7 2003/04/25 11:32:33 ponced Exp $
+
+(defconst tree-widget-version "1.2")
 
 ;; This file is not part of Emacs
 
@@ -98,65 +99,20 @@
 ;; tree-widget-examples.el.  A more sophisticated example is provided
 ;; in the dir-tree.el source.
 ;;
-;; Installation
-
-;; Put this file on your Emacs-Lisp load path and add following into
-;; your ~/.emacs startup file
+;; To install and use, put this file on your Emacs-Lisp load path and
+;; add the following into your ~/.emacs startup file:
 ;;
-;;   (require 'tree-widget)
-
-;; Support
+;; (require 'tree-widget)
 ;;
-;; This program is available at <http://www.dponce.com/>. Any
-;; comments, suggestions, bug reports or upgrade requests are welcome.
-;; Please send them to David Ponce <david@dponce.com>.
 
 ;;; History:
-;; 
-;; $Log: tree-widget.el,v $
-;; Revision 1.6  2001/11/27 21:36:06  ponce
-;; Version 1.1
 ;;
-;; (tree-widget-after-toggle-functions): New variable.  Hooks run after
-;; toggling a `tree-widget' folding.
-;; (tree-widget-toggle-folding): Run above hooks.  Updated doc string.
-;;
-;; Examples moved into tree-widget-examples.el.
-;;
-;; Added pagination.  Minor comment changes.
-;;
-;; Revision 1.5  2001/05/11 23:11:18  ponce
-;; Updated version to 1.0.5.
-;;
-;; Revision 1.4  2001/05/11 23:02:14  ponce
-;; (tree-widget-value-create): Fixed a bug when the dynamic tree :dynargs
-;; function returns nil (no children).
-;;
-;; Revision 1.3  2001/03/16 14:23:15  ponce
-;; (tree-widget-example-1): removed unused free variable
-;; `tree-widget-sample'.
-;;
-;; Revision 1.2  2001/03/16 14:15:09  ponce
-;; (tree-widget-children-value-save): use `tree-widget-node' to get the
-;; :node value of widgets.  Check node and node-child values before
-;; saving properties.
-;;
-;; (tree-widget-button-keymap): new variable.  Keymap used inside node
-;; handle buttons.
-;;
-;; (tree-widget-node-handle): use `tree-widget-button-keymap'.
-;;
-;; (tree-widget-map): new utility function.
-;;
-;; Revision 1.1  2001/02/19 22:51:23  ponce
-;; Initial revision.
-;;
-
+
 ;;; Code:
 (require 'wid-edit)
-
+
 ;;; Customization
-
+;;
 (defgroup tree-widget nil
   "Customization support for the Tree Widget Library."
   :group 'widgets)
@@ -165,9 +121,9 @@
   "Widget type used for tree node handle."
   :type  'symbol
   :group 'tree-widget)
-
+
 ;;; Support functions
-
+;;
 (defun tree-widget-get-super (widget property)
   "Return WIDGET super class PROPERTY value."
   (widget-get
@@ -283,7 +239,7 @@ WIDGET is a `tree-widget-node-handle-widget' and its parent the
     (run-hook-with-args 'tree-widget-after-toggle-functions parent)))
 
 ;;; Widgets
-
+;;
 (defvar tree-widget-button-keymap
   (let (parent-keymap mouse-button1 keymap)
     (if (featurep 'xemacs)
@@ -331,7 +287,7 @@ WIDGET is a `tree-widget-node-handle-widget' and its parent the
   :last-leaf-handle " `--- ")
 
 ;;; Widget support functions
-
+;;
 (defun tree-widget-format-handler (widget escape)
   "Convenient %p format handler to insert a leaf node prefix.
 WIDGET is a tree leaf node and ESCAPE a format character."
@@ -451,7 +407,7 @@ WIDGET is a tree leaf node and ESCAPE a format character."
     (widget-put widget :buttons  buttons)))
 
 ;;; Utilities
-
+;;
 (defun tree-widget-map (widget fun)
   "For each WIDGET displayed child call function FUN.
 FUN is called with three arguments like this:
