@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 16 Feb 2001
 ;; Keywords: extensions
-;; Revision: $Id: dir-tree.el,v 1.3 2003/09/30 06:44:56 ponced Exp $
+;; Revision: $Id: dir-tree.el,v 1.4 2003/09/30 12:01:33 ponced Exp $
 
 (defconst dir-tree-version "1.1")
 
@@ -137,12 +137,15 @@ Place directories first."
   "Return TREE widget children.
 Reuse :args cache if exists."
   (or (widget-get tree :args)
-      (let ((dir (widget-get tree :path))
-            args)
+      (let ((dir (widget-get tree :path)))
         (message "Reading directory '%s'..." dir)
-        (setq args (mapcar 'dir-tree-widget (dir-tree-list dir)))
-        (message "Reading directory '%s'...done" dir)
-        args)))
+        (condition-case err
+            (prog1
+                (mapcar 'dir-tree-widget (dir-tree-list dir))
+              (message "Reading directory '%s'...done" dir))
+          (error
+           (message "%s" (error-message-string err))
+           nil)))))
 
 ;;; Command
 ;;
