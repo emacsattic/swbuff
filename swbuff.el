@@ -1,13 +1,13 @@
 ;; swbuff.el --- Quick switch between Emacs buffers.
 
-;; Copyright (C) 1998, 2000 by David Ponce
+;; Copyright (C) 1998, 2000, 2001 by David Ponce
 
 ;; Author: David Ponce <david@dponce.com>
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 12 Nov 1998
-;; Version: 2.1
+;; Version: 3.0
 ;; Keywords: extensions convenience
-;; VC: $Id: swbuff.el,v 1.14 2000/05/12 15:23:59 david_ponce Exp $
+;; VC: $Id: swbuff.el,v 1.15 2001/03/06 12:16:24 ponce Exp $
 
 ;; This file is not part of Emacs
 
@@ -33,10 +33,10 @@
 ;; the next or previous buffer in the buffer list.
 
 ;; The `swbuff-exclude-buffer-regexps' defines a list of regular
-;; expressions for excluded buffers. The default setting excludes buffers
-;; whose name begin with a blank character. To exclude all the internal
-;; buffers (that is *scratch*, *Message*, etc...) you could use the
-;; following regexps '("^ .*" "^\\*.*\\*").
+;; expressions for excluded buffers. The default setting excludes
+;; buffers whose name begin with a blank character. To exclude all the
+;; internal buffers (that is *scratch*, *Message*, etc...) you could
+;; use the following regexps '("^ .*" "^\\*.*\\*").
 
 ;; Switching buffers pops-up a status window at the bottom of the
 ;; selected window. The status window shows the list of switchable
@@ -61,6 +61,16 @@
 ;;; Change Log:
 
 ;; $Log: swbuff.el,v $
+;; Revision 1.15  2001/03/06 12:16:24  ponce
+;; New major version 3.0.
+;; Now works with FSF Emacs 20.7, 21.1 and XEmacs 21.1.
+;; New `swbuff-window-min-text-height' option to specify the minimum text
+;; height of the status window.
+;; New default face `swbuff-default-face' used for buffer names not
+;; highlighted.
+;; Simplified faces definitions.
+;; New improved status window layout code.
+;;
 ;; Revision 1.14  2000/05/12 15:23:59  david_ponce
 ;; Version 2.1.
 ;;
@@ -149,7 +159,7 @@
 
 ;;; Code:
 
-(defconst swbuff-version "2.1 $Date: 2000/05/12 15:23:59 $"
+(defconst swbuff-version "3.0 $Date: 2001/03/06 12:16:24 $"
   "swbuff version information.")
 
 (defconst swbuff-status-buffer-name "*swbuff*"
@@ -197,29 +207,29 @@ width. The possible choices are:
   :group 'swbuff
   :type 'string)
 
-(defface swbuff-current-buffer-face
-  '((((class grayscale) (background light)) (:foreground "red" :bold t :underline t))
-    (((class grayscale) (background dark)) (:foreground "red" :bold t :underline t))
-    (((class color) (background light)) (:foreground "red" :bold t :underline t))
-    (((class color) (background dark)) (:foreground "red" :bold t :underline t))
-    (t (:bold t :underline t)))
-  "*Face used to display the switched buffer name in the status window."
+(defcustom swbuff-window-min-text-height 1
+  "*Minimum text height of the status window."
+  :group 'swbuff
+  :type 'integer)
+
+(defface swbuff-default-face '((t nil))
+  "*Default face used for buffer names."
   :group 'swbuff)
 
-(defface swbuff-separator-face
-  '((((class grayscale) (background light)) (:foreground "blue"))
-    (((class grayscale) (background dark)) (:foreground "blue"))
-    (((class color) (background light)) (:foreground "blue"))
-    (((class color) (background dark)) (:foreground "blue"))
-    (t ()))
-  "*Face used to display separators in the status window."
+(defface swbuff-current-buffer-face '((t (:foreground "red" :bold t :underline t)))
+  "*Face used to highlight the current buffer name."
+  :group 'swbuff)
+
+(defface swbuff-separator-face '((t (:foreground "blue")))
+  "*Face used for separators."
   :group 'swbuff)
 
 (defcustom swbuff-exclude-buffer-regexps '("^ ")
   "*List of regular expressions for excluded buffers.
-The default setting excludes buffers whose name begin with a blank character.
-To exclude all the internal buffers (that is *scratch*, *Message*, etc...) you could
-use the following regexps (\"^ \" \"^\\*.*\\*\")."
+The default setting excludes buffers whose name begin with a blank
+character.  To exclude all the internal buffers (that is *scratch*,
+*Message*, etc...) you could use the following regexps:
+  (\"^ \" \"^\\*.*\\*\")."
   :group 'swbuff
   :type '(repeat (regexp :format "%v")))
 
@@ -230,7 +240,8 @@ See also `swbuff-default-load-hook'."
   :type 'hook)
 
 (defun swbuff-include-p (name)
-  "Return non-nil if NAME matches none of the `swbuff-exclude-buffer-regexps'."
+  "Return non-nil if buffer NAME can be included.
+That is if NAME matches none of the `swbuff-exclude-buffer-regexps'."
   (let ((rl (cons (regexp-quote swbuff-status-buffer-name)
                   swbuff-exclude-buffer-regexps)))
     (while (and rl (not (string-match (car rl) name)))
@@ -239,125 +250,160 @@ See also `swbuff-default-load-hook'."
 
 (defun swbuff-buffer-list ()
   "Return the list of switchable buffers.
-That is without the ones whose name matches `swbuff-exclude-buffer-regexps'."
+That is without the ones whose name matches
+`swbuff-exclude-buffer-regexps'."
   (let ((blist (delq nil
-                     (mapcar '(lambda (buf)
+                     (mapcar (function
+                              (lambda (buf)
                                 (and (swbuff-include-p (buffer-name buf))
-                                     buf))
+                                     buf)))
                              (buffer-list)))))
     (or (memq (current-buffer) blist)
         (setq blist (cons (current-buffer) blist)))
     blist))
 
-(defconst swbuff-extra-space 3
-  "Extra space left in a line of the status window.
-The default value correspond to the truncated glyphs + one space.")
+(if (fboundp 'count-lines)
+    (defalias 'swbuff-count-lines 'count-lines)
+  (defun swbuff-count-lines (start end)
+    "Return number of lines between START and END.
+This is usually the number of newlines between them,
+but can be one more if START is not equal to END
+and the greater of them is not at the start of a line."
+    (save-excursion
+      (save-restriction
+        (narrow-to-region start end)
+        (goto-char (point-min))
+        (if (eq selective-display t)
+            (save-match-data
+              (let ((done 0))
+                (while (re-search-forward "[\n\C-m]" nil t 40)
+                  (setq done (+ 40 done)))
+                (while (re-search-forward "[\n\C-m]" nil t 1)
+                  (setq done (+ 1 done)))
+                (goto-char (point-max))
+                (if (and (/= start end)
+                         (not (bolp)))
+                    (1+ done)
+                  done)))
+          (- (buffer-size) (forward-line (buffer-size))))))))
 
-(defun swbuff-scroll-window (window position)
-  "Adjust horizontal scrolling of WINDOW to ensure that POSITION is visible."
-  (save-selected-window
-    (select-window window)
+(defun swbuff-window-lines ()
+  "Return the number of lines in current buffer.
+This number may be greater than the number of actual lines in the
+buffer if any wrap on the display due to their length."
+  (count-lines (point-min) (point-max)))
+
+(defun swbuff-adjust-window (&optional text-height)
+  "Adjust window height to fit its buffer contents.
+If optional TEXT-HEIGHT is non-nil adjust window height to this
+value."
+  (setq text-height (max swbuff-window-min-text-height
+                         (or text-height
+                             (swbuff-window-lines))))
+  (if (fboundp 'set-window-text-height)
+      (set-window-text-height nil text-height)
+    (let ((height (window-height))
+          (lines  (+ 2 text-height)))
+      (enlarge-window (- lines height))))
+  (goto-char (point-min)))
+
+;;; Compatibility
+(if (and (not (featurep 'xemacs))
+         (> emacs-major-version 20))
+
+    ;; GNU Emacs 21
+    (defun swbuff-scroll-window (position)
+      "Adjust horizontal scrolling to ensure that POSITION is visible."
+      (setq truncate-lines t)
+      (let ((automatic-hscrolling t))
+        (goto-char position)))
+
+  ;; GNU Emacs 20 or XEmacs
+  (defconst swbuff-extra-space 3
+    "Extra space left in a line of the status window.
+The default value correspond to the truncated glyphs + one space.")
+  
+  (defun swbuff-scroll-window (position)
+    "Adjust horizontal scrolling to ensure that POSITION is visible."
     (setq truncate-lines t)
-    (let ((wdth (window-width))
-          (hscr (window-hscroll)))
+    ;; Don't display the XEmacs horizontal scrollbar
+    (let* ((window (selected-window))
+           (wdth (window-width window))
+           (hscr (window-hscroll window)))
+      (if (featurep 'xemacs)
+          (set-specifier horizontal-scrollbar-visible-p nil window))
       (if (>= position (+ wdth hscr))
           (set-window-hscroll window (- (+ position swbuff-extra-space) wdth))
         (if (< position hscr)
-            (set-window-hscroll window (- position swbuff-extra-space)))))))
-
-(defun swbuff-window-lines ()
-  "Return the number of lines of the selected window. This number may
-be greater than the number of actual lines in the buffer if any wrap
-on the display due to their length."
-  (let ((start (point-min))
-        (end   (point-max)))
-    (if (= start end)
-        0
-      (save-excursion
-        (save-restriction
-          (widen)
-          (narrow-to-region start end)
-          (goto-char start)
-          (vertical-motion (buffer-size)))))))
-
-(defun swbuff-adjust-window (window)
-  "Adjust WINDOW height to fit its buffer contents.
-The text in the window's buffer is filled to the window width."
-  (save-selected-window
-    (select-window window)
-    (let ((fill-column (window-width))
-          (start       (point-min))
-          (end         (point-max)))
-      (set-right-margin start end swbuff-extra-space)
-      (fill-region start end))
-    (let ((height (window-height))
-          (lines (+ 2 (swbuff-window-lines))))
-      (if (> lines height)
-          (enlarge-window (- lines height))))))
+            (set-window-hscroll window (- position swbuff-extra-space))))))
+  
+  )
 
 (defun swbuff-one-window-p (window)
   "Return non-nil if there is only one window in this frame ignoring
 WINDOW and the minibuffer window."
   (let ((count 0))
-    (walk-windows '(lambda (w)
-                     (if (not (eq w window))
-                         (setq count (1+ count)))))
+    (walk-windows (function
+                   (lambda (w)
+                     (or (eq w window)
+                         (setq count (1+ count))))))
     (= count 1)))
 
-(defun swbuff-layout-status-window (window position)
-  "Ensure the switched buffer is always visible when the buffer list
-is larger than the status window width.
-WINDOW is the status window. POSITION is the rightmost position in the
-WINDOW's buffer of the switched buffer name."
-  (cond ((eq swbuff-status-window-layout 'scroll)
-         (swbuff-scroll-window window position))
-        ((eq swbuff-status-window-layout 'adjust)
-         (swbuff-adjust-window window))
-        ((swbuff-one-window-p window)
-         (swbuff-adjust-window window))
-        (t
-         (swbuff-scroll-window window position))))
-              
 (defvar swbuff-buffer-list-holder nil
   "Hold the current displayed buffer list.")
 
-(defun swbuff-buffer-status-line ()
-  "Convert `swbuff-buffer-list-holder' to a status line displayed in the status window.
-Return a vector [START END LINE] where:
-- - START is the starting position of the current buffer name in LINE.
-- - END   is the ending position of the current buffer name in LINE.
-- - LINE  is the status line itself.
-"
-  (or swbuff-buffer-list-holder
-      (setq swbuff-buffer-list-holder (swbuff-buffer-list)))
-  (let ((blist swbuff-buffer-list-holder)
-        (bcurr (buffer-name))
-        (vline (make-vector 3 nil))
-        (separ (if (stringp swbuff-separator) swbuff-separator " "))
-        (line  (if (stringp swbuff-header) swbuff-header ""))
-        start end bname)
-    (setq end (length line))
-    (set-text-properties 0 end '(face swbuff-separator-face) line)
-    (while blist
-      (setq bname (buffer-name (car blist))
-            blist (cdr blist)
-            start end
-            line  (concat line bname)
-            end   (length line))
-      (and (string= bname bcurr)
-           (aset vline 0 start)
-           (aset vline 1 end)
-           (set-text-properties start end '(face swbuff-current-buffer-face) line))
-      (and blist
-           (setq start end
-                 line  (concat line separ)
-                 end   (length line))
-           (set-text-properties start end '(face swbuff-separator-face) line)))
-    (and (stringp swbuff-trailer)
-         (setq line (concat line swbuff-trailer))
-         (set-text-properties end (length line) '(face swbuff-separator-face) line))
-    (aset vline 2 line)
-    vline))
+(defun swbuff-layout-status-line (window bcurr)
+  "Layout a status line in WINDOW current buffer.
+BCURR is the buffer name to highlight."
+  (let ((blist  swbuff-buffer-list-holder)
+        (head   (or swbuff-header    "" ))
+        (separ  (or swbuff-separator " "))
+        (trail  (or swbuff-trailer   "" ))
+        (width  (window-width window))
+        (lines  0)
+        (adjust (or (eq swbuff-status-window-layout 'adjust)
+                    (swbuff-one-window-p window)))
+        start end buffer bname fillr)
+    (save-selected-window
+      (select-window window)
+      (erase-buffer)
+      (setq start (point))
+      (insert head)
+      (if (> (point) start)
+          (set-text-properties
+           start (point) '(face swbuff-separator-face)))
+      (while blist
+        (setq buffer (car blist)
+              blist  (cdr blist))
+        (when (buffer-live-p buffer)
+          (setq bname (buffer-name buffer)
+                start (point)
+                fillr (if blist separ trail))
+          (when (and adjust
+                     (> (- (+ start (length bname) (length fillr))
+                           (* lines width))
+                        width))
+            (newline)
+            (setq start (point)
+                  lines (1+ lines)))
+          (insert bname)
+          (cond
+           ((string-equal bname bcurr)
+            (setq end (point))
+            (set-text-properties
+             start end '(face swbuff-current-buffer-face)))
+           (t
+            (set-text-properties
+             start (point) '(face swbuff-default-face))))
+          (setq start (point))
+          (insert fillr)
+          (if (> (point) start)
+              (set-text-properties
+               start (point) '(face swbuff-separator-face)))))
+      (if adjust
+          (swbuff-adjust-window)
+        (swbuff-adjust-window 1)
+        (swbuff-scroll-window end)))))
 
 (defun swbuff-show-status-window ()
   "Pop-up a status window at the bottom of the selected window. The
@@ -365,24 +411,20 @@ status window shows the list of switchable buffers where the switched
 one is hilighted using `swbuff-current-buffer-face'. It is
 automatically discarded after any command is executed or after the
 delay specified by `swbuff-clear-delay'."
-  (let* ((vline (swbuff-buffer-status-line))
-         (start (aref vline 0))
-         (end   (aref vline 1))
-         (line  (aref vline 2)))
-    (if start
+  (if (or swbuff-buffer-list-holder
+          (setq swbuff-buffer-list-holder (swbuff-buffer-list)))
+      (let ((bcurr (buffer-name))
+            (window-min-height 1)
+            cursor-in-non-selected-windows)
         (with-current-buffer (get-buffer-create swbuff-status-buffer-name)
-          (erase-buffer)
-          (insert line)
-          (let* ((window-min-height 2)
-                 (w (or (get-buffer-window swbuff-status-buffer-name)
-                        (split-window-vertically -2))))
+          (let ((w (or (get-buffer-window swbuff-status-buffer-name)
+                       (split-window-vertically -2))))
             (set-window-buffer w (current-buffer))
-            (swbuff-layout-status-window w end)
+            (swbuff-layout-status-line w bcurr)
             (add-hook 'pre-command-hook 'swbuff-pre-command-hook)
             (if (sit-for swbuff-clear-delay)
-                (swbuff-discard-status-window))))
-      (setq swbuff-buffer-list-holder nil)
-      (message "No buffers eligible for switching."))))
+                (swbuff-discard-status-window)))))
+    (message "No buffers eligible for switching.")))
 
 (defun swbuff-discard-status-window ()
   "Discard the status window."
