@@ -7,7 +7,7 @@
 ;; Created: June 14 1999
 ;; Version: 1.7
 ;; Keywords: tools
-;; VC: $Id: jjar.el,v 1.11 2001/04/19 09:57:32 ponce Exp $
+;; VC: $Id: jjar.el,v 1.12 2001/10/26 22:01:08 ponce Exp $
 
 ;; This file is not part of Emacs
 
@@ -68,6 +68,10 @@
 ;;; Change Log:
 
 ;; $Log: jjar.el,v $
+;; Revision 1.12  2001/10/26 22:01:08  ponce
+;; (jjar-get-matching-files-in-dir): New implementation allowing
+;; directory path in matching wildcards.
+;;
 ;; Revision 1.11  2001/04/19 09:57:32  ponce
 ;; Updated to version 1.7 final.
 ;;
@@ -119,7 +123,7 @@
 (require 'compile)
 (require 'wid-edit)
 
-(defconst jjar-version "1.7 $Date: 2001/04/19 09:57:32 $"
+(defconst jjar-version "1.7 $Date: 2001/10/26 22:01:08 $"
   "jjar version information.")
 
 (defgroup jjar nil
@@ -182,16 +186,37 @@ Called by `jjar-files-dialog' to initialize `jjar-files'."
     file-list))
 
 (defun jjar-get-matching-files-in-dir (dir)
-  "Return a list file expressions corresponding to files in DIR that match
-one of `jjar-wildcards' expressions."
-  (delq nil
-        (mapcar (function
-                 (lambda (wildcard)
-                   (and (directory-files dir nil (wildcard-to-regexp wildcard))
-                        (concat (file-name-as-directory
-                                 (file-relative-name dir jjar-base-directory))
-                                wildcard))))
-                jjar-wildcards)))
+  "Return a list of wildcard expressions matching files in DIR.
+Wildcard expressions are in variable `jjar-wildcards'."
+  (let ((dir (file-name-as-directory dir))
+        (wildcards jjar-wildcards)
+        wildcard dir-wc file-wc files file match wl)
+    (while wildcards
+      (setq wildcard  (car wildcards)
+            file-wc   (or (file-name-nondirectory wildcard) "*")
+            dir-wc    (or (file-name-directory wildcard) "*")
+            wildcards (cdr wildcards))
+      (and (string-match (wildcard-to-regexp (concat dir-wc "*")) dir)
+           (directory-files dir t (wildcard-to-regexp file-wc))
+           (setq wl (cons
+                     (concat
+                      (file-name-as-directory
+                       (file-relative-name dir jjar-base-directory))
+                      file-wc)
+                     wl))))
+    (nreverse wl)))
+
+;; (defun jjar-get-matching-files-in-dir (dir)
+;;   "Return a list file expressions corresponding to files in DIR that match
+;; one of `jjar-wildcards' expressions."
+;;   (delq nil
+;;         (mapcar (function
+;;                  (lambda (wildcard)
+;;                    (and (directory-files dir nil (wildcard-to-regexp wildcard))
+;;                         (concat (file-name-as-directory
+;;                                  (file-relative-name dir jjar-base-directory))
+;;                                 wildcard))))
+;;                 jjar-wildcards)))
 
 (defun jjar-get-matching-files-in-tree (dir)
   "Auxiliary function used by `jjar-get-matching-files'.
