@@ -2,6 +2,12 @@
 
 	* tabbar.el
 
+	(tabbar-display-update): Fix byte compilation issue.
+
+2004-03-03  David Ponce  <david@dponce.com>
+
+	* tabbar.el
+
 	(tabbar-display-update): Remove window argument.  Update callers.
 	(tabbar-click-p): New function.
 	(tabbar-make-select-tab-command): Use it. Ignore non mouse clicks.
