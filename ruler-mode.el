@@ -5,7 +5,7 @@
 ;; Author: David Ponce <david@dponce.com>
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 24 Mar 2001
-;; Version: 1.1.1
+;; Version: 1.2
 ;; Keywords: environment
 
 ;; This file is part of GNU Emacs.
@@ -30,8 +30,8 @@
 ;; This library provides a minor mode to display a ruler in the header
 ;; line.  It works only on Emacs 21.
 ;;
-;; You can use the mouse to change the `fill-column' and
-;; `window-margins' settings:
+;; You can use the mouse to change the `fill-column', `window-margins'
+;; and `tab-stop-list' settings:
 ;;
 ;; [header-line (shift down-mouse-1)] set left margin to the ruler
 ;; graduation where the mouse pointer is on.
@@ -42,10 +42,22 @@
 ;; [header-line down-mouse-2] set `fill-column' to the ruler
 ;; graduation where the mouse pointer is on.
 ;;
+;; [header-line (control down-mouse-1)] add a tab stop to the ruler
+;; graduation where the mouse pointer is on.
+;;
+;; [header-line (control down-mouse-3)] remove the tab stop at the
+;; ruler graduation where the mouse pointer is on.
+;;
+;; [header-line (control down-mouse-2)] or M-x
+;; `ruler-mode-toggle-show-tab-stops' toggle showing and visually
+;; editing `tab-stop-list' setting.  The `ruler-mode-show-tab-stops'
+;; option controls if the ruler shows tab stops by default.
+;;
 ;; In the ruler the character `ruler-mode-current-column-char' shows
-;; the `current-column' location and the character
-;; `ruler-mode-fill-column-char' shows the `fill-column' location.
-;; `window-margins' areas are shown with a different background color.
+;; the `current-column' location, `ruler-mode-fill-column-char' shows
+;; the `fill-column' location and `ruler-mode-tab-stop-char' shows tab
+;; stop locations.  `window-margins' areas are shown with a different
+;; background color.
 ;;
 ;; It is also possible to customize the following characters:
 ;;
@@ -63,6 +75,8 @@
 ;;   `fill-column' character.
 ;; - `ruler-mode-current-column-face' the face used to highlight the
 ;;   `current-column' character.
+;; - `ruler-mode-tab-stop-face' the face used to highlight tab stop
+;;   characters.
 ;; - `ruler-mode-margins-face' the face used to highlight the
 ;;   `window-margins' areas.
 ;; - `ruler-mode-column-number-face' the face used to highlight the
@@ -104,6 +118,15 @@
   :version "21.2"
   :group 'environment)
 
+(defcustom ruler-mode-show-tab-stops nil
+  "*If non-nil the ruler shows tab stop positions.
+Also allowing to visually change `tab-stop-list' setting using
+<C-down-mouse-1> and <C-down-mouse-3> on the ruler to respectively add
+or remove a tab stop.  \\[ruler-mode-toggle-show-tab-stops] or
+<C-down-mouse-2> on the ruler toggles showing/editing of tab stops."
+  :group 'ruler-mode
+  :type 'boolean)
+
 ;; IMPORTANT: This function must be defined before the following
 ;; defcustoms because it is used in their :validate clause.
 (defun ruler-mode-character-validate (widget)
@@ -130,6 +153,14 @@
                                               ?\¦
                                             ?\@)
   "*Character used at the `current-column' location."
+  :group 'ruler-mode
+  :type '(choice
+          (character :tag "Character")
+          (integer :tag "Integer char value"
+                   :validate ruler-mode-character-validate)))
+
+(defcustom ruler-mode-tab-stop-char ?\T
+  "*Character used at `tab-stop-list' locations."
   :group 'ruler-mode
   :type '(choice
           (character :tag "Character")
@@ -177,12 +208,28 @@
   "Default face used by the ruler."
   :group 'ruler-mode)
 
+(defface ruler-mode-column-number-face
+  '((t
+     (:inherit ruler-mode-default-face
+               :foreground "black"
+               )))
+  "Face used to highlight number graduations."
+  :group 'ruler-mode)
+
 (defface ruler-mode-fill-column-face
   '((t
      (:inherit ruler-mode-default-face
                :foreground "red"
                )))
   "Face used to highlight the fill column character."
+  :group 'ruler-mode)
+
+(defface ruler-mode-tab-stop-face
+  '((t
+     (:inherit ruler-mode-default-face
+               :foreground "steelblue"
+               )))
+  "Face used to highlight tab stop characters."
   :group 'ruler-mode)
 
 (defface ruler-mode-margins-face
@@ -204,14 +251,6 @@
                :foreground "yellow"
                )))
   "Face used to highlight the `current-column' character."
-  :group 'ruler-mode)
-
-(defface ruler-mode-column-number-face
-  '((t
-     (:inherit ruler-mode-default-face
-               :foreground "black"
-               )))
-  "Face used to highlight number graduations."
   :group 'ruler-mode)
 
 (defun ruler-mode-mouse-set-left-margin (start-event)
@@ -266,13 +305,73 @@ START-EVENT is the mouse click event."
                 lm  (or (car m) 0)
                 rm  (or (cdr m) 0)
                 col (- (car (posn-col-row start)) lm)
-                w     (window-width)
-                hs    (window-hscroll)
-                fc    (+ col hs))
+                w   (window-width)
+                hs  (window-hscroll)
+                fc  (+ col hs))
           (and (>= col 0) (< (+ col lm rm) w)
                (progn
                  (message "Fill column set to %d (was %d)" fc fill-column)
                  (setq fill-column fc)))))))
+
+(defun ruler-mode-mouse-add-tab-stop (start-event)
+  "Add a tab stop to the graduation where the mouse pointer is on.
+START-EVENT is the mouse click event."
+  (interactive "e")
+  (if ruler-mode-show-tab-stops
+      (let* ((start (event-start start-event))
+             (end   (event-end   start-event))
+             m col w lm rm hs ts)
+        (if (eq start end) ;; mouse click
+            (save-selected-window
+              (select-window (posn-window start))
+              (setq m   (window-margins)
+                    lm  (or (car m) 0)
+                    rm  (or (cdr m) 0)
+                    col (- (car (posn-col-row start)) lm)
+                    w   (window-width)
+                    hs  (window-hscroll)
+                    ts  (+ col hs))
+              (and (>= col 0) (< (+ col lm rm) w)
+                   (not (member ts tab-stop-list))
+                   (progn
+                     (message "Tab stop set to %d" ts)
+                     (setq tab-stop-list
+                           (sort (cons ts tab-stop-list)
+                                 #'<)))))))))
+
+(defun ruler-mode-mouse-del-tab-stop (start-event)
+  "Delete tab stop at the graduation where the mouse pointer is on.
+START-EVENT is the mouse click event."
+  (interactive "e")
+  (if ruler-mode-show-tab-stops
+      (let* ((start (event-start start-event))
+             (end   (event-end   start-event))
+             m col w lm rm hs ts)
+        (if (eq start end) ;; mouse click
+            (save-selected-window
+              (select-window (posn-window start))
+              (setq m   (window-margins)
+                    lm  (or (car m) 0)
+                    rm  (or (cdr m) 0)
+                    col (- (car (posn-col-row start)) lm)
+                    w   (window-width)
+                    hs  (window-hscroll)
+                    ts  (+ col hs))     
+              (and (>= col 0) (< (+ col lm rm) w)
+                   (member ts tab-stop-list)
+                   (progn
+                     (message "Tab stop at %d deleted" ts)
+                     (setq tab-stop-list
+                           (delete ts tab-stop-list)))))))))
+
+(defun ruler-mode-toggle-show-tab-stops ()
+  "Toggle showing of tab stops on the ruler."
+  (interactive)
+  (if ruler-mode
+      (progn
+        (setq ruler-mode-show-tab-stops
+              (not ruler-mode-show-tab-stops))
+        (ruler-mode-post-command-hook))))
 
 (defvar ruler-mode-map
   (let ((km (make-sparse-keymap)))
@@ -286,6 +385,12 @@ START-EVENT is the mouse click event."
       #'ruler-mode-mouse-set-left-margin)
     (define-key km [header-line (shift down-mouse-3)]
       #'ruler-mode-mouse-set-right-margin)
+    (define-key km [header-line (control down-mouse-1)]
+      #'ruler-mode-mouse-add-tab-stop)
+    (define-key km [header-line (control down-mouse-3)]
+      #'ruler-mode-mouse-del-tab-stop)
+    (define-key km [header-line (control down-mouse-2)]
+      #'ruler-mode-toggle-show-tab-stops)
     km)
   "Keymap for ruler minor mode.")
 
@@ -348,11 +453,11 @@ That is a pair (FRINGE-COLS . VSCROLLBAR-COLS) where:
          (sbm (frame-parameter f 'vertical-scroll-bars)))
     (if (or check (not ruler-mode-left-fringe-cols))
         (let* ((w   (frame-first-window f))
-               (sbw  (frame-pixel-width f))
-               (chw  (frame-char-width f))
-               (chx  (/ 1.0 (float chw)))
-               (pos  (cons 0 0.0))
-               (lfw  0.)
+               (sbw (frame-pixel-width f))
+               (chw (frame-char-width f))
+               (chx (/ 1.0 (float chw)))
+               (pos (cons 0 0.0))
+               (lfw 0.)
                coord)
           (if sbm
               (modify-frame-parameters
@@ -460,6 +565,26 @@ That is a pair (FRINGE-COLS . VSCROLLBAR-COLS) where:
               (put-text-property
                i (1+ i) 'face 'ruler-mode-fill-column-face
                ruler))
+
+         ;; Show the `tab-stop-list' markers.
+         (if ruler-mode-show-tab-stops
+             (let ((tsl tab-stop-list) ts)
+               (while tsl
+                 (setq ts  (car tsl)
+                       tsl (cdr tsl)
+                       i   (- ts o))
+                 (and (>= i 0) (< i r)
+                      (aset ruler i ruler-mode-tab-stop-char)
+                      (put-text-property
+                       i (1+ i)
+                       'face (cond
+                              ;; Don't override the fill-column face
+                              ((eq ts fill-column)
+                               'ruler-mode-fill-column-face)
+                              (t
+                               'ruler-mode-tab-stop-face))
+                       ruler)))))
+
          ;; Show the `current-column' marker.
          (setq i (- (current-column) o))
          (and (>= i 0) (< i r)
@@ -467,6 +592,7 @@ That is a pair (FRINGE-COLS . VSCROLLBAR-COLS) where:
               (put-text-property
                i (1+ i) 'face 'ruler-mode-current-column-face
                ruler))
+         
          ruler)))
 
 (provide 'ruler-mode)
