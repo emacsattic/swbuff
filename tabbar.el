@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 25 February 2003
 ;; Keywords: convenience
-;; Revision: $Id: tabbar.el,v 1.40 2004/09/21 10:43:16 ponced Exp $
+;; Revision: $Id: tabbar.el,v 1.41 2004/09/24 18:29:55 ponced Exp $
 
 (defconst tabbar-version "1.4")
 
@@ -1064,11 +1064,13 @@ element."
          (propertize (car label)
                      'tabbar-button name
                      'face 'tabbar-button-face
+                     'pointer 'hand
                      'local-map (tabbar-make-button-keymap name)
                      'help-echo 'tabbar-help-on-button))
     (set (intern (format "tabbar-%s-button-disabled" name))
          (propertize (cdr label)
-                     'face 'tabbar-button-face))))
+                     'face 'tabbar-button-face
+                     'pointer 'arrow))))
 
 (defun tabbar-line-separator ()
   "Return the display representation of a tab bar separator.
@@ -1082,14 +1084,17 @@ element."
            (image
             (propertize " "
                         'face 'tabbar-separator-face
+                        'pointer 'arrow
                         'display (tabbar-normalize-image image)))
            ((numberp (car tabbar-separator))
             (propertize " "
                         'face 'tabbar-separator-face
+                        'pointer 'arrow
                         'display (list 'space
                                        :width (car tabbar-separator))))
            ((propertize (or (car tabbar-separator) " ")
-                        'face 'tabbar-separator-face))))
+                        'face 'tabbar-separator-face
+                        'pointer 'arrow))))
     ))
 
 (defun tabbar-line-buttons (tabset)
@@ -1131,7 +1136,8 @@ Call `tabbar-tab-label-function' to obtain a label for TAB."
            'help-echo 'tabbar-help-on-tab
            'face (if (tabbar-selected-p tab (tabbar-current-tabset))
                      'tabbar-selected-face
-                   'tabbar-unselected-face))
+                   'tabbar-unselected-face)
+           'pointer 'hand)
           tabbar-separator-value))
 
 (defun tabbar-truncated-p (buttons tabs)
@@ -1183,8 +1189,10 @@ to display."
          tabset
          (list (tabbar-line-buttons tabset)
                (nreverse elts)
-               (propertize "%-" 'face (list :background padcolor
-                                            :foreground padcolor))))
+               (propertize "%-"
+                           'face (list :background padcolor
+                                       :foreground padcolor)
+                           'pointer 'arrow)))
         )))
 
 (defun tabbar-line ()
