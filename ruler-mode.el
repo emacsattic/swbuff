@@ -401,14 +401,18 @@ START-EVENT is the mouse click event."
         ;; and install the ruler header line format.
         (setq ruler-mode-header-line-format-old header-line-format
               header-line-format ruler-mode-header-line-format)
-        (add-hook 'post-command-hook    ; add local hook
-                  #'force-mode-line-update nil t))
+        ;; The %c construct in the mode line format forces a refresh
+        ;; of the mode and header lines when the current column
+        ;; changes!  Enabling `column-number-mode' locally ensures
+        ;; that the %c construct is used on the mode line.
+        (set (make-local-variable 'column-number-mode) t))
     ;; When `ruler-mode' is off restore previous header line format if
     ;; the current one is the ruler header line format.
     (if (eq header-line-format ruler-mode-header-line-format)
         (setq header-line-format ruler-mode-header-line-format-old))
-    (remove-hook 'post-command-hook     ; remove local hook
-                 #'force-mode-line-update t)))
+    ;; Restore `column-number-mode' to its global value.
+    (set (make-local-variable 'column-number-mode)
+         (default-value 'column-number-mode))))
 
 ;; Add ruler-mode to the minor mode menu in the mode line
 (define-key mode-line-mode-menu [ruler-mode]
