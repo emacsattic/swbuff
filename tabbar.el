@@ -6,9 +6,9 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 25 February 2003
 ;; Keywords: convenience
-;; Revision: $Id: tabbar.el,v 1.11 2003/04/03 18:48:00 ponce Exp $
+;; Revision: $Id: tabbar.el,v 1.12 2003/04/17 09:18:16 ponce Exp $
 
-(defconst tabbar-version "1.1")
+(defconst tabbar-version "1.2")
 
 ;; This file is not part of GNU Emacs.
 
@@ -42,6 +42,30 @@
 ;; this:
 ;;
 ;;   (global-set-key [(control f10)] 'tabbar-local-mode)
+;;
+;; It is possible to navigate through tabs using commands (that is,
+;; using the keyboard).  The main commands to cycle through tabs are:
+;;
+;; - `tabbar-forward' select the next available tab.
+;; - `tabbar-backward' select the previous available tab.
+;;
+;; It is worth defining keys for them.  For example: 
+;;
+;;   (global-set-key [(control shift tab)] 'tabbar-backward)
+;;   (global-set-key [(control tab)]       'tabbar-forward)
+;;
+;; The default cycle is to first try to select the tab just
+;; after/before the selected tab.  If this is the last/first tab, then
+;; the first/last tab of the next/previous group of tabs is selected.
+;; That behavior is controlled by the `tabbar-cycling-scope' option.
+;;
+;; The following specialized commands can be useful too:
+;;
+;; - `tabbar-forward-tab'/`tabbar-backward-tab'
+;;      Navigate through visible tabs only.
+;;
+;; - `tabbar-forward-group'/`tabbar-backward-group'
+;;      Navigate through tab groups only.
 ;;
 ;; Core
 ;; ----
@@ -144,6 +168,22 @@
 (defgroup tabbar nil
   "Display a tab bar in the header line."
   :group 'convenience)
+
+(defcustom tabbar-cycling-scope nil
+  "*Specify the scope of cyclic navigation through tabs.
+The following scopes are possible:
+
+- `tabs'
+    Navigate through visible tabs only.
+- `groups'
+    Navigate through tab groups only.
+- default
+    Navigate through visible tabs, then through tab groups."
+  :group 'tabbar
+  :type '(choice :tag "Cycle through..."
+                 (const :tag "Visible Tabs Only" tabs)
+                 (const :tag "Tab Groups Only" groups)
+                 (const :tag "Visible Tabs then Tab Groups" nil)))
 
 (defcustom tabbar-inhibit-functions
   '(tabbar-default-inhibit-function)
@@ -396,6 +436,16 @@ move the view on left."
     (when (/= start (tabbar-start tabset))
       (tabbar-set-template tabset nil)
       (put tabset 'start start))))
+
+(defun tabbar-tab-next (tabset tab &optional before)
+  "Search in TABSET for the tab after TAB.
+If optional argument BEFORE is non-nil, search for the tab before
+TAB.  Return the tab found, or nil otherwise."
+  (let* (last (tabs (tabbar-tabs tabset)))
+    (while (and tabs (not (eq tab (car tabs))))
+      (setq last (car tabs)
+            tabs (cdr tabs)))
+    (and tabs (if before last (nth 1 tabs)))))
 
 (defun tabbar-current-tabset (&optional update)
   "Return the current tab set, that will be displayed on the tab bar.
@@ -805,10 +855,10 @@ mouse event and TAB."
   (let ((event (make-symbol "event")))
     `(lambda (,event)
        (interactive "e")
-       (setq tabbar-last-selected-tab ',tab)
+       (setq tabbar-last-selected-tab ,tab)
        (when tabbar-select-tab-function
          (select-window (posn-window (event-start ,event)))
-         (funcall tabbar-select-tab-function ,event ',tab)
+         (funcall tabbar-select-tab-function ,event ,tab)
          (force-mode-line-update)
          (sit-for 0)))))
 
@@ -821,14 +871,15 @@ That command calls `tabbar-help-on-tab-function' with TAB."
         )
     `(lambda (,window ,object ,position)
        (when tabbar-help-on-tab-function
-         (funcall tabbar-help-on-tab-function ',tab)))))
+         (funcall tabbar-help-on-tab-function ,tab)))))
 
 (defun tabbar-line-element (tab)
   "Return an `header-line-format' template element from TAB.
 Call `tabbar-tab-label-function' to obtain a label for TAB."
   (let* ((keymap (make-sparse-keymap))
-         (select (tabbar-make-select-tab-command tab))
-         (help   (tabbar-make-help-on-tab-function tab))
+         (qtab   (list 'quote tab))
+         (select (tabbar-make-select-tab-command qtab))
+         (help   (tabbar-make-help-on-tab-function qtab))
          (label  (if tabbar-tab-label-function
                      (funcall tabbar-tab-label-function tab)
                    tab)))
@@ -880,7 +931,115 @@ set's view to build a list of template elements for
               (propertize "%-" 'face (list :background padcolor
                                            :foreground padcolor))))
       )))
+
+;;; Cyclic navigation through tabs
+;;
+(defsubst tabbar-make-mouse-event (&optional type)
+  "Return a basic mouse event.
+Optional argument TYPE is a mouse event type.  That is one of the
+symbols `mouse-1', `mouse-2' or `mouse-3'.  The default is `mouse-1'."
+  (list (or (memq type '(mouse-2 mouse-3)) 'mouse-1)
+        (event-start nil)))
 
+(defmacro tabbar-click-on-tab (tab &optional type)
+  "Simulate a mouse click event on tab TAB.
+Optional argument TYPE is a mouse event type (see the function
+`tabbar-make-mouse-event' for details)."
+  `(funcall ,(tabbar-make-select-tab-command tab)
+            (tabbar-make-mouse-event ,type)))
+
+(defun tabbar-cycle (&optional backward)
+  "Cycle to the next available tab.
+If optional argument BACKWARD is non-nil, cycle to the previous tab
+instead.
+The scope of the cyclic navigation through tabs is specified by the
+option `tabbar-cycling-scope'."
+  (when tabbar-mode
+    (let ((selected (tabbar-selected-tab (tabbar-current-tabset)))
+          tabset tab)
+      (cond
+       ;; Cycle through visible tabs only.
+       ((eq tabbar-cycling-scope 'tabs)
+        (setq tabset (tabbar-current-tabset)
+              tab (tabbar-tab-next tabset selected backward))
+        ;; When there is no tab after/before the selected one, cycle
+        ;; to the first/last visible tab.
+        (unless tab
+          (setq tabset (tabbar-tabs tabset)
+                tab (car (if backward (last tabset) tabset))))
+        )
+       ;; Cycle through tab groups only.
+       ((eq tabbar-cycling-scope 'groups)
+        (setq tabset (tabbar-get-tabsets-tabset)
+              tab (tabbar-tab-next tabset selected backward))
+        ;; When there is no group after/before the selected one, cycle
+        ;; to the first/last available group.
+        (unless tab
+          (setq tabset (tabbar-tabs tabset)
+                tab (car (if backward (last tabset) tabset))))
+        )
+       (t
+        ;; Cycle through visible tabs then tab groups.
+        (setq tabset (tabbar-current-tabset)
+              tab (tabbar-tab-next tabset selected backward))
+        ;; When there is no visible tab after/before the selected one,
+        ;; cycle to the next/previous available group.
+        (unless tab
+          (setq tabset (tabbar-get-tabsets-tabset)
+                tab (tabbar-tab-next tabset selected backward))
+          ;; When there is no next/previous group, cycle to the
+          ;; first/last available group.
+          (unless tab
+            (setq tabset (tabbar-tabs tabset)
+                  tab (car (if backward (last tabset) tabset))))
+          ;; Select the first/last visible tab of the new group.
+          (setq tabset (tabbar-tabs (tabbar-tab-tabset tab))
+                tab (car (if backward (last tabset) tabset))))
+        ))
+      (tabbar-click-on-tab tab))))
+
+;;;###autoload
+(defun tabbar-backward ()
+  "Select the previous available tab.
+Depend on the setting of the option `tabbar-cycling-scope'."
+  (interactive)
+  (tabbar-cycle t))
+
+;;;###autoload
+(defun tabbar-forward ()
+  "Select the next available tab.
+Depend on the setting of the option `tabbar-cycling-scope'."
+  (interactive)
+  (tabbar-cycle))
+
+;;;###autoload
+(defun tabbar-backward-group ()
+  "Go to selected tab in the previous available group."
+  (interactive)
+  (let ((tabbar-cycling-scope 'groups))
+    (tabbar-cycle t)))
+
+;;;###autoload
+(defun tabbar-forward-group ()
+  "Go to selected tab in the next available group."
+  (interactive)
+  (let ((tabbar-cycling-scope 'groups))
+    (tabbar-cycle)))
+
+;;;###autoload
+(defun tabbar-backward-tab ()
+  "Select the previous visible tab."
+  (interactive)
+  (let ((tabbar-cycling-scope 'tabs))
+    (tabbar-cycle)))
+
+;;;###autoload
+(defun tabbar-forward-tab ()
+  "Select the next visible tab."
+  (interactive)
+  (let ((tabbar-cycling-scope 'tabs))
+    (tabbar-cycle)))
+
 ;;; Minor modes
 ;;
 (defvar tabbar-old-global-hlf nil
