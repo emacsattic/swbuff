@@ -5,7 +5,7 @@
 ;; Author: David Ponce <david@dponce.com>
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 24 Mar 2001
-;; Version: 1.5
+;; Version: 1.5.1
 ;; Keywords: convenience
 
 ;; This file is part of GNU Emacs.
@@ -179,7 +179,7 @@ or remove a tab stop.  \\[ruler-mode-toggle-show-tab-stops] or
           (integer :tag "Integer char value"
                    :validate ruler-mode-character-validate)))
 
-(defcustom ruler-mode-margins-char ?\   ; Comment to protect space from deletion
+(defcustom ruler-mode-margins-char ?\s
   "*Character used in margin areas."
   :group 'ruler-mode
   :type '(choice
@@ -533,6 +533,7 @@ START-EVENT is the mouse click event."
       (progn
         ;; When `ruler-mode' is on save previous header line format
         ;; and install the ruler header line format.
+        (kill-local-variable 'ruler-mode-header-line-format-old)
         (when (local-variable-p 'header-line-format)
           (setq ruler-mode-header-line-format-old header-line-format))
         (setq header-line-format ruler-mode-header-line-format)
@@ -545,7 +546,7 @@ START-EVENT is the mouse click event."
     ;; the current one is the ruler header line format.
     (when (eq header-line-format ruler-mode-header-line-format)
       (kill-local-variable 'header-line-format)
-      (when ruler-mode-header-line-format-old
+      (when (local-variable-p 'ruler-mode-header-line-format-old)
         (setq header-line-format ruler-mode-header-line-format-old)))
     ;; Restore `column-number-mode' to its global value.
     (kill-local-variable 'column-number-mode)))
