@@ -7,6 +7,7 @@
 
 	* dir-tree.el
 
+	(dir-tree-expand-dir): Make more robust.
 	(dir-tree): Use the "folder" theme.
 
 2003-09-29  David Ponce  <david@dponce.com>
