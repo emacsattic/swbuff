@@ -147,11 +147,13 @@ used to build the menu and must return a new list of menu elements (see
   "*If nil (default), non-readable files are not kept in `recentf-list'."
   :group 'recentf
   :type 'boolean
-  :set  '(lambda (sym val)
-           (if val
-               (remove-hook 'kill-buffer-hook 'recentf-remove-file-hook)
-             (add-hook 'kill-buffer-hook 'recentf-remove-file-hook))
-           (custom-set-default sym val)))
+  :require 'recentf
+  :initialize 'custom-initialize-default
+  :set (lambda (sym val)
+         (if val
+             (remove-hook 'kill-buffer-hook 'recentf-remove-file-hook)
+           (add-hook 'kill-buffer-hook 'recentf-remove-file-hook))
+         (custom-set-default sym val)))
 
 (defcustom recentf-mode nil
   "Toggle recentf mode.
