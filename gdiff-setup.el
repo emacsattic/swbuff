@@ -1,12 +1,12 @@
-;; gdiff-setup.el -- gdiff setup
+;;; gdiff-setup.el -- gdiff setup
 
-;; Copyright (C) 2002 by David Ponce
+;; Copyright (C) 2002, 2003 by David Ponce
 
 ;; Author: David Ponce <david@dponce.com>
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: March 15 2000
 ;; Keywords: tools
-;; X-RCS: $Id: gdiff-setup.el,v 1.1 2002/08/21 13:31:20 ponce Exp $
+;; Revision: $Id: gdiff-setup.el,v 1.2 2003/04/25 11:26:19 ponced Exp $
 
 ;; This file is not part of Emacs
 
@@ -26,17 +26,13 @@
 ;; Boston, MA 02111-1307, USA.
 
 ;;; Commentary:
-
-;; This is the always-loaded portion of gdiff.  It setup gdiff
-;; shortcut keys, menu and autoloads
-
-;; Support
 ;;
-;; This program is available at <http://www.dponce.com/>. Any
-;; comments, suggestions, bug reports or upgrade requests are welcome.
-;; Please send them to David Ponce at <david@dponce.com>
+;; This is the always-loaded portion of gdiff that setups shortcut
+;; keys, menu and autoloads.
+;;
 
 ;;; History::
+;;
 
 ;;; Code:
 (require 'vc)
@@ -57,7 +53,9 @@
               (error "File %s is not under version control" (buffer-file-name))))))
     
     )
-
+
+;;; Options
+;;
 (defgroup gdiff nil
   "Use a GUI diff tool from Emacs."
   :group 'tools)
@@ -121,7 +119,9 @@ Optional argument FILE default to the file visited by the current
 buffer." t nil)
 
 ;;;***
-
+
+;;; Menu & Keymap
+;;
 (defun gdiff-check-if-vc-buffer ()
   "Return t if the current buffer visits a version-controlled file."
   (condition-case nil
@@ -140,15 +140,15 @@ buffer." t nil)
 ;; Setup gdiff keys
 (setq gdiff-prefix-map (lookup-key global-map "\C-c="))
 
-(if (not (keymapp gdiff-prefix-map))
-    (progn
-      (setq gdiff-prefix-map (make-sparse-keymap))
-      (define-key global-map "\C-c=" gdiff-prefix-map)
-      (define-key gdiff-prefix-map "b" 'gdiff-buffer-with-file)
-      (define-key gdiff-prefix-map "f" 'gdiff-files)
-      (define-key gdiff-prefix-map "d" 'gdiff-folders)
-      (define-key gdiff-prefix-map "r" 'gdiff-revision)
-      (define-key gdiff-prefix-map "=" 'gdiff-latest-revision)))
+(if (keymapp gdiff-prefix-map)
+    nil
+  (setq gdiff-prefix-map (make-sparse-keymap))
+  (define-key global-map "\C-c=" gdiff-prefix-map)
+  (define-key gdiff-prefix-map "b" 'gdiff-buffer-with-file)
+  (define-key gdiff-prefix-map "f" 'gdiff-files)
+  (define-key gdiff-prefix-map "d" 'gdiff-folders)
+  (define-key gdiff-prefix-map "r" 'gdiff-revision)
+  (define-key gdiff-prefix-map "=" 'gdiff-latest-revision))
 
 (provide 'gdiff-setup)
 
