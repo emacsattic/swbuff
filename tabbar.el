@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 25 February 2003
 ;; Keywords: convenience
-;; Revision: $Id: tabbar.el,v 1.39 2004/09/15 07:07:08 ponced Exp $
+;; Revision: $Id: tabbar.el,v 1.40 2004/09/21 10:43:16 ponced Exp $
 
 (defconst tabbar-version "1.4")
 
@@ -296,7 +296,7 @@ The function is called with no arguments."
 (eval-and-compile
   (defalias 'tabbar-display-update
     (if (fboundp 'force-window-update)
-        'force-window-update
+        #'(lambda () (force-window-update (selected-window)))
       'force-mode-line-update))
   )
 
@@ -885,8 +885,8 @@ an extra margin around the image."
 
 ;;; Button keymaps and callbacks
 ;;
-(defun tabbar-make-button-keymap (callback)
-  "Return a button keymap that call CALLBACK on mouse events.
+(defun tabbar-make-mouse-keymap (callback)
+  "Return a keymap that call CALLBACK on mouse events.
 CALLBACK is passed the received mouse event."
   (let ((keymap (make-sparse-keymap)))
     ;; Pass mouse-1, mouse-2 and mouse-3 events to CALLBACK.
@@ -909,48 +909,60 @@ The default is `mouse-1'."
           (or (event-start nil) ;; Emacs 21.4
               (list (selected-window) (point) '(0 . 0) 0)))))
 
-;;; Home button
+;;; Buttons
 ;;
-(defconst tabbar-home-button-keymap
-  (tabbar-make-button-keymap 'tabbar-home-button-callback)
-  "Keymap of the home button.")
+(defconst tabbar-default-button-keymap
+  (tabbar-make-mouse-keymap 'tabbar-select-button-callback)
+  "Default keymap of a button.")
 
-(defun tabbar-home-button-callback (event)
-  "Handle a mouse EVENT on the home button.
-Call `tabbar-home-function'."
+(defun tabbar-help-on-button (window object position)
+  "Return a help string or nil for none, for the button under the mouse.
+WINDOW is the window in which the help was found (unused).
+OBJECT is the button label under the mouse.
+POSITION is the position in that label.
+Call `tabbar-NAME-help-function' where NAME is the button name
+associated to OBJECT."
+  (let* ((name (get-text-property position 'tabbar-button object))
+         (funvar (and name
+                      (intern-soft (format "tabbar-%s-help-function"
+                                           name)))))
+    (and (symbol-value funvar)
+         (funcall (symbol-value funvar)))))
+
+(defsubst tabbar-click-on-button (name &optional type)
+  "Handle a mouse click event on button NAME.
+Call `tabbar-select-NAME-function' with the received, or simulated
+mouse click event.
+Optional argument TYPE is a mouse click event type (see the function
+`tabbar-make-mouse-event' for details)."
+  (let ((funvar (intern-soft (format "tabbar-%s-function" name))))
+    (when (symbol-value funvar)
+      (funcall (symbol-value funvar) (tabbar-make-mouse-event type))
+      (tabbar-display-update))))
+
+(defun tabbar-select-button-callback (event)
+  "Handle a mouse EVENT on a button.
+Pass mouse click events on a button to `tabbar-click-on-button'."
   (interactive "@e")
-  (when (and tabbar-home-function (tabbar-click-p event))
-    (funcall tabbar-home-function event)
-    (tabbar-display-update)))
+  (when (tabbar-click-p event)
+    (let ((target (posn-string (event-start event))))
+      (tabbar-click-on-button
+       (get-text-property (cdr target) 'tabbar-button (car target))
+       event))))
 
-(defun tabbar-home-button-help (window object position)
-  "Return a help string or nil for none, for the home button.
-Call `tabbar-home-help-function'.
-Arguments WINDOW, OBJECT and POSITION, are not used."
-  (when tabbar-home-help-function
-    (funcall tabbar-home-help-function)))
+(defun tabbar-make-button-keymap (name)
+  "Return a keymap to handle mouse click events on button NAME."
+  (if (fboundp 'posn-string)
+      tabbar-default-button-keymap
+    (let ((event (make-symbol "event")))
+      (tabbar-make-mouse-keymap
+       `(lambda (,event)
+          (interactive "@e")
+          (and (tabbar-click-p ,event)
+               (tabbar-click-on-button ',name ,event)))))))
 
-;;; Scroll left button
+;;; Button callbacks
 ;;
-(defconst tabbar-scroll-left-button-keymap
-  (tabbar-make-button-keymap 'tabbar-scroll-left-button-callback)
-  "Keymap of the scroll left button.")
-
-(defun tabbar-scroll-left-button-callback (event)
-  "Handle a mouse EVENT on the scroll left button.
-Call `tabbar-scroll-left-function'."
-  (interactive "@e")
-  (when (and tabbar-scroll-left-function (tabbar-click-p event))
-    (funcall tabbar-scroll-left-function event)
-    (tabbar-display-update)))
-
-(defun tabbar-scroll-left-button-help (window object position)
-  "Return a help string or nil for none, for the scroll left button.
-Call `tabbar-scroll-left-help-function'.
-Arguments WINDOW, OBJECT and POSITION, are not used."
-  (when tabbar-scroll-left-help-function
-    (funcall tabbar-scroll-left-help-function)))
-
 (defun tabbar-scroll-left (event)
   "On mouse EVENT, scroll current tab set on left."
   (when (eq (event-basic-type event) 'mouse-1)
@@ -959,27 +971,6 @@ Arguments WINDOW, OBJECT and POSITION, are not used."
 (defun tabbar-scroll-left-help ()
   "Help string shown when mouse is over the scroll left button."
   "mouse-1: scroll tabs left.")
-
-;;; Scroll right button
-;;
-(defconst tabbar-scroll-right-button-keymap
-  (tabbar-make-button-keymap 'tabbar-scroll-right-button-callback)
-  "Keymap of the scroll right button.")
-
-(defun tabbar-scroll-right-button-callback (event)
-  "Handle a mouse EVENT on the scroll right button.
-Call `tabbar-scroll-right-function'."
-  (interactive "@e")
-  (when (and tabbar-scroll-right-function (tabbar-click-p event))
-    (funcall tabbar-scroll-right-function event)
-    (tabbar-display-update)))
-
-(defun tabbar-scroll-right-button-help (window object position)
-  "Return a help string or nil for none, for the scroll right button.
-Call `tabbar-scroll-right-help-function'.
-Arguments WINDOW, OBJECT and POSITION, are not used."
-  (when tabbar-scroll-right-help-function
-    (funcall tabbar-scroll-right-help-function)))
 
 (defun tabbar-scroll-right (event)
   "On mouse EVENT, scroll current tab set on right."
@@ -993,17 +984,17 @@ Arguments WINDOW, OBJECT and POSITION, are not used."
 ;;; Tabs
 ;;
 (defconst tabbar-default-tab-keymap
-  (tabbar-make-button-keymap 'tabbar-select-tab-callback)
+  (tabbar-make-mouse-keymap 'tabbar-select-tab-callback)
   "Default keymap of a tab.")
 
 (defun tabbar-help-on-tab (window object position)
   "Return a help string or nil for none, for the tab under the mouse.
 WINDOW is the window in which the help was found (unused).
 OBJECT is the tab label under the mouse.
-POSITION is the position in that label (unused).
+POSITION is the position in that label.
 Call `tabbar-help-on-tab-function' with the associated tab."
   (when tabbar-help-on-tab-function
-    (let ((tab (get-text-property 0 'tabbar-tab object)))
+    (let ((tab (get-text-property position 'tabbar-tab object)))
       (funcall tabbar-help-on-tab-function tab))))
 
 (defsubst tabbar-click-on-tab (tab &optional type)
@@ -1021,18 +1012,18 @@ Optional argument TYPE is a mouse click event type (see the function
   "Handle a mouse EVENT on a tab.
 Pass mouse click events on a tab to `tabbar-click-on-tab'."
   (interactive "@e")
-  (and (tabbar-click-p event)
-       (tabbar-click-on-tab
-        (get-text-property
-         0 'tabbar-tab (car (posn-object (event-start event))))
-        event)))
+  (when (tabbar-click-p event)
+    (let ((target (posn-string (event-start event))))
+      (tabbar-click-on-tab
+       (get-text-property (cdr target) 'tabbar-tab (car target))
+       event))))
 
 (defun tabbar-make-tab-keymap (tab)
   "Return a keymap to handle mouse click events on TAB."
-  (if (fboundp 'posn-object)
+  (if (fboundp 'posn-string)
       tabbar-default-tab-keymap
     (let ((event (make-symbol "event")))
-      (tabbar-make-button-keymap
+      (tabbar-make-mouse-keymap
        `(lambda (,event)
           (interactive "@e")
           (and (tabbar-click-p ,event)
@@ -1046,7 +1037,8 @@ That is a pair (ENABLED . DISABLED), where ENABLED and DISABLED are
 respectively the appearence of the button when enabled and disabled.
 They are propertized strings which could display images, as specified
 by the variable `tabbar-NAME-button'."
-  (let* ((btn (symbol-value (intern (format "tabbar-%s-button" name))))
+  (let* ((btn (symbol-value
+               (intern-soft (format "tabbar-%s-button" name))))
          (on  (tabbar-find-image (cdar btn)))
          (off (and on (tabbar-find-image (cddr btn)))))
     (when on
@@ -1062,29 +1054,29 @@ by the variable `tabbar-NAME-button'."
      (propertize (or (cadr btn) " ") 'display off))))
 
 (defun tabbar-line-button (name)
-  "Return an `header-line-format' template element for button NAME.
-The variable `tabbar-NAME-button-keymap' must be set with a keymap to
-use when the button is enabled.
-The function `tabbar-NAME-button-help' must be defined to return the
-help-echo string associated to the button."
-  (let* ((keymap   (intern (format "tabbar-%s-button-keymap" name)))
-         (help     (intern (format "tabbar-%s-button-help"   name)))
-         (label    (funcall tabbar-button-label-function name)))
-    ;; Cache the enabled/disabled button elements in variables
-    ;; `tabbar-NAME-button-{enabled|disabled}'.
+  "Return the display representation of button NAME.
+That is, a propertized string used as an `header-line-format' template
+element."
+  (let ((label (funcall tabbar-button-label-function name)))
+    ;; Cache the display value of the enabled/disabled buttons in
+    ;; variables `tabbar-NAME-button-{enabled|disabled}'.
     (set (intern (format "tabbar-%s-button-enabled"  name))
          (propertize (car label)
+                     'tabbar-button name
                      'face 'tabbar-button-face
-                     'local-map (symbol-value keymap)
-                     'help-echo help))
+                     'local-map (tabbar-make-button-keymap name)
+                     'help-echo 'tabbar-help-on-button))
     (set (intern (format "tabbar-%s-button-disabled" name))
          (propertize (cdr label)
                      'face 'tabbar-button-face))))
 
 (defun tabbar-line-separator ()
-  "Return an `header-line-format' template element for a separator.
-The separator element is cached in variable `tabbar-separator-value'."
+  "Return the display representation of a tab bar separator.
+That is, a propertized string used as an `header-line-format' template
+element."
   (let ((image (tabbar-find-image (cdr tabbar-separator))))
+    ;; Cache the separator display value in variable
+    ;; `tabbar-separator-value'.
     (setq tabbar-separator-value
           (cond
            (image
@@ -1100,8 +1092,9 @@ The separator element is cached in variable `tabbar-separator-value'."
                         'face 'tabbar-separator-face))))
     ))
 
-(defun tabbar-line-buttons ()
-  "Return a propertized string for tab bar buttons."
+(defun tabbar-line-buttons (tabset)
+  "Return a propertized string for tab bar buttons.
+TABSET is the tab set used to choose the appropriate buttons."
   ;; If requested, refresh buttons and separator L&F.
   (or tabbar-separator-value
       (tabbar-line-separator))
@@ -1125,7 +1118,9 @@ The separator element is cached in variable `tabbar-separator-value'."
    tabbar-separator-value))
 
 (defsubst tabbar-line-tab (tab)
-  "Return an `header-line-format' template element for TAB.
+  "Return the display representation of tab TAB.
+That is, a propertized string used as an `header-line-format' template
+element.
 Call `tabbar-tab-label-function' to obtain a label for TAB."
   (concat (propertize
            (if tabbar-tab-label-function
@@ -1139,50 +1134,55 @@ Call `tabbar-tab-label-function' to obtain a label for TAB."
                    'tabbar-unselected-face))
           tabbar-separator-value))
 
+(defun tabbar-truncated-p (buttons tabs)
+  "Return non-nil if the tab bar has a good chance to be truncated.
+That is, if the tab bar extends beyond the right edge of the window
+when it displays BUTTONS and TABS.
+BUTTON is a propertized string and TABS is a list propertized string
+to display."
+  (with-temp-buffer
+    (let ((truncate-partial-width-windows nil))
+      (setq truncate-lines nil)
+      (apply 'insert buttons tabs)
+      (goto-char (point-min))
+      (> (vertical-motion (buffer-size)) 0))))
+
 (defun tabbar-line-format (tabset)
   "Return the `header-line-format' value to display TABSET."
   ;; If a cached value of the `header-line-format' exists use it.
   (or (tabbar-template tabset)
       ;; Otherwise recompute a new `header-line-format'.
-      (let* ((sel   (tabbar-selected-tab tabset))
-             (tabs  (tabbar-view tabset))
-             (width (- (nth 2 (window-edges)) (car (window-edges))))
-             (seloffset width)
-             (scroll 0)
+      (let* ((sel (tabbar-selected-tab tabset))
+             (tabs (tabbar-view tabset))
              (padcolor (tabbar-background-color))
-             (buttons (tabbar-line-buttons))
-             (offset (string-width buttons))
-             tab elt elts sizes maxscroll)
+             atsel elts)
+        ;; Track the selected tab to ensure it is always visible.
         (when tabbar-show-selected
           (while (not (memq sel tabs))
             (tabbar-scroll tabset -1)
-            (setq tabs (tabbar-view tabset))))
+            (setq tabs (tabbar-view tabset)))
+          (while (and tabs (not atsel))
+            (setq elts  (cons (tabbar-line-tab (car tabs)) elts)
+                  atsel (eq (car tabs) sel)
+                  tabs  (cdr tabs)))
+          (setq elts (nreverse elts))
+          ;; At this point the selected tab is the last elt in ELTS.
+          (while (and (cdr elts) ;; Always show the selected tab!
+                      (tabbar-truncated-p
+                       (tabbar-line-buttons tabset) elts))
+            (tabbar-scroll tabset 1)
+            (setq elts (cdr elts)))
+          (setq elts (nreverse elts))
+          (setq tabbar-show-selected nil))
+        ;; Format remaining tabs.
         (while tabs
-          (setq tab    (car tabs)
-                tabs   (cdr tabs)
-                elt    (tabbar-line-tab tab)
-                elts   (cons elt elts)
-                sizes  (cons (string-width elt) sizes)
-                offset (+ offset (car sizes)))
-          (when (eq tab sel)
-            (setq seloffset offset
-                  maxscroll scroll))
-          (setq scroll (1+ scroll)))
-        (setq elts  (nreverse elts))
-        (when (and tabbar-show-selected (> seloffset width))
-          (setq sizes (nreverse sizes)
-                scroll 0)
-          (while (and (< scroll maxscroll) (> seloffset width))
-            (setq seloffset (- seloffset (car sizes))
-                  sizes     (cdr sizes)
-                  elts      (cdr elts)
-                  scroll    (1+ scroll)))
-          (tabbar-scroll tabset scroll))
-        (setq tabbar-show-selected nil)
+          (setq elts (cons (tabbar-line-tab (car tabs)) elts)
+                tabs (cdr tabs)))
         ;; Cache and return the new tab bar.
         (tabbar-set-template
          tabset
-         (list buttons elts
+         (list (tabbar-line-buttons tabset)
+               (nreverse elts)
                (propertize "%-" 'face (list :background padcolor
                                             :foreground padcolor))))
         )))
@@ -1605,18 +1605,20 @@ value of `tabbar-buffer-group-mode'.  Otherwise just call the function
     lab))
 
 (defun tabbar-buffer-tab-label (tab)
-  "Return the label to display TAB.
-Must be a valid `header-line-format' template element."
-  (let* ((tabset (tabbar-tab-tabset tab))
-         (label  (if tabbar-buffer-group-mode
-                     (format "[%s]" tabset)
-                   (format "%s" (tabbar-tab-value tab))))
-         (edges  (window-edges))
-         (wmax   (max 1 (/ (- (nth 2 edges) (car edges))
-                           (length (tabbar-view tabset))))))
-    ;; Shorten the tab label to try to keep all tabs in the visible
-    ;; area of the tab bar.
-    (tabbar-shorten label wmax)))
+  "Return a label for TAB.
+That is, a string used to represent it on the tab bar."
+  (let ((label  (if tabbar-buffer-group-mode
+                    (format "[%s]" (tabbar-tab-tabset tab))
+                  (format "%s" (tabbar-tab-value tab)))))
+    ;; Unless tracking the selected tab, wich auto-hscroll the tab
+    ;; bar, shorten the tab label to try to keep all tabs in the
+    ;; visible area of the tab bar.
+    (if tabbar-show-selected
+        label
+      (tabbar-shorten
+       label (max 1 (/ (window-width)
+                       (length (tabbar-view
+                                (tabbar-current-tabset)))))))))
 
 (defun tabbar-buffer-help-on-tab (tab)
   "Return the help string shown when mouse is onto TAB."
