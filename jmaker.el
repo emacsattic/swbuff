@@ -1,37 +1,33 @@
-;; @(#) jmaker.el -- Java Makefile generator
-;; @(#) $Id: jmaker.el,v 1.20 2000/05/25 09:43:22 david_ponce Exp $
+;; jmaker.el --- Java Makefile generator
+
+;; Copyright (C) 1998, 2000 by David Ponce
+
+;; Author: David Ponce <david@dponce.com>
+;; Maintainer: David Ponce <david@dponce.com>
+;; Created: July 22 1998
+;; Version: 1.21
+;; Keywords: tools
+;; VC: $Id: jmaker.el,v 1.21 2000/08/16 14:23:42 david_ponce Exp $
 
 ;; This file is not part of Emacs
 
-;; Copyright (C) 1998, 2000 by David Ponce
-;; Author:       David Ponce <david@dponce.com>
-;; Maintainer:   David Ponce <david@dponce.com>
-;; Created:      July 22 1998
+;; This program is free software; you can redistribute it and/or
+;; modify it under the terms of the GNU General Public License as
+;; published by the Free Software Foundation; either version 2, or (at
+;; your option) any later version.
 
-;; LCD Archive Entry:
-;; jmaker|David Ponce|<david@dponce.com>|
-;; Java Makefile generator|
-;; $Date: 2000/05/25 09:43:22 $|$Revision: 1.20 $|~/misc/jmaker.el|
-
-;; COPYRIGHT NOTICE
-;;
-;; This program is free software; you can redistribute it and/or modify
-;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 2, or (at your option)
-;; any later version.
-
-;; This program is distributed in the hope that it will be useful,
-;; but WITHOUT ANY WARRANTY; without even the implied warranty of
-;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-;; GNU General Public License for more details.
+;; This program is distributed in the hope that it will be useful, but
+;; WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+;; General Public License for more details.
 
 ;; You should have received a copy of the GNU General Public License
-;; along with this program; see the file COPYING.  If not, write to the
-;; Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+;; along with this program; see the file COPYING.  If not, write to
+;; the Free Software Foundation, Inc., 59 Temple Place - Suite 330,
 ;; Boston, MA 02111-1307, USA.
 
-;;; Description:
-;;
+;;; Commentary:
+
 ;; This package is an add-on to the Java Development Environment
 ;; (JDE) for Emacs. It automatically generates Makefiles to improve
 ;; Java projects building using make. The default Makefile template
@@ -42,14 +38,14 @@
 ;; build sets of projects. "meta Makefiles" recursively call make on
 ;; Makefiles found in a directory tree.
 
-;;; Installation:
+;; Installation:
 ;;
-;; Put the following in your .emacs file:
-;;   (require 'jmaker)
+;; Put this file on your Emacs load-path and add (require 'jmaker) into
+;; your Emacs startup file.
 ;;
 ;; As jmaker does (require 'jde) you can omit it in your .emacs.
 
-;;; Usage:
+;; Usage:
 ;;
 ;; While editing a Java file use:
 ;;   M-x `jmaker-generate-makefile' to generate a new Makefile in the current
@@ -76,23 +72,127 @@
 ;;
 ;; A JMaker menu item is added to the menu bar in jde-mode.
 
-;;; Customization:
+;; Customization:
 ;;
-;;   M-x `jmaker-customize' to change jmaker options.
+;; Use M-x `jmaker-customize' to change jmaker options.
 
-;;; Support:
+;; Support
 ;;
-;; Latest version of jmaker can be downloaded from: <http://www.dponce.com/>
-;;
-;; Any comments, suggestions, bug reports or upgrade requests are welcome.
+;; This program is available at <http://www.dponce.com/>. Any
+;; comments, suggestions, bug reports or upgrade requests are welcome.
 ;; Please send them to David Ponce at <david@dponce.com>
+
+;;; Change Log:
+
+;; $Log: jmaker.el,v $
+;; Revision 1.21  2000/08/16 14:23:42  david_ponce
+;; Improved XEmacs compatibility.
+;; Fixed a side effect bug in `jmaker-get-makefiles-in-tree'.
 ;;
-;; I currently develop and test jmaker with NTEmacs 20.6.1 and
-;; Cygwin B20.1 tools (bash, make) under MS Windows NT 4 WKS SP5.
-;; jmaker requires the JDE package (works with 2.1.5 and latest 2.1.6 betas).
+;; Thanks to Stephane Nicolas <s.nicolas@videotron.ca> for providing
+;; these fixes.
+;;
+;; Improved dialog mode. Can use 'q' to cancel a dialog and left mouse to
+;; click on dialog button.
+;;
+;; Changed comments to follow standard Emacs coding convention.
+;;
+;; Revision 1.20  2000/05/25 09:43:22  david_ponce
+;; JMaker menu setup now done in `jde-mode-hook'.
+;;
+;; Revision 1.19  2000/05/12 13:16:48  david_ponce
+;; Added new function `jmaker-set-buffer-end-of-line-style' to force the
+;; end-of-line style used when writing a Makefile (for example, this can
+;; be useful when using a Unix make program, like the one provided in
+;; cygwin 1.1.0, under Windows). The default end-of-line style follows
+;; Unix convention (LF). This can be changed by customizing the new
+;; variable `jmaker-end-of-line-style'.
+;;
+;; Revision 1.18  2000/04/14 09:04:35  david_ponce
+;; With `directory-sep-char' value set to '\' jmaker did not
+;; correctly handle directory pathes when generating meta Makefile.
+;; To fix this, jmaker enforce usage of an Unix style separator '/'
+;; in `jmaker-sub-makefile-targets' function.
+;;
+;; `jmaker-convert-directory-to-package' now works with different
+;; values of `directory-sep-char'.
+;;
+;; Revision 1.17  2000/03/31 15:26:42  david_ponce
+;; Documentation changes.
+;;
+;; Revision 1.16  2000/03/31 12:45:16  david_ponce
+;; Minor changes in code presentation.
+;; Improved version of `jmaker-convert-directory-to-package'.
+;;
+;; Revision 1.15  2000/03/31 10:56:08  david_ponce
+;; Code cleanup and better variables and functions naming.
+;;
+;; As requested by "David Turland" <dtrurland@axarte.com> I have
+;; enhanced the `jmaker-generate-meta-makefile' command to ask for
+;; updating or creating the Makefiles in the directory tree
+;; before generating the meta Makefile.
+;;
+;; Revision 1.14  2000/03/31 08:19:31  david_ponce
+;; This is a major rewrite of jmaker to add the new
+;; `jmaker-generate-all-makefiles' command.
+;;
+;; Thanks to "David Turland" <dtrurland@axarte.com> who has suggested
+;; this enhancement.
+;;
+;; Revision 1.13  1999/07/05 21:29:17  ebat311
+;; May be the jmaker menu works with XEmacs?
+;;
+;; Revision 1.12  1999-06-04 17:55:19+02  ebat311
+;; Added a "Make" option to the menu  (GNU Emacs only)
+;; to launch the standard `compile' command.
+;;
+;; Revision 1.11  1999-04-22 23:50:36+02  ebat311
+;; Added `autoload' cookies.
+;;
+;; Revision 1.10  1998/11/27 09:23:51  ebat311
+;; Compatibility issue. jmaker now has its own menu item on
+;; the menu bar (GNU Emacs only!). This avoid compatibility
+;; problem when the JDE menu structure change (as in 2.1.2).
+;;
+;; Revision 1.9  1998/10/20 10:05:21  ebat311
+;; Have run `untabify' on the whole source (follows a remark from ricky@siemensdc.com).
+;;
+;; Revision 1.8  1998/10/08 15:40:33  ebat311
+;; Usage comments added related to the new meta Makefiles feature.
+;;
+;; Revision 1.7  1998/10/05 21:34:55  ebat311
+;; `jmaker-generate-...' commands now generate file buffers and
+;; require confirmation if the file already exists.
+;;
+;; Revision 1.6  1998/10/05 21:17:22  ebat311
+;; Added super Makefile generation.
+;; Some coding optimized and simplified.
+;;
+;; Revision 1.6  1998/09/29 22:34:45  ebat311
+;; Outdated (renamed to 'C:\RCS\C\users\dpe\emacs\jmaker.el,v').
+;;
+;; Revision 1.5  1998/09/29 22:34:18  ebat311
+;; New version-number management functions.
+;;
+;; Revision 1.4  1998/09/28 22:54:19  ebat311
+;; Copyright notice updated.
+;;
+;; Revision 1.3  1998/09/28 22:18:58  ebat311
+;; Fixed an error in function `jmaker-version-number' which did not display
+;; the version number.
+;;
+;; Revision 1.2  1998/09/15 11:26:55  ebat311
+;; Added support for Emacs 20.3.1.
+;; From Paul Kinnucan: "Emacs 20.3.1 fixes a bug in the derive
+;; mode macro that caused the jde-mode hook variable to be named
+;; `jde-mode-hooks' (note plural) instead of `jde-mode-hook' (singular),
+;; which is customary."
+;;
+;; Revision 1.1  1998/07/22 13:48:17  ebat311
+;; Initial revision
+;;
 
 ;;; Code:
-
 (require 'jde)
 (require 'tempo)
 (require 'compile)
@@ -100,7 +200,7 @@
 (eval-when-compile
   (require 'wid-edit))
 
-(defconst jmaker-version "$Revision: 1.20 $"
+(defconst jmaker-version "$Revision: 1.21 $"
   "jmaker version tag.")
 
 (defgroup jmaker nil
@@ -235,9 +335,12 @@ by replacing `directory-sep-char' by '.' and removing extra
 `directory-sep-char' at end."
   (if (string= dir "")
       ""
-    (subst-char-in-string directory-sep-char ?.
-                          (substring (file-name-as-directory dir) 0 -1)
-                          t)))
+    (if jde-xemacsp
+        (replace-in-string 
+         (substring (file-name-as-directory dir) 0 -1)
+         (regexp-quote (char-to-string directory-sep-char)) "."  t)
+      (subst-char-in-string directory-sep-char ?.
+                            (substring (file-name-as-directory dir) 0 -1) t))))
 
 (defun jmaker-get-makefiles-in-tree (root)
   "Return the list of Makefiles found in the ROOT directory tree.
@@ -246,24 +349,26 @@ Each Makefile path is relative to ROOT."
   (let ((makefile-list
          (nconc (and (file-directory-p root)
                      (file-readable-p (concat root "/Makefile"))
-                     '("./Makefile"))
-                (jmaker-get-makefiles-in-tree-aux root root))))
+                     (jmaker-get-makefiles-in-tree-aux root root))
+                '("./Makefile"))))
     (message "Searching Makefiles...Done")
     makefile-list))
 
 (defun jmaker-get-makefiles-in-tree-aux (root dir)
   "Auxiliary function used by `jmaker-get-makefiles-in-tree'.
 DIR is a subdirectory in ROOT tree."
+  
   (apply 'nconc
          (mapcar
-          '(lambda (entry)
+          (function
+           (lambda (entry)
              (and (not (string= (substring entry -1) "."))
                   (file-directory-p entry)
                   (nconc (and (file-exists-p (concat entry "/Makefile"))
                               (list (concat (file-relative-name entry root)
                                             "/Makefile")))
-                         (jmaker-get-makefiles-in-tree-aux root entry))))
-          (directory-files dir t))))
+                         (jmaker-get-makefiles-in-tree-aux root entry)))))
+          (directory-files dir t nil nil -1))))
 
 (defun jmaker-all-target ()
   "Return a string giving the Makefile target to compile all java files.
@@ -277,8 +382,9 @@ all: \
 
 "
   (concat "all:\t\\\n"
-          (mapconcat '(lambda (name)
-                        (concat "\t" name))
+          (mapconcat (function
+                      (lambda (name)
+                        (concat "\t" name)))
                      (jmaker-get-java-names)
                      " \\\n")
           "\n"))
@@ -293,8 +399,9 @@ Sample1: Sample1.class
 Sample2: Sample2.class
 
 "
-  (mapconcat '(lambda (name)
-                (concat name ":\t" name ".class\n"))
+  (mapconcat (function
+              (lambda (name)
+                (concat name ":\t" name ".class\n")))
              (jmaker-get-java-names)
              ""))
 
@@ -321,18 +428,21 @@ FORCE:
 \"
 "
   (let* ((directory-sep-char ?/)        ; force Unix directory separator
-         (subdir-list (mapcar '(lambda (x)
-                                 (directory-file-name (file-name-directory x)))
+         (subdir-list (mapcar (function
+                               (lambda (x)
+                                 (directory-file-name (file-name-directory x))))
                               (jmaker-get-makefiles-in-tree default-directory))))
     (concat "all:\t\\\n"
-            (mapconcat '(lambda (dir)
-                          (concat "\t" (jmaker-convert-directory-to-package dir)))
+            (mapconcat (function
+                        (lambda (dir)
+                          (concat "\t" (jmaker-convert-directory-to-package dir))))
                        subdir-list
                        " \\\n")
             "\n\n"
-            (mapconcat '(lambda (dir)
+            (mapconcat (function
+                        (lambda (dir)
                           (concat (jmaker-convert-directory-to-package dir)
-                                  ":\tFORCE\n\tcd " dir "; $(MAKE)\n"))
+                                  ":\tFORCE\n\tcd " dir "; $(MAKE)\n")))
                        subdir-list
                        "\n")
             "\nFORCE:\n")))
@@ -349,7 +459,7 @@ Call `jde-load-project-file' to update the JDE project settings."
 (defun jmaker-set-buffer-end-of-line-style ()
   "Set the end-of-line style used when writing a Makefile (see
 variable `jmaker-end-of-line-style')."
-  (if (symbolp jmaker-end-of-line-style)
+  (if (and (not jde-xemacsp) (symbolp jmaker-end-of-line-style))
       (let* ((style (symbol-name jmaker-end-of-line-style))
              (oldcs (symbol-name buffer-file-coding-system))
              (newcs (and (string-match "\\(dos\\|unix\\|mac\\)$" oldcs)
@@ -408,12 +518,13 @@ ROOT is the root of the directory tree scanned."
   (let ((root (file-name-as-directory root)))
     (and (jmaker-has-java-files-p root)
          (add-to-list 'jmaker-generall-dialog-selected root))
-    (mapcar '(lambda (f)
+    (mapcar (function
+             (lambda (f)
                (let ((entry (concat root f)))
                  (if (and (not (string= f "."))
                           (not (string= f ".."))
                           (file-directory-p entry))
-                     (jmaker-generall-dialog-setup-selected-aux entry))))
+                     (jmaker-generall-dialog-setup-selected-aux entry)))))
             (directory-files root))))
 
 (defun jmaker-generall-dialog-toggle-selection (widget &rest ignore)
@@ -433,7 +544,34 @@ unselect a Makefile."
         (setq jmaker-generall-dialog-selected
               (nconc (list value) jmaker-generall-dialog-selected))
         (message "%s added to selection." item)))))
-  
+
+(defun jmaker-cancel-dialog (&rest ignore)
+  (interactive)
+  "Cancel the current dialog."
+  (kill-buffer (current-buffer))
+  (error "Command canceled."))
+
+(defvar jmaker-dialog-mode-map nil
+  "`jmaker-dialog-mode' keymap.")
+
+(if jmaker-dialog-mode-map
+    ()
+  (setq jmaker-dialog-mode-map (make-sparse-keymap))
+  (define-key jmaker-dialog-mode-map "q" 'jmaker-cancel-dialog)
+  (define-key jmaker-dialog-mode-map [down-mouse-1] 'widget-button-click)
+  (set-keymap-parent jmaker-dialog-mode-map widget-keymap))
+
+(defun jmaker-dialog-mode ()
+  "Major mode used in jmaker dialogs.
+
+These are the special commands of jmaker-dialog-mode mode:
+    q            -- to cancel the dialog.
+    down-mouse-1 -- to click on button."
+  (interactive)
+  (setq major-mode 'jmaker-dialog-mode)
+  (setq mode-name "jmaker-dialog")
+  (use-local-map jmaker-dialog-mode-map))
+
 (defconst jmaker-generall-dialog-header
   "Select/Unselect Makefiles to be generated by `jmaker'
 in directory tree: %s
@@ -470,10 +608,11 @@ after the command complete (that is after Makefiles were generated)."
     
     (let ((inhibit-read-only t))
       (erase-buffer))
-    (let ((all (overlay-lists)))
-      ;; Delete all the overlays.
-      (mapcar 'delete-overlay (car all))
-      (mapcar 'delete-overlay (cdr all)))
+    (if (not jde-xemacsp)
+        (let ((all (overlay-lists)))
+          ;; Delete all the overlays.
+          (mapcar 'delete-overlay (car all))
+          (mapcar 'delete-overlay (cdr all))))
     
     ;; Initialize `jmaker-generall-dialog-selected' so all
     ;; Makefile checkboxes default to selected.
@@ -483,7 +622,8 @@ after the command complete (that is after Makefiles were generated)."
     (widget-insert (format jmaker-generall-dialog-header root))
 
     ;; Insert the list of Makefiles as checkboxes
-    (mapcar '(lambda (dir)
+    (mapcar (function
+             (lambda (dir)
                (let ((item (concat dir "Makefile")))
                  (setq item (concat (file-relative-name item root)
                                     (if (file-exists-p item) " (OVER)" " (NEW)")))
@@ -492,7 +632,7 @@ after the command complete (that is after Makefiles were generated)."
                                 :format "%[%v%] %d"
                                 :tag    dir
                                 :doc    item
-                                :notify 'jmaker-generall-dialog-toggle-selection)))
+                                :notify 'jmaker-generall-dialog-toggle-selection))))
             jmaker-generall-dialog-selected)
     
     (widget-insert "\n\n")
@@ -516,14 +656,13 @@ after the command complete (that is after Makefiles were generated)."
 
     ;; Insert the Cancel button
     (widget-create 'push-button
-                   :notify (lambda (&rest ignore)
-                             (kill-buffer (current-buffer))
-                             (error "Command canceled."))
+                   :notify 'jmaker-cancel-dialog
                    "Cancel")
 
     ;; Display the dialog
-    (use-local-map widget-keymap)
-    (widget-setup)))
+    (jmaker-dialog-mode)
+    (widget-setup)
+    (goto-char (point-min))))
 
 ;;;###autoload
 (defun jmaker-generate-makefile ()
@@ -581,7 +720,7 @@ If Makefile.meta already exists the command requires confirmation to overwrite i
               )
         ["Options..."              jmaker-customize t]
         ["Make"                    compile t]
-	      ["-"                       ignore nil]
+        ["-"                       ignore nil]
         (concat "jmaker " (jmaker-version-number))
         )
   "Menu for jmaker.")
@@ -590,108 +729,11 @@ If Makefile.meta already exists the command requires confirmation to overwrite i
           (function
            (lambda ()
              (require 'easymenu)
-             (easy-menu-add-item jde-mode-map '("menu-bar") jmaker-menu))))
+             (if jde-xemacsp
+                 (add-submenu '("JDE") jmaker-menu)
+               (easy-menu-add-item jde-mode-map '("menu-bar") jmaker-menu)))))
+
 
 (provide 'jmaker)
 
-;;; Change History:
-
-;;
-;; $Log: jmaker.el,v $
-;; Revision 1.20  2000/05/25 09:43:22  david_ponce
-;; JMaker menu setup now done in `jde-mode-hook'.
-;;
-;; Revision 1.19  2000/05/12 13:16:48  david_ponce
-;; Added new function `jmaker-set-buffer-end-of-line-style' to force the
-;; end-of-line style used when writing a Makefile (for example, this can
-;; be useful when using a Unix make program, like the one provided in
-;; cygwin 1.1.0, under Windows). The default end-of-line style follows
-;; Unix convention (LF). This can be changed by customizing the new
-;; variable `jmaker-end-of-line-style'.
-;;
-;; Revision 1.18  2000/04/14 09:04:35  david_ponce
-;; With `directory-sep-char' value set to '\' jmaker did not
-;; correctly handle directory pathes when generating meta Makefile.
-;; To fix this, jmaker enforce usage of an Unix style separator '/'
-;; in `jmaker-sub-makefile-targets' function.
-;;
-;; `jmaker-convert-directory-to-package' now works with different
-;; values of `directory-sep-char'.
-;;
-;; Revision 1.17  2000/03/31 15:26:42  david_ponce
-;; Documentation changes.
-;;
-;; Revision 1.16  2000/03/31 12:45:16  david_ponce
-;; Minor changes in code presentation.
-;; Improved version of `jmaker-convert-directory-to-package'.
-;;
-;; Revision 1.15  2000/03/31 10:56:08  david_ponce
-;; Code cleanup and better variables and functions naming.
-;;
-;; As requested by "David Turland" <dtrurland@axarte.com> I have
-;; enhanced the `jmaker-generate-meta-makefile' command to ask for
-;; updating or creating the Makefiles in the directory tree
-;; before generating the meta Makefile.
-;;
-;; Revision 1.14  2000/03/31 08:19:31  david_ponce
-;; This is a major rewrite of jmaker to add the new
-;; `jmaker-generate-all-makefiles' command.
-;;
-;; Thanks to "David Turland" <dtrurland@axarte.com> who has suggested
-;; this enhancement.
-;;
-;; Revision 1.13  1999/07/05 21:29:17  ebat311
-;; May be the jmaker menu works with XEmacs?
-;;
-;; Revision 1.12  1999-06-04 17:55:19+02  ebat311
-;; Added a "Make" option to the menu  (GNU Emacs only)
-;; to launch the standard `compile' command.
-;;
-;; Revision 1.11  1999-04-22 23:50:36+02  ebat311
-;; Added `autoload' cookies.
-;;
-;; Revision 1.10  1998/11/27 09:23:51  ebat311
-;; Compatibility issue. jmaker now has its own menu item on
-;; the menu bar (GNU Emacs only!). This avoid compatibility
-;; problem when the JDE menu structure change (as in 2.1.2).
-;;
-;; Revision 1.9  1998/10/20 10:05:21  ebat311
-;; Have run `untabify' on the whole source (follows a remark from ricky@siemensdc.com).
-;;
-;; Revision 1.8  1998/10/08 15:40:33  ebat311
-;; Usage comments added related to the new meta Makefiles feature.
-;;
-;; Revision 1.7  1998/10/05 21:34:55  ebat311
-;; `jmaker-generate-...' commands now generate file buffers and
-;; require confirmation if the file already exists.
-;;
-;; Revision 1.6  1998/10/05 21:17:22  ebat311
-;; Added super Makefile generation.
-;; Some coding optimized and simplified.
-;;
-;; Revision 1.6  1998/09/29 22:34:45  ebat311
-;; Outdated (renamed to 'C:\RCS\C\users\dpe\emacs\jmaker.el,v').
-;;
-;; Revision 1.5  1998/09/29 22:34:18  ebat311
-;; New version-number management functions.
-;;
-;; Revision 1.4  1998/09/28 22:54:19  ebat311
-;; Copyright notice updated.
-;;
-;; Revision 1.3  1998/09/28 22:18:58  ebat311
-;; Fixed an error in function `jmaker-version-number' which did not display
-;; the version number.
-;;
-;; Revision 1.2  1998/09/15 11:26:55  ebat311
-;; Added support for Emacs 20.3.1.
-;; From Paul Kinnucan: "Emacs 20.3.1 fixes a bug in the derive
-;; mode macro that caused the jde-mode hook variable to be named
-;; `jde-mode-hooks' (note plural) instead of `jde-mode-hook' (singular),
-;; which is customary."
-;;
-;; Revision 1.1  1998/07/22 13:48:17  ebat311
-;; Initial revision
-;;
-;;
-
-;;; jmaker.el ends here.
+;;; jmaker.el ends here
