@@ -25,6 +25,18 @@
 
 ;;; Commentary:
 
+;; This package maintains a menu for visiting files that were operated
+;; on recently. When enabled a new "Open Recent" submenu is displayed
+;; in the "Files" menu. The recent files list is automatically saved
+;; across Emacs sessions.  You can customize the number of recent
+;; files displayed, the location of the menu and others options (see
+;; the source code for details).  To install and use, put the file on
+;; your Emacs-Lisp load path and add the following into your ~/.emacs
+;; startup file:
+;;
+;;  (require 'recentf)
+;;  (recentf-mode 1) 
+
 ;;; Code:
 
 (require 'easymenu)
@@ -129,6 +141,7 @@ Nil means no filter.  The following functions are predefined:
 - - `recentf-show-basenames' to show file names (no directories) in menu items.
 - - `recentf-show-basenames-ascending' to show file names in ascending order.
 - - `recentf-show-basenames-descending' to show file names in descending order.
+- - `recentf-relative-filter' to show file names relative to `default-directory'.
 
 The filter function is called with one argument, the list of menu elements
 used to build the menu and must return a new list of menu elements (see
@@ -315,19 +328,26 @@ from `recentf-list'.")
                              (message "Command canceled."))
                    "Cancel")
     (use-local-map widget-keymap)
-    (widget-setup)))
+    (widget-setup)
+    (goto-char (point-min))))
 
 ;;;###autoload
 (defun recentf-cleanup ()
   "Remove all non-readable and excluded files from `recentf-list'."
   (interactive)
-  (setq recentf-list
-        (delq nil
-              (mapcar '(lambda (filename)
-                         (and (file-readable-p filename)
-                              (recentf-include-p filename)
-                              filename))
-                      recentf-list)))
+  (let ((count (length recentf-list)))
+    (setq recentf-list
+          (delq nil
+                (mapcar '(lambda (filename)
+                           (and (file-readable-p filename)
+                                (recentf-include-p filename)
+                                filename))
+                        recentf-list)))
+    (setq count (- count (length recentf-list)))
+    (message "%s removed from the list"
+             (cond ((= count 0) "No file")
+                   ((= count 1) "One file")
+                   (t (format "%d files" count)))))
   (setq recentf-update-menu-p t))
 
 (defun recentf-open-more-files-action (widget &rest ignore)
@@ -373,7 +393,8 @@ from `recentf-list'.")
                              (message "Command canceled."))
                    "Cancel")
     (use-local-map widget-keymap)
-    (widget-setup)))
+    (widget-setup)
+    (goto-char (point-min))))
 
 (defvar recentf-menu-items-for-commands
   (list ["Cleanup list" recentf-cleanup t]
@@ -513,6 +534,18 @@ and `recentf-show-basenames' filters."
 sorted in descending order. This filter combines the `recentf-sort-basenames-descending'
 and `recentf-show-basenames' filters."
   (recentf-show-basenames (recentf-sort-basenames-descending l)))
+
+(defun recentf-relative-filter (l)
+  "Filter the list of `recentf-menu-elements' L to show filenames
+relative to `default-directory'."
+  (setq recentf-update-menu-p t)        ; force menu update
+  (mapcar '(lambda (menu-element)
+             (let* ((ful-path (cdr menu-element))
+                    (rel-path (file-relative-name ful-path)))
+               (if (string-match "^\\.\\." rel-path)
+                   menu-element
+                 (cons rel-path ful-path))))
+          l))
 
 (provide 'recentf)
 
