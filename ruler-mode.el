@@ -425,6 +425,11 @@ START-EVENT is the mouse click event."
     (remove-hook 'post-command-hook     ; remove local hook
                  #'ruler-mode-post-command-hook t)))
 
+;; Add ruler-mode to the the minor mode menu in the mode line
+(define-key mode-line-mode-menu [ruler-mode]
+  `(menu-item "Ruler" ruler-mode
+	      :button (:toggle . ruler-mode)))
+
 (defconst ruler-mode-ruler-help-echo
   "\
 S-mouse-1/3: set L/R margin, \
@@ -465,8 +470,8 @@ That is a pair (FRINGE-COLS . VSCROLLBAR-COLS) where:
                (sbw (frame-pixel-width f))
                (chw (frame-char-width f))
                (chx (/ 1.0 (float chw)))
-               (pos (cons 0 0.0))
-               (lfw 0.)
+               (pos (cons 0.0 0))
+               (lfw 0.0)
                coord)
           (if sbm
               (modify-frame-parameters
