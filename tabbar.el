@@ -6,7 +6,9 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 25 February 2003
 ;; Keywords: convenience
-;; X-RCS: $Id: tabbar.el,v 1.4 2003/03/09 17:19:00 ponce Exp $
+;; Revision: $Id: tabbar.el,v 1.5 2003/03/09 17:46:32 ponce Exp $
+
+(defconst tabbar-version "1.0")
 
 ;; This file is not part of GNU Emacs.
 
