@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 25 February 2003
 ;; Keywords: convenience
-;; X-RCS: $Id: tabbar.el,v 1.2 2003/03/09 11:33:05 ponce Exp $
+;; X-RCS: $Id: tabbar.el,v 1.3 2003/03/09 17:12:37 ponce Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -575,8 +575,8 @@ P2
   "Default image for the disabled home button.")
 
 (defcustom tabbar-home-button
-  (cons (cons "@" tabbar-home-button-enabled-image)
-        (cons "X" tabbar-home-button-disabled-image))
+  (cons (cons "[o]" tabbar-home-button-enabled-image)
+        (cons "[x]" tabbar-home-button-disabled-image))
   "The home button."
   :group 'tabbar
   :type tabbar-button-widget
@@ -757,7 +757,7 @@ P2
     (t
      (:inherit tabbar-default-face
                :box (:line-width 2 :color "white" :style released-button)
-               :foreground "black"
+               :foreground "dark red"
                )
      )
     )
