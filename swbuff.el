@@ -1,5 +1,5 @@
 ;; @(#) swbuff.el -- Quick switch between Emacs buffers.
-;; @(#) $Id: swbuff.el,v 1.4 1999/05/07 07:43:02 ebat311 Exp $
+;; @(#) $Id: swbuff.el,v 1.5 1999/05/07 11:45:33 ebat311 Exp $
 
 ;; This file is not part of Emacs
 
@@ -9,9 +9,9 @@
 ;; Created:      November 12 1998
 
 ;; LCD Archive Entry:
-;; <el>|David Ponce|david.ponce@wanadoo.fr|
-;; <docum>|
-;; <date>|$Revision: 1.4 $|~/misc/|
+;; swbuff|David Ponce|david.ponce@wanadoo.fr|
+;; Quick switch between Emacs buffers|
+;; $Date: 1999/05/07 11:45:33 $|$Revision: 1.5 $|~/misc/|
 
 ;; COPYRIGHT NOTICE
 ;;
@@ -84,7 +84,7 @@
 ;;; Code:
 (require 'cl)
 
-(defconst swbuff-version "$Revision: 1.4 $"
+(defconst swbuff-version "$Revision: 1.5 $"
   "swbuff version number."
   )
 
@@ -114,7 +114,7 @@
   "*List of regular expressions for excluded buffers.
 The default setting excludes buffers whose name begin with a blank character.
 To exclude all the internal buffers (that is *scratch*, *Message*, etc...) you could
-use the following regexps (\"^ \" \"^\*.*\*\")."
+use the following regexps (\"^ \" \"^\\*.*\\*\")."
   :group 'swbuff
   :type '(repeat (regexp :format "%v"))
   )
@@ -155,12 +155,17 @@ See also `swbuff-default-load-hook'."
           (buffer-list))
   )
 
+(defvar swbuff-buffer-list-string-holder nil
+  "Holds the current displayed buffer list.")
+
 (defun swbuff-buffer-list-string ()
   "Returns a string of buffer names in the buffer-list.
 Buffer names beginning with a ' ' are excluded."
-  (mapconcat 'buffer-name
-             (swbuff-buffer-list)
-             " ")
+  (or swbuff-buffer-list-string-holder
+      (setq swbuff-buffer-list-string-holder
+            (mapconcat 'buffer-name
+                       (swbuff-buffer-list)
+                       " ")))
   )
 
 (defun swbuff-display-buffer-list ()
@@ -168,25 +173,28 @@ Buffer names beginning with a ' ' are excluded."
 the current buffer is highlighted with the `swbuff-current-buffer-face' face.
 If there are no buffers, then the message is \"No buffers eligible for switching.\""
   (let* ((display-text (swbuff-buffer-list-string))
+         (display-size (length display-text))
          (cur-buf-name (regexp-quote (buffer-name (current-buffer))))
          (start        (string-match cur-buf-name display-text))
          (end          (match-end 0))
          (mini-window (minibuffer-window))
          (mini-buffer (window-buffer mini-window)))
-    (if start 
-        (set-text-properties start end '(face swbuff-current-buffer-face) display-text))
+    (if start
+        (progn
+          (set-text-properties 0 display-size nil display-text)
+          (set-text-properties start end '(face swbuff-current-buffer-face) display-text)))
     (if (minibuffer-window-active-p mini-window)
         (abort-recursive-edit))
     (message nil)
     (with-current-buffer mini-buffer
       (erase-buffer)
-      (insert (if (< 0 (length display-text))
+      (insert (if (< 0 display-size)
                   display-text
                 "No buffers eligible for switching."))
       (setq swbuff-mini-buffer mini-buffer)
       (add-hook 'pre-command-hook 'swbuff-pre-command-hook)
       (if (sit-for swbuff-clear-delay)
-          (swbuff-pre-command-hook))
+          (swbuff-undisplay-buffer-list))
       )
     )
   )
@@ -195,12 +203,21 @@ If there are no buffers, then the message is \"No buffers eligible for switching
   "Holds the minibuffer in which the last display occurs."
   )
 
-(defun swbuff-pre-command-hook ()
-  "`pre-command-hook' used to clear the minibuffer in which the last display occurs."
+(defun swbuff-undisplay-buffer-list ()
+  "Clears the minibuffer in which the last display occurs."
   (when swbuff-mini-buffer
     (with-current-buffer swbuff-mini-buffer (erase-buffer))
     (setq swbuff-mini-buffer nil)
     )
+  )
+
+(defun swbuff-pre-command-hook ()
+  "`pre-command-hook' used to clear the minibuffer in which the last display occurs."
+  (swbuff-undisplay-buffer-list)
+  (if (not (or (eq 'swbuff-switch-to-previous-buffer this-command)
+               (eq 'swbuff-switch-to-next-buffer this-command)))
+      (progn (message "buffer list cleanup...")
+             (setq swbuff-buffer-list-string-holder nil)))
   (remove-hook 'pre-command-hook 'swbuff-pre-command-hook)
   )
 
@@ -214,7 +231,7 @@ If there are no buffers, then the message is \"No buffers eligible for switching
 (defun swbuff-previous-buffer ()
   "Displays and activates the buffer at the end of the buffer-list."
   (let ((l (swbuff-buffer-list)))
-    (switch-to-buffer (nth (1- (length l)) l)))
+    (and l (switch-to-buffer (nth (1- (length l)) l))))
   )
 
 (defun swbuff-switch-to-next-buffer ()
@@ -256,7 +273,15 @@ and `swbuff-switch-to-previous-buffer' commands."
 
 ;;
 ;; $Log: swbuff.el,v $
-;; Revision 1.4  1999/05/07 07:43:02  ebat311
+;; Revision 1.5  1999/05/07 11:45:33  ebat311
+;; Improved buffer list display - the filenames list is kept static
+;; (i.e., not shifting), while the current buffer highlight moves in
+;; response to `swbuff-switch-to-next-buffer' and
+;; `swbuff-switch-to-previous-buffer'.
+;; No switching occurs if the eligible buffer list is empty.
+;; Minor typo changes.
+;;
+;; Revision 1.4  1999-05-07 09:43:02+02  ebat311
 ;; Fixed a problem when no buffers are eligible for switching.
 ;; Added (require 'cl) to avoid problem using `mapcan' and
 ;; `notany' from `cl-extra'.
