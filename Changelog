@@ -1,3 +1,10 @@
+2004-01-20  David Ponce  <david@dponce.com>
+
+	* tabbar.el
+
+	(tabbar-background-color): New option.
+	(tabbar-line-format): Use it.
+
 2003-12-17  David Ponce  <david@dponce.com>
 
 	* tabbar.el
