@@ -1,5 +1,5 @@
 ;; @(#) swbuff.el -- Quick switch between Emacs buffers.
-;; @(#) $Id: swbuff.el,v 1.1 1998/11/27 09:12:12 ebat311 Exp $
+;; @(#) $Id: swbuff.el,v 1.2 1999/02/01 11:30:30 ebat311 Exp $
 
 ;; This file is not part of Emacs
 
@@ -11,7 +11,7 @@
 ;; LCD Archive Entry:
 ;; <el>|David Ponce|david.ponce@wanadoo.fr|
 ;; <docum>|
-;; <date>|$Revision: 1.1 $|~/misc/|
+;; <date>|$Revision: 1.2 $|~/misc/|
 
 ;; COPYRIGHT NOTICE
 ;;
@@ -76,7 +76,7 @@
 
 ;;; Code:
   
-(defconst swbuff-version "$Revision: 1.1 $"
+(defconst swbuff-version "$Revision: 1.2 $"
   "swbuff version number."
   )
 
@@ -185,10 +185,10 @@ the current buffer is highlighted with the `swbuff-current-buffer-face' face."
 
 (defun swbuff-previous-buffer ()
   "Displays and activates the buffer at the end of the buffer-list."
-  (let ((cur-buf (current-buffer)))
-    (swbuff-next-buffer)
-    (while (not (eq (other-buffer (current-buffer) t) cur-buf))
-      (swbuff-next-buffer)))
+  (let ((l (buffer-list)))
+    (switch-to-buffer (nth (1- (length l)) l)))
+  (if (char-equal (aref (buffer-name (current-buffer)) 0) ?\ )
+      (swbuff-previous-buffer))
   )
 
 (defun swbuff-switch-to-next-buffer ()
@@ -199,13 +199,13 @@ the current buffer is highlighted with the `swbuff-current-buffer-face' face."
   )
 
 (defun swbuff-next-buffer ()
-  "Displays and activates the next buffer in the buffer-list.
-The normal bury-buffer displays the first buffer that is NOT on display,
-instead of just displaying the next buffer."
-  (interactive)
-  (let ((next-buffer (other-buffer (current-buffer) t)))
-    (bury-buffer)
-    (switch-to-buffer next-buffer))
+  "Displays and activates the next buffer in the buffer-list."
+  (let ((l (nreverse (buffer-list))))
+    (while (cdr l)
+      (switch-to-buffer (car l))
+      (setq l (cdr l))))
+  (if (char-equal (aref (buffer-name (current-buffer)) 0) ?\ )
+      (swbuff-next-buffer))
   )
 
 
@@ -224,6 +224,10 @@ and `swbuff-switch-to-previous-buffer' commands."
 
 ;;
 ;; $Log: swbuff.el,v $
+;; Revision 1.2  1999/02/01 11:30:30  ebat311
+;; No more use of `other-buffer' and `bury-buffer' so it
+;; can now switch to any buffer in the `buffer-list'.
+;;
 ;; Revision 1.1  1998/11/27 09:12:12  ebat311
 ;; Initial revision
 ;;
