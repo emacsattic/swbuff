@@ -153,42 +153,56 @@
                    :validate ruler-mode-character-validate)))
 
 (defface ruler-mode-default-face
-  '((t (:inherit default
-                 :background "grey76"
-                 :foreground "grey64"
-                 :box (:color "grey76"
-                              :line-width 1
-                              :style released-button)
-                 )))
+  '((((type tty))
+     (:inherit default
+               :background "grey64"
+               :foreground "grey50"
+               ))
+    (t
+     (:inherit default
+               :background "grey76"
+               :foreground "grey64"
+               :box (:color "grey76"
+                            :line-width 1
+                            :style released-button)
+               )))
   "Default face used by the ruler."
   :group 'ruler-mode)
 
 (defface ruler-mode-fill-column-face
-  '((t (:inherit ruler-mode-default-face
-                 :foreground "red"
-                 )))
+  '((t
+     (:inherit ruler-mode-default-face
+               :foreground "red"
+               )))
   "Face used to highlight the fill column character."
   :group 'ruler-mode)
 
 (defface ruler-mode-margins-face
-  '((t (:inherit ruler-mode-default-face
-                 :background "grey64"
-                 )))
+  '((((type tty))
+     (:inherit ruler-mode-default-face
+               :background "grey50"
+               ))
+    (t
+     (:inherit ruler-mode-default-face
+               :background "grey64"
+               )))
   "Face used to highlight the `window-margins' areas."
   :group 'ruler-mode)
 
 (defface ruler-mode-current-column-face
-  '((t (:inherit ruler-mode-default-face
-                 :weight bold
-                 :foreground "yellow"
-                 )))
+  '((t
+     (:inherit ruler-mode-default-face
+               :weight bold
+               :foreground "yellow"
+               )))
   "Face used to highlight the `current-column' character."
   :group 'ruler-mode)
 
 (defface ruler-mode-column-number-face
-  '((t (:inherit ruler-mode-default-face
-                 :foreground "black"
-                 )))
+  '((t
+     (:inherit ruler-mode-default-face
+               :foreground "black"
+               )))
   "Face used to highlight number graduations."
   :group 'ruler-mode)
 
