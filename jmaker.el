@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: July 22 1998
 ;; Keywords: tools
-;; Revision: $Id: jmaker.el,v 1.27 2003/05/04 11:19:33 ponced Exp $
+;; Revision: $Id: jmaker.el,v 1.28 2003/07/27 07:47:22 ponced Exp $
 
 (defconst jmaker-version "2.3")
 
@@ -59,6 +59,7 @@
 
 ;;; Code:
 (require 'compile)
+(require 'tempo)
 (require 'wid-edit)
 (eval-when-compile (require 'cl))
 
@@ -177,7 +178,7 @@ The possible choices are:
 
 (defcustom jmaker-make-use-jde-settings
   (condition-case nil
-      (progn (require 'jde-compile) t)
+      (progn (require 'jde) t)
     (error nil))
   "*non-nil to use JDE's current compilation options.
 Otherwise use value of jmaker variables `jmaker-java-compiler' and
@@ -259,7 +260,6 @@ That is args of the current JDE's compiler or value of the variable
 `jmaker-java-compiler-options' by default."
   (if jmaker-make-use-jde-settings
       (let* ((compiler (jde-compile-get-the-compiler))
-             (jde-classpath-separator ";")
              (cp (jde-compile-classpath-arg compiler)))
         (concat (format "%s %S " (car cp) (cadr cp))
                 (mapconcat
@@ -301,7 +301,7 @@ overwrite it unless OVER is non-nil."
         (and (file-exists-p file)
              (or (y-or-n-p (format "File `%s' exists; overwrite? " file))
                  (error "Command canceled"))))
-    
+
     (with-current-buffer (find-file-noselect file nil t)
       (erase-buffer)
       (jmaker-set-buffer-end-of-line-format)
@@ -416,7 +416,7 @@ argument CALLBACK is a function that will be called with the argument
 ROOT, after Makefile have been generated."
   (with-current-buffer (get-buffer-create "*jmaker*")
     (switch-to-buffer (current-buffer))
-    
+
     ;; Cleanup buffer
     (kill-all-local-variables)
     (let ((inhibit-read-only t)
@@ -425,19 +425,19 @@ ROOT, after Makefile have been generated."
       ;; Delete all the overlays.
       (mapc 'jmaker-delete-overlay (car ol))
       (mapc 'jmaker-delete-overlay (cdr ol)))
-    
+
     ;; Save the callback function and its argument.
     (make-local-variable 'jmaker-generall-dialog-callback-fun)
     (make-local-variable 'jmaker-generall-dialog-callback-arg)
     (setq jmaker-generall-dialog-callback-fun callback)
     (setq jmaker-generall-dialog-callback-arg root)
-    
+
     ;; Pre-select directories where to generate a Makefile.
     (jmaker-generall-dialog-setup-selected root)
-    
+
     ;; Insert the dialog header.
     (widget-insert (format jmaker-generall-dialog-header root))
-    
+
     ;; Insert the selection checkboxes.
     (mapcar
      #'(lambda (dir)
@@ -453,9 +453,9 @@ ROOT, after Makefile have been generated."
                               " (NEW)"))
             :notify 'jmaker-generall-dialog-toggle-selection)))
      jmaker-generall-dialog-selected)
-    
+
     (widget-insert "\n\n")
-    
+
     ;; Insert the Ok button.
     (widget-create
      'push-button
@@ -471,14 +471,14 @@ ROOT, after Makefile have been generated."
                           (if (> n 1) "s" ""))
                  (and callback (funcall callback root))))
      "Ok")
-    
+
     (widget-insert " ")
-    
+
     ;; Insert the Cancel button.
     (widget-create 'push-button
                    :notify 'jmaker-cancel-dialog
                    "Cancel")
-    
+
     ;; Display the dialog.
     (jmaker-dialog-mode)
     (widget-setup)
