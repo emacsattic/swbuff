@@ -1,7 +1,12 @@
 2004-02-14  David Ponce  <david@dponce.com>
 
 	* tabbar.el
+	
+	(tabbar-background-color): New function.
+	(tabbar-line-format): Use it.
 
+	* tabbar.el
+	
 	(tabbar-line-format): Ensure there is always a valid tab bar
 	background color.
 
