@@ -2,6 +2,9 @@
 
 	* tabbar.el
 
+	(tabbar-mode-on-p): New function.
+	(tabbar-local-mode): Use it.
+	(tabbar-mode): Use it. Turn off local mode before global mode.
 	(tabbar-buffer-groups): Preserve match data.
 
 2005-02-24  David Ponce  <david@dponce.com>
