@@ -1,5 +1,5 @@
 ;; @(#) jsee.el -- Javadoc viewer
-;; @(#) $Id: jsee.el,v 1.4 1999/05/26 08:22:30 ebat311 Exp $
+;; @(#) $Id: jsee.el,v 1.5 1999/07/05 21:27:11 ebat311 Exp $
 
 ;; This file is not part of Emacs
 
@@ -11,7 +11,7 @@
 ;; LCD Archive Entry:
 ;; jsee|David Ponce|david.ponce@wanadoo.fr|
 ;; Javadoc viewer|
-;; $Date: 1999/05/26 08:22:30 $|$Revision: 1.4 $|~/misc/jsee.el|
+;; $Date: 1999/07/05 21:27:11 $|$Revision: 1.5 $|~/misc/jsee.el|
 
 ;; COPYRIGHT NOTICE
 ;;
@@ -130,7 +130,7 @@
 (require 'jde)
 (require 'browse-url)
 
-(defconst jsee-version "$Revision: 1.4 $"
+(defconst jsee-version "$Revision: 1.5 $"
   "jsee version number.")
 
 ;; I USE A SUBGROUP OF `jde' AND PREFIXED ALL VARIABLES WITH `jde-jsee-'
@@ -421,10 +421,7 @@ in the current buffer and browses the resulting HTML file."
 (defun jsee-default-load-hook ()
   "Hook run when package has been loaded. It maps the keys `C-f1' to
 `jsee-browse-api-doc'."
-  (if (string-match "XEmacs" emacs-version)
-      (define-key java-mode-map [(control f1)] 'jsee-browse-api-doc)
-    (define-key java-mode-map [C-f1] 'jsee-browse-api-doc)
-    )
+  (define-key java-mode-map [(control f1)] 'jsee-browse-api-doc)
   )
 
 (provide 'jsee)
@@ -434,7 +431,10 @@ in the current buffer and browses the resulting HTML file."
 
 ;;
 ;; $Log: jsee.el,v $
-;; Revision 1.4  1999/05/26 08:22:30  ebat311
+;; Revision 1.5  1999/07/05 21:27:11  ebat311
+;; Use Emacs/XEmacs compatible key mapping in `jsee-default-load-hook'.
+;;
+;; Revision 1.4  1999-05-26 10:22:30+02  ebat311
 ;; Fixed - XEmacs compatibility of key mapping in
 ;; `jsee-default-load-hook'.
 ;;
