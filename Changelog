@@ -1,3 +1,34 @@
+2005-04-05  David Ponce  <david@dponce.com>
+
+	* tabbar.el
+
+	(tabbar-version): Update to 1.5.
+
+	Maintain the special tabset of selected tabs in a separate
+	variable:
+
+	(tabbar-tabsets-tabset-name): Remove.
+	(tabbar-tabsets-tabset): New variable.
+	(tabbar-free-tabsets-store, tabbar-init-tabsets-store)
+	(tabbar-get-tabsets-tabset): Use it.
+	(tabbar-map-tabsets): Use `push'.
+	(tabbar-delete-tab): Doc fix.
+
+	Use true buffer objects as tab values:
+
+	(tabbar-buffer-kill-buffer-hook)
+	(tabbar-buffer-tabs): Don't use buffer names.
+	(tabbar-buffer-update-groups): Likewise.  Don't duplicate the
+	current buffer.
+	(tabbar-buffer-groups): Receive a buffer object.
+	(tabbar-buffer-help-on-tab): Call `buffer-name'.
+
+	Misc.:
+
+	(tabbar-click-on-tab): Force to update the display.
+	(tabbar-buffer-mode-derived-p): New function.
+	(tabbar-buffer-groups): Use it.
+
 2005-03-23  David Ponce  <david@dponce.com>
 
 	* recentf.el:
