@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce david@dponce.com
 ;; Created: June 14 1999
 ;; Keywords: tools
-;; Revision: $Id: jjar.el,v 1.14 2003/04/25 11:28:30 ponced Exp $
+;; Revision: $Id: jjar.el,v 1.15 2003/05/04 11:18:34 ponced Exp $
 
 (defconst jjar-version "1.9")
 
@@ -164,7 +164,7 @@ Wildcard expressions are in variable `jjar-wildcards'."
 DIR is a subdirectory in `jjar-base-directory' tree."
   (apply 'nconc
          (mapcar #'(lambda (f)
-                     (and (not (string-match "^\\." f))
+                     (and (not (string-match "\\.\\'" f))
                           (file-directory-p f)
                           (nconc (jjar-get-matching-files-in-dir  f)
                                  (jjar-get-matching-files-in-tree f))))
