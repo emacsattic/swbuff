@@ -1,3 +1,17 @@
+2004-03-03  David Ponce  <david@dponce.com>
+
+	* tabbar.el
+
+	(tabbar-display-update): Remove window argument.  Update callers.
+	(tabbar-click-p): New function.
+	(tabbar-make-select-tab-command): Use it. Ignore non mouse clicks.
+	(tabbar-scroll-left-button-callback)
+	(tabbar-scroll-right-button-callback)
+	(tabbar-home-button-callback): Ditto.  Don't save-selected-window.
+	(tabbar-make-mouse-event): Accept a true mouse-click event.
+	(tabbar-cycle): Accept an optional mouse type event argument.
+	(tabbar-buffer-select-tab): switch-to-buffer by default.
+	
 2004-02-14  David Ponce  <david@dponce.com>
 
 	* tabbar.el
