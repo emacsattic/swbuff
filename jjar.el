@@ -7,7 +7,7 @@
 ;; Created: June 14 1999
 ;; Version: 1.7 (beta2)
 ;; Keywords: tools
-;; VC: $Id: jjar.el,v 1.9 2000/08/16 10:53:37 david_ponce Exp $
+;; VC: $Id: jjar.el,v 1.10 2001/04/04 12:50:06 ponce Exp $
 
 ;; This file is not part of Emacs
 
@@ -68,6 +68,10 @@
 ;;; Change Log:
 
 ;; $Log: jjar.el,v $
+;; Revision 1.10  2001/04/04 12:50:06  ponce
+;; Fixed a bug in `jjar-include-wildcards' defcustom.
+;; Thanks to "Bernard Hurley" <Bernard.Hurley@valtech.co.uk> for the fix.
+;;
 ;; Revision 1.9  2000/08/16 10:53:37  david_ponce
 ;; Minor comment update.
 ;;
@@ -112,7 +116,7 @@
 (require 'compile)
 (require 'wid-edit)
 
-(defconst jjar-version "1.7 (beta2) $Date: 2000/08/16 10:53:37 $"
+(defconst jjar-version "1.7 (beta2) $Date: 2001/04/04 12:50:06 $"
   "jjar version information.")
 
 (defgroup jjar nil
@@ -139,7 +143,7 @@
   "*List of predefined shell wildcard expressions used to locate files.
 The default setting includes class and properties files."
   :group 'jjar
-  :type '(repeat (regexp :format "%s")))
+  :type '(repeat regexp))
 
 (defcustom jjar-load-hook nil
   "*Hook run when package has been loaded."
