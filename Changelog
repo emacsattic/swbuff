@@ -1,3 +1,24 @@
+2004-10-07  David Ponce  <david@dponce.com>
+
+	* tabbar.el
+
+	(tabbar-default, tabbar-unselected, tabbar-selected)
+	(tabbar-separator, tabbar-button): Do not use the suffix `-face'
+	for face names, they have their own namespace.  All uses updated.
+	(tabbar-background-color): Doc fix.
+	(tabbar-home-button-enabled-image)
+	(tabbar-home-button-disabled-image)
+	(tabbar-scroll-left-button-enabled-image)
+	(tabbar-scroll-right-button-enabled-image): Better images.
+	(tabbar-scroll-left-button-disabled-image)
+	(tabbar-scroll-right-button-disabled-image): Remove.
+	(tabbar-scroll-left-button)
+	(tabbar-scroll-right-button): Produce the disabled button image
+	from the enabled one.
+	(tabbar-buffer-group-mode-on-button-image)
+	(tabbar-buffer-group-mode-off-button-image): Remove.
+	(tabbar-buffer-home-button): Use default home button images.
+	
 2004-09-29  David Ponce  <david@dponce.com>
 
 	* tabbar.el
