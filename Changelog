@@ -2,6 +2,31 @@
 
 	* tabbar.el
 
+	Code cleanup and optimization.
+
+	(tabbar-unselected-face): Doc fix.
+	(tabbar-make-button-keymap, tabbar-home-button-keymap)
+	(tabbar-home-button-callback, tabbar-home-button-help)
+	(tabbar-scroll-left-button-keymap)
+	(tabbar-scroll-left-button-callback)
+	(tabbar-scroll-left-button-help)
+	(tabbar-scroll-right-button-keymap)
+	(tabbar-scroll-right-button-callback)
+	(tabbar-scroll-right-button-help)
+	(tabbar-make-mouse-event): Move.
+	(tabbar-scroll-left-help, tabbar-scroll-right-help): Doc fix.
+	(tabbar-select-tab-keymap): Rename to...
+	(tabbar-default-tab-keymap): Use `tabbar-make-button-keymap'.
+	(tabbar-make-tab-keymap): Likewise.  Doc fix.
+	(tabbar-setup-button): Rename to...
+	(tabbar-line-button): Receive a button name.  Callers updated.
+	(tabbar-setup-separator): Rename to...
+	(tabbar-line-separator): Remove argument.  Callers updated.
+	(tabbar-line-tab): Rename from `tabbar-line-element'.  Callers
+	updated.
+
+2004-03-31  David Ponce  <david@dponce.com>
+
 	More efficient design of tab callbacks.
 	
 	(tabbar-make-select-tab-command)
