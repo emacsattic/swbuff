@@ -1,3 +1,25 @@
+2003-12-02  David Ponce  <david@dponce.com>
+
+	* tabbar.el
+
+	(tabbar-version): Update to 1.4.
+
+2003-11-25  David Ponce  <david@dponce.com>
+
+	* tabbar.el
+
+	(tabbar-shorten): New function.
+	(tabbar-buffer-tab-label): Use it.
+
+2003-11-24  David Ponce  <david@dponce.com>
+
+	* tabbar.el
+
+	(tabbar-display-update): New function.
+	(tabbar-home-button-callback, tabbar-scroll-left-button-callback)
+	(tabbar-scroll-right-button-callback)
+	(tabbar-make-select-tab-command): Use it.
+
 2003-11-24  David Ponce  <david@dponce.com>
 
 	* tree-widget.el
