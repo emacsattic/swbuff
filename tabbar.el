@@ -6,9 +6,9 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 25 February 2003
 ;; Keywords: convenience
-;; Revision: $Id: tabbar.el,v 1.24 2003/11/21 11:52:10 ponced Exp $
+;; Revision: $Id: tabbar.el,v 1.25 2003/12/02 14:56:33 ponced Exp $
 
-(defconst tabbar-version "1.3")
+(defconst tabbar-version "1.4")
 
 ;; This file is not part of GNU Emacs.
 
@@ -276,6 +276,66 @@ The help string is displayed when the mouse is onto the button.
 The function is called with no arguments."
   :group 'tabbar
   :type 'function)
+
+;;; Misc.
+;;
+(eval-when-compile
+  (if (fboundp 'force-window-update)
+      (defsubst tabbar-display-update (&optional window)
+        "Update display of the tab bar.
+If optional argument WINDOW is a window, it specifies to redisplay the
+tab bar on this particular window."
+        (force-window-update window))
+    (defsubst tabbar-display-update (&optional window)
+      "Update display of the tab bar.
+Optional argument WINDOW is ignored."
+      (force-mode-line-update)
+      (sit-for 0))
+    ))
+
+(defun tabbar-shorten (str width)
+  "Return a shortened string from STR that fits in the given display WIDTH.
+WIDTH is specified in terms of character display width in the current
+buffer; see also `char-width'.  If STR display width is greater than
+WIDTH, STR is truncated and an ellipsis string \"...\" is inserted at
+end or in the middle of the returned string, depending on available
+room."
+  (let* ((n  (length str))
+         (sw (string-width str))
+         (el "...")
+         (ew (string-width el))
+         (w  0)
+         (i  0))
+    (cond
+     ;; STR fit in WIDTH, return it.
+     ((<= sw width)
+      str)
+     ;; There isn't enough room for the ellipsis, STR is just
+     ;; trunctated to fit in WIDTH.
+     ((<= width ew)
+      (while (< w width)
+        (setq w (+ w (char-width (aref str i)))
+              i (1+ i)))
+      (substring str 0 i))
+     ;; There isn't enough room to insert the ellipsis in the middle
+     ;; of the truncated string, so put the ellipsis at end.
+     ((zerop (setq sw (/ (- width ew) 2)))
+      (setq width (- width ew))
+      (while (< w width)
+        (setq w (+ w (char-width (aref str i)))
+              i (1+ i)))
+      (concat (substring str 0 i) el))
+     ;; Put the ellipsis in the middle of the truncated string.
+     (t
+      (while (< w sw)
+        (setq w (+ w (char-width (aref str i)))
+              i (1+ i)))
+      (setq w (+ w ew))
+      (while (< w width)
+        (setq n (1- n)
+              w (+ w (char-width (aref str n)))))
+      (concat (substring str 0 i) el (substring str n)))
+     )))
 
 ;;; Tab and tab set
 ;;
@@ -609,11 +669,11 @@ Call `tabbar-home-function'."
   (interactive "e")
   (when tabbar-home-function
     (save-selected-window
-      (select-window (posn-window (event-start event)))
-      (funcall tabbar-home-function event)
-      (force-mode-line-update)
-      (sit-for 0)
-      )))
+      (let ((window (posn-window (event-start event))))
+        (select-window window)
+        (funcall tabbar-home-function event)
+        (tabbar-display-update window)
+        ))))
 
 (defun tabbar-home-button-help (window object position)
   "Return a help string or nil for none, for the home button.
@@ -674,11 +734,11 @@ Call `tabbar-scroll-left-function'."
   (interactive "e")
   (when tabbar-scroll-left-function
     (save-selected-window
-      (select-window (posn-window (event-start event)))
-      (funcall tabbar-scroll-left-function event)
-      (force-mode-line-update)
-      (sit-for 0)
-      )))
+      (let ((window (posn-window (event-start event))))
+        (select-window window)
+        (funcall tabbar-scroll-left-function event)
+        (tabbar-display-update window)
+        ))))
 
 (defun tabbar-scroll-left-button-help (window object position)
   "Return a help string or nil for none, for the scroll left button.
@@ -737,11 +797,11 @@ Call `tabbar-scroll-right-function'."
   (interactive "e")
   (when tabbar-scroll-right-function
     (save-selected-window
-      (select-window (posn-window (event-start event)))
-      (funcall tabbar-scroll-right-function event)
-      (force-mode-line-update)
-      (sit-for 0)
-      )))
+      (let ((window (posn-window (event-start event))))
+        (select-window window)
+        (funcall tabbar-scroll-right-function event)
+        (tabbar-display-update window)
+        ))))
 
 (defun tabbar-scroll-right-button-help (window object position)
   "Return a help string or nil for none, for the scroll right button.
@@ -874,15 +934,16 @@ See the variable `tabbar-button-widget' for details."
     "Return a command to handle TAB selection.
 That command calls `tabbar-select-tab-function' with the received
 mouse event and TAB."
-    (let ((event (make-symbol "event")))
+    (let ((event (make-symbol "event"))
+          (window (make-symbol "window")))
       `(lambda (,event)
          (interactive "e")
          (setq tabbar-last-selected-tab ,tab)
          (when tabbar-select-tab-function
-           (select-window (posn-window (event-start ,event)))
-           (funcall tabbar-select-tab-function ,event ,tab)
-           (force-mode-line-update)
-           (sit-for 0)))))
+           (let ((,window (posn-window (event-start ,event))))
+             (select-window ,window)
+             (funcall tabbar-select-tab-function ,event ,tab)
+             (tabbar-display-update ,window))))))
 
   (defun tabbar-make-help-on-tab-function (tab)
     "Return a function that return a help string on TAB.
@@ -917,7 +978,7 @@ Call `tabbar-tab-label-function' to obtain a label for TAB."
     ;; Return the tab followed by a separator.
     (list (propertize label 'local-map keymap 'help-echo help
                       'face (if (tabbar-selected-p
-                                 tab(tabbar-current-tabset))
+                                 tab (tabbar-current-tabset))
                                 'tabbar-selected-face
                               'tabbar-unselected-face))
           tabbar-separator-value)))
@@ -1336,25 +1397,15 @@ Return the the first group where the current buffer is."
   "Return the label to display TAB.
 Must be a valid `header-line-format' template element."
   (let* ((tabset (tabbar-tab-tabset tab))
-         (label (if tabbar-buffer-group-mode
-                    (format "[%s]" tabset)
-                  (format "%s" (tabbar-tab-value tab))))
-         (edges (window-edges))
-         (llab (length label))
-         (lmax (max 10 (/ (- (nth 2 edges) (car edges))
-                          (length (tabbar-view tabset)))))
-         (cont  "...")
-         (lcont (length cont)))
-    (cond
-     ((<= llab lmax)
-      label)
-     ((< llab (+ lmax lcont))
-      (concat (substring label 0 (- lmax lcont)) cont))
-     (t
-      (setq llab (/ (- lmax lcont) 2))
-      (concat (substring label 0 llab) cont
-              (substring label (+ lcont (- llab lmax))))))
-    ))
+         (label  (if tabbar-buffer-group-mode
+                     (format "[%s]" tabset)
+                   (format "%s" (tabbar-tab-value tab))))
+         (edges  (window-edges))
+         (wmax   (max 1 (/ (- (nth 2 edges) (car edges))
+                           (length (tabbar-view tabset))))))
+    ;; Shorten the tab label to try to keep all tabs in the visible
+    ;; area of the tab bar.
+    (tabbar-shorten label wmax)))
 
 (defun tabbar-buffer-help-on-tab (tab)
   "Return the help string shown when mouse is onto TAB."
