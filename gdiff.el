@@ -1,12 +1,14 @@
-;; gdiff.el -- Use a GUI diff tool from Emacs
+;;; gdiff.el -- Use a GUI diff tool from Emacs
 
-;; Copyright (C) 2002 by David Ponce
+;; Copyright (C) 2002, 2003 by David Ponce
 
 ;; Author: David Ponce <david@dponce.com>
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: Aug 21 2002
 ;; Keywords: tools
-;; X-RCS: $Id: gdiff.el,v 1.2 2002/09/30 11:06:30 ponce Exp $
+;; Revision: $Id: gdiff.el,v 1.3 2003/04/25 11:27:04 ponced Exp $
+
+(defconst gdiff-version "1.0")
 
 ;; This file is not part of Emacs
 
@@ -26,7 +28,7 @@
 ;; Boston, MA 02111-1307, USA.
 
 ;;; Commentary:
-
+;;
 ;; This library manage a GUI diff tool from Emacs, allowing the
 ;; following commands:
 ;;
@@ -51,18 +53,14 @@
 ;; gdiff.el requires vc.el to compare revisions.
 ;;
 ;; Put this file and gdiff-setup.el on your Emacs-Lisp load path and
-;; add (require 'gdiff-setup) into your ~/.emacs startup file
-
+;; add (require 'gdiff-setup) into your ~/.emacs startup file.
+;;
 ;; If possible gdiff-setup adds a "Compare (GUI)" sub-menu in the
 ;; "Tools" menu.
-
-;; Support
 ;;
-;; This program is available at <http://www.dponce.com/>. Any
-;; comments, suggestions, bug reports or upgrade requests are welcome.
-;; Please send them to David Ponce at <david@dponce.com>
 
 ;;; History:
+;;
 
 ;;; Code:
 (require 'gdiff-setup)
@@ -88,7 +86,7 @@ Unless optional argument INPLACE is non-nil, return a new string."
   
   )
 
-(defun gdiff-version (rev)
+(defun gdiff-vc-version (rev)
   "Retrieve the revision REV of the current buffer file.
 Return the workfile name. See also `vc-version-other-window'."
   (let (filename)
@@ -106,8 +104,8 @@ the current buffer working copy is compared with REV1."
   (vc-ensure-vc-buffer)
   (let ((file2 (if (string= rev2 "")    ; use the buffer working copy
                    (gdiff-buffer-file-name)
-                 (gdiff-version rev2)))
-        (file1 (gdiff-version rev1)))
+                 (gdiff-vc-version rev2)))
+        (file1 (gdiff-vc-version rev1)))
     (gdiff-execute-nowait file1 file2
                           `(lambda ()   ; cleanup temp working files
                              (or (string= ,file1 ,(buffer-file-name))
