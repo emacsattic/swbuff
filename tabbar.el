@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 25 February 2003
 ;; Keywords: convenience
-;; Revision: $Id: tabbar.el,v 1.16 2003/04/24 12:02:17 ponced Exp $
+;; Revision: $Id: tabbar.el,v 1.17 2003/04/30 17:36:35 ponced Exp $
 
 (defconst tabbar-version "1.2")
 
@@ -295,6 +295,7 @@ TABSET is the tab set the tab belongs to."
 
 (defvar tabbar-current-tabset nil
   "The tab set currently displayed on the tab bar.")
+(make-variable-buffer-local 'tabbar-current-tabset)
 
 (defvar tabbar-last-selected-tab nil
   "The last selected tab.")
@@ -598,10 +599,12 @@ CALLBACK is passed the received mouse event."
 Call `tabbar-home-function'."
   (interactive "e")
   (when tabbar-home-function
-    (funcall tabbar-home-function event)
-    (force-mode-line-update)
-    (sit-for 0)
-    ))
+    (save-selected-window
+      (select-window (posn-window (event-start event)))
+      (funcall tabbar-home-function event)
+      (force-mode-line-update)
+      (sit-for 0)
+      )))
 
 (defun tabbar-home-button-help (window object position)
   "Return a help string or nil for none, for the home button.
@@ -661,10 +664,12 @@ See the variable `tabbar-button-widget' for details."
 Call `tabbar-scroll-left-function'."
   (interactive "e")
   (when tabbar-scroll-left-function
-    (funcall tabbar-scroll-left-function event)
-    (force-mode-line-update)
-    (sit-for 0)
-    ))
+    (save-selected-window
+      (select-window (posn-window (event-start event)))
+      (funcall tabbar-scroll-left-function event)
+      (force-mode-line-update)
+      (sit-for 0)
+      )))
 
 (defun tabbar-scroll-left-button-help (window object position)
   "Return a help string or nil for none, for the scroll left button.
@@ -722,10 +727,12 @@ See the variable `tabbar-button-widget' for details."
 Call `tabbar-scroll-right-function'."
   (interactive "e")
   (when tabbar-scroll-right-function
-    (funcall tabbar-scroll-right-function event)
-    (force-mode-line-update)
-    (sit-for 0)
-    ))
+    (save-selected-window
+      (select-window (posn-window (event-start event)))
+      (funcall tabbar-scroll-right-function event)
+      (force-mode-line-update)
+      (sit-for 0)
+      )))
 
 (defun tabbar-scroll-right-button-help (window object position)
   "Return a help string or nil for none, for the scroll right button.
