@@ -1,3 +1,15 @@
+2003-11-24  David Ponce  <david@dponce.com>
+
+	* tree-widget.el
+
+	Add support for image properties by theme.  Improve portability.
+
+	(tree-widget-create-image): Add new optional argument for image
+	properties.
+	(tree-widget--image-properties): New variable.
+	(tree-widget-set-image-properties): New function.
+	(tree-widget-find-image): Use it.  No depend of `locate-library'.
+
 2003-11-21  David Ponce  <david@dponce.com>
 
 	* tabbar.el
