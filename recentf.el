@@ -8,7 +8,7 @@
 ;; Maintainer: FSF
 ;; Keywords: files
 
-(defconst recentf-version "$Revision: 1.32 $")
+(defconst recentf-version "$Revision: 1.33 $")
 
 ;; This file is part of GNU Emacs.
 
@@ -1105,7 +1105,8 @@ Click on Cancel or type \"q\" to quit.\n")
                      (dolist (e recentf-edit-selected-items)
                        (setq recentf-list (delq e recentf-list)
                              i (1+ i)))
-                     (message "%S file(s) removed from the list" i))
+                     (message "%S file(s) removed from the list" i)
+                     (recentf-clear-data))
                  (message "No file selected")))
      "Ok")
     (widget-insert " ")
