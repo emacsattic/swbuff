@@ -764,6 +764,36 @@ ring is empty L is left unchanged."
     l))
 
 ;;;
+;;; Dialogs stuff
+;;;
+
+(defun recentf-cancel-dialog (&rest ignore)
+  "Cancel the current dialog. Used by `recentf-edit-list' and
+`recentf-open-files' dialogs."
+  (interactive)
+  (kill-buffer (current-buffer))
+  (message "Dialog canceled."))
+
+(defvar recentf-dialog-mode-map nil
+  "`recentf-dialog-mode' keymap.")
+
+(if recentf-dialog-mode-map
+    ()
+  (setq recentf-dialog-mode-map (make-sparse-keymap))
+  (define-key recentf-dialog-mode-map "q" 'recentf-cancel-dialog)
+  (set-keymap-parent recentf-dialog-mode-map widget-keymap))
+
+(defun recentf-dialog-mode ()
+  "Major mode used in recentf dialogs.
+
+These are the special commands of recentf-dialog-mode mode:
+    q -- cancel this dialog."
+  (interactive)
+  (setq major-mode 'recentf-dialog-mode)
+  (setq mode-name "recentf-dialog")
+  (use-local-map recentf-dialog-mode-map))
+
+;;;
 ;;; Hooks and Commands
 ;;;
 
@@ -857,7 +887,8 @@ from `recentf-list'.")
     (setq recentf-edit-selected-items nil)
     ;; Insert the dialog header
     (widget-insert "Select the files to be deleted from the 'recentf-list'.\n\n")
-    (widget-insert "Click on Ok to update the list or on Cancel to quit.\n" )
+    (widget-insert "Click on Ok to update the list. ")
+    (widget-insert "Click on Cancel or type \"q\" to quit.\n")
     ;; Insert the list of files as checkboxes
     (mapcar (function
              (lambda (item)
@@ -886,11 +917,9 @@ from `recentf-list'.")
     (widget-insert " ")
     ;; Insert the Cancel button
     (widget-create 'push-button
-                   :notify (lambda (&rest ignore)
-                             (kill-buffer (current-buffer))
-                             (message "Command canceled."))
+                   :notify 'recentf-cancel-dialog
                    "Cancel")
-    (use-local-map widget-keymap)
+    (recentf-dialog-mode)
     (widget-setup)
     (goto-char (point-min))))
 
@@ -914,44 +943,51 @@ from `recentf-list'.")
                    (t (format "%d files" count)))))
   (setq recentf-update-menu-p t))
 
-(defun recentf-open-more-files-action (widget &rest ignore)
-  "Button widget action used by `recentf-open-more-files' to open a file."
+(defun recentf-open-files-action (widget &rest ignore)
+  "Button widget action used by `recentf-open-files' to open a file."
   (kill-buffer (current-buffer))
   (funcall recentf-menu-action (widget-value widget)))
 
-(defvar recentf-open-more-files-item-shift ""
-  "String used by `recentf-open-more-files' to shift right sub-menu
+(defvar recentf-open-files-item-shift ""
+  "String used by `recentf-open-files' to shift right sub-menu
 items.")
 
-(defun recentf-open-more-files-item (menu-element)
-  "Function called by `recentf-open-more-files' to insert a
-menu-element item in the 'More' buffer."
+(defun recentf-open-files-item (menu-element)
+  "Function called by `recentf-open-files' to insert a menu-element
+item in the current interaction buffer."
   (let ((menu-item (car menu-element))
         (file-path (cdr menu-element)))
     (if (consp file-path)               ; This is a sub-menu
-        (let* ((shift recentf-open-more-files-item-shift)
-               (recentf-open-more-files-item-shift (concat shift "  ")))
+        (let* ((shift recentf-open-files-item-shift)
+               (recentf-open-files-item-shift (concat shift "  ")))
           (widget-create 'item
                          :tag menu-item
                          :sample-face 'bold
                          :format (concat shift "%{%t%}:\n"))
-          (mapcar 'recentf-open-more-files-item
+          (mapcar 'recentf-open-files-item
                   file-path)
           (widget-insert "\n"))
       (widget-create 'push-button
                      :button-face 'default
                      :tag menu-item
                      :help-echo (concat "Open " file-path)
-                     :format (concat recentf-open-more-files-item-shift "%[%t%]")
-                     :notify 'recentf-open-more-files-action
+                     :format (concat recentf-open-files-item-shift "%[%t%]")
+                     :notify 'recentf-open-files-action
                      file-path)
       (widget-insert "\n"))))
 
 ;;;###autoload
-(defun recentf-open-more-files ()
-  "Allow the user to open files that are not in the menu."
+(defun recentf-open-files (&optional files buffer-name)
+  "Open a buffer that allows the user to choose a file to open from
+the list of recently opened files. The optional argument FILES may be
+used to specify the list, otherwise recentf-list is used. The optional
+argument BUFFER-NAME specifies which buffer to use for the interaction."
   (interactive)
-  (with-current-buffer (get-buffer-create (concat "*" recentf-menu-title " - More*"))
+  (if (null files)
+      (setq files recentf-list))
+  (if (null buffer-name)
+      (setq buffer-name (concat "*" recentf-menu-title "*")))
+  (with-current-buffer (get-buffer-create buffer-name)
     (switch-to-buffer (current-buffer))
     (kill-all-local-variables)
     (let ((inhibit-read-only t))
@@ -961,24 +997,29 @@ menu-element item in the 'More' buffer."
       (mapcar 'delete-overlay (car all))
       (mapcar 'delete-overlay (cdr all)))
     ;; Insert the dialog header
-    (widget-insert "Click on a file to open it or on Cancel to quit.\n\n")
+    (widget-insert "Click on a file to open it. ")
+    (widget-insert "Click on Cancel or type \"q\" to quit.\n\n" )
     ;; Insert the list of files as buttons
-    (let ((recentf-open-more-files-item-shift ""))
-      (mapcar 'recentf-open-more-files-item
+    (let ((recentf-open-files-item-shift ""))
+      (mapcar 'recentf-open-files-item
               (recentf-apply-menu-filter
                recentf-menu-filter
-               (mapcar 'recentf-make-default-menu-element
-                       (nthcdr recentf-max-menu-items recentf-list)))))
+               (mapcar 'recentf-make-default-menu-element files))))
     (widget-insert "\n")
     ;; Insert the Cancel button
     (widget-create 'push-button
-                   :notify (lambda (&rest ignore)
-                             (kill-buffer (current-buffer))
-                             (message "Command canceled."))
+                   :notify 'recentf-cancel-dialog
                    "Cancel")
-    (use-local-map widget-keymap)
+    (recentf-dialog-mode)
     (widget-setup)
     (goto-char (point-min))))
+
+;;;###autoload
+(defun recentf-open-more-files ()
+  "Allow the user to open files that are not in the menu."
+  (interactive)
+  (recentf-open-files (nthcdr recentf-max-menu-items recentf-list)
+		      (concat "*" recentf-menu-title " - More*")))
 
 ;;;###autoload
 (defun recentf-mode (&optional arg)
