@@ -1,13 +1,13 @@
 ;; swbuff.el --- Quick switch between Emacs buffers.
-;; $Id: swbuff.el,v 1.12 2000/04/20 16:00:24 david_ponce Exp $
 
 ;; Copyright (C) 1998, 2000 by David Ponce
 
 ;; Author: David Ponce <david@dponce.com>
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 12 Nov 1998
-;; Version: 2.0 (beta1)
+;; Version: 2.0
 ;; Keywords: extensions convenience
+;; VC: $Id: swbuff.el,v 1.13 2000/04/21 10:32:08 david_ponce Exp $
 
 ;; This file is not part of Emacs
 
@@ -61,6 +61,9 @@
 ;;; Change Log:
 
 ;; $Log: swbuff.el,v $
+;; Revision 1.13  2000/04/21 10:32:08  david_ponce
+;; Version 2.0 released.
+;;
 ;; Revision 1.12  2000/04/20 16:00:24  david_ponce
 ;; Added a new customizable variable `swbuff-status-window-layout' to
 ;; control the method used to ensure the switched buffer is always
@@ -131,7 +134,7 @@
 
 ;;; Code:
 
-(defconst swbuff-version "2.0 (beta1) $Date: 2000/04/20 16:00:24 $"
+(defconst swbuff-version "2.0 $Date: 2000/04/21 10:32:08 $"
   "swbuff version information.")
 
 (defconst swbuff-status-buffer-name "*swbuff*"
