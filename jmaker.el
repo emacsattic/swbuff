@@ -1,5 +1,5 @@
 ;;; jmaker.el -- Java Makefile generator add-on to JDE.
-;; $Revision: 1.4 $
+;; $Revision: 1.5 $
 
 ;; Copyright (C) 1998 by David Ponce
 
@@ -76,7 +76,7 @@
 (require 'jde)
 (require 'tempo)
 
-(defconst jmaker-version "$Revision: 1.4 $"
+(defconst jmaker-version "$Revision: 1.5 $"
   "jmaker version number.")
 
 (defgroup jmaker nil
@@ -147,6 +147,16 @@ The jmaker version number is also added to the JDE Help sub-menu."
   (interactive)
   (customize-group "jmaker"))
 
+(defun jmaker-version-number ()
+	"Returns jmaker version number."
+	(string-match "[0123456789.]+" jmaker-version)
+	(match-string 0 jmaker-version))
+
+(defun jmaker-display-version ()
+	"Displays jmaker version."
+	(interactive)
+	(message "Using 'jmaker' version %s." (jmaker-version-number)))
+
 (defun jmaker-all-target ()
 	"Returns a Makefile string for the `all' target. It is build with the name
 of all `.java' files in the current directory. If the current directory contains
@@ -200,12 +210,6 @@ This is a temporary buffer which could be edited and must be saved to allow buil
 		)
 	)
 
-(defun jmaker-version-number ()
-	"Returns jmaker version number"
-	(interactive)
-	(string-match "[0123456789.]+" jmaker-version)
-	(message "%s" (match-string 0 jmaker-version)))
-
 (defun jmaker-jde-hook ()
 	"JDE hook to add jmaker items to JDE sub-menus."
 	;; jmaker JDE sub-menus are not supported by XEmacs!
@@ -235,6 +239,9 @@ This is a temporary buffer which could be edited and must be saved to allow buil
 
 ;;
 ;; $Log: jmaker.el,v $
+;; Revision 1.5  1998/09/29 22:34:18  ebat311
+;; New version-number management functions.
+;;
 ;; Revision 1.4  1998/09/28 22:54:19  ebat311
 ;; Copyright notice updated.
 ;;
