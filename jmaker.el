@@ -1,5 +1,5 @@
 ;; @(#) jmaker.el -- Java Makefile generator
-;; @(#) $Id: jmaker.el,v 1.12 1999/06/04 15:55:19 ebat311 Exp $
+;; @(#) $Id: jmaker.el,v 1.13 1999/07/05 21:29:17 ebat311 Exp $
 
 ;; This file is not part of Emacs
 
@@ -11,7 +11,7 @@
 ;; LCD Archive Entry:
 ;; jmaker|David Ponce|david.ponce@wanadoo.fr|
 ;; Java Makefile generator|
-;; $Date: 1999/06/04 15:55:19 $|$Revision: 1.12 $|~/misc/jmaker.el|
+;; $Date: 1999/07/05 21:29:17 $|$Revision: 1.13 $|~/misc/jmaker.el|
 
 ;; COPYRIGHT NOTICE
 ;;
@@ -92,7 +92,7 @@
 (require 'tempo)
 (require 'compile)
 
-(defconst jmaker-version "$Revision: 1.12 $"
+(defconst jmaker-version "$Revision: 1.13 $"
   "jmaker version number.")
 
 (defgroup jmaker nil
@@ -352,12 +352,15 @@ to overwrite it."
   "Menu for jmaker."
   )
 
-(if (not jde-xemacsp)
-    (easy-menu-do-define 'jmaker-menu 
-                         jde-mode-map
-                         "Menu for jmaker."
-                         jmaker-menu)
-  )
+(require 'easymenu)
+(easy-menu-do-define 'jmaker-menu jde-mode-map "Menu for jmaker." jmaker-menu)
+
+;; (if (not jde-xemacsp)
+;;     (easy-menu-do-define 'jmaker-menu 
+;;                          jde-mode-map
+;;                          "Menu for jmaker."
+;;                          jmaker-menu)
+;;   )
 
 (provide 'jmaker)
 
@@ -365,7 +368,10 @@ to overwrite it."
 
 ;;
 ;; $Log: jmaker.el,v $
-;; Revision 1.12  1999/06/04 15:55:19  ebat311
+;; Revision 1.13  1999/07/05 21:29:17  ebat311
+;; May be the jmaker menu works with XEmacs?
+;;
+;; Revision 1.12  1999-06-04 17:55:19+02  ebat311
 ;; Added a "Make" option to the menu  (GNU Emacs only)
 ;; to launch the standard `compile' command.
 ;;
