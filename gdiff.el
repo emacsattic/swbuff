@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: Aug 21 2002
 ;; Keywords: tools
-;; X-RCS: $Id: gdiff.el,v 1.1 2002/08/21 13:31:21 ponce Exp $
+;; X-RCS: $Id: gdiff.el,v 1.2 2002/09/30 11:06:30 ponce Exp $
 
 ;; This file is not part of Emacs
 
@@ -127,17 +127,16 @@ CLEANUP specify an optional function called after the gdiff process
 has terminated.
 OPTIONS specify additional command line parameters passed to
 `gdiff-program'."
-  (let ((buffer (generate-new-buffer "gdiff")))
-    (with-current-buffer buffer
-      (setq gdiff-cleanup-function cleanup)
-      (set-process-sentinel
-       (apply 'start-process (buffer-name buffer) buffer gdiff-program
-              (append options (list (gdiff-file-name f1)
-                                    (gdiff-file-name f2))))
-       #'gdiff-process-sentinel)
+  (with-current-buffer (generate-new-buffer "gdiff")
+    (setq gdiff-cleanup-function cleanup
+          f1 (gdiff-file-name f1)
+          f2 (gdiff-file-name f2))
+    (message "gdiff start %s %s %s %s" gdiff-program options f1 f2)
+    (let ((pid (apply 'start-process (buffer-name) (current-buffer)
+                      gdiff-program (append options (list f1 f2)))))
+      (set-process-sentinel pid #'gdiff-process-sentinel)
       (message "gdiff process '%s' -- %S"
-               (process-name   (get-buffer-process buffer))
-               (process-status (get-buffer-process buffer))))))
+               (process-name pid) (process-status pid)))))
 
 (defun gdiff-process-sentinel (process event)
   "Handle gdiff PROCESS EVENT.
@@ -193,22 +192,20 @@ Remove trailing `/'."
         (widen)
         (write-region (point-min) (point-max) tempfile nil 'silent)))
     (gdiff-execute-nowait basefile tempfile
-                             `(lambda () ; cleanup temp working files
-                                (gdiff-delete-file ,tempfile)))
+                          `(lambda ()   ; cleanup temp working files
+                             (gdiff-delete-file ,tempfile)))
     nil))
 
 ;;;###autoload
 (defun gdiff-files (file1 file2)
   "Compare FILE1 with FILE2."
   (interactive "fCompare file: \nfwith file: ")
-  (message "gdiff '%s' '%s'" file1 file2)
   (gdiff-execute-nowait file1 file2))
 
 ;;;###autoload
 (defun gdiff-folders (folder1 folder2)
   "Compare FOLDER1 with FOLDER2."
   (interactive "DCompare folder: \nDwith folder: ")
-  (message "gdiff '%s' '%s'" folder1 folder2)
   (gdiff-execute-nowait folder1 folder2))
 
 ;;;###autoload
