@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 25 February 2003
 ;; Keywords: convenience
-;; Revision: $Id: tabbar.el,v 1.13 2003/04/17 10:07:57 ponce Exp $
+;; Revision: $Id: tabbar.el,v 1.14 2003/04/20 12:57:42 ponce Exp $
 
 (defconst tabbar-version "1.2")
 
@@ -141,8 +141,8 @@
 ;;
 ;; The list of buffers put in tabs is provided by the function
 ;; specified in the variable `tabbar-buffer-list-function'.  The
-;; default function: `tabbar-buffer-list', excludes buffers that are
-;; not visiting a file and whose name starts with a space.
+;; default function: `tabbar-buffer-list', excludes buffers whose name
+;; starts with a space, when they are not visiting a file.
 ;;
 ;; Buffers are organized in groups, each one represented by a tab set.
 ;; A buffer can have no group, or belong to more than one group.  The
@@ -1163,8 +1163,8 @@ Notice that it is better that a buffer belongs to one group."
 
 (defun tabbar-buffer-list ()
   "Return the list of buffers to show in tabs.
-Exclude buffers that are not visiting a file and whose name starts
-with a space."
+Exclude buffers whose name starts with a space, when they are not
+visiting a file."
   (delq t
         (mapcar #'(lambda (b)
                     (cond
