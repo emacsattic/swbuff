@@ -357,9 +357,8 @@ START-EVENT is the mouse click event."
 (defun ruler-mode-toggle-show-tab-stops ()
   "Toggle showing of tab stops on the ruler."
   (interactive)
-  (when ruler-mode
-    (setq ruler-mode-show-tab-stops (not ruler-mode-show-tab-stops))
-    (force-mode-line-update)))
+  (setq ruler-mode-show-tab-stops (not ruler-mode-show-tab-stops))
+  (force-mode-line-update))
 
 (defvar ruler-mode-map
   (let ((km (make-sparse-keymap)))
