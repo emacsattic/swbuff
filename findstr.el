@@ -7,7 +7,7 @@
 ;; Created: 21 Jul 2000
 ;; Version: 1.0
 ;; Keywords: tools
-;; VC: $Id: findstr.el,v 1.1 2000/07/21 13:12:30 david_ponce Exp $
+;; VC: $Id: findstr.el,v 1.2 2000/07/21 13:20:44 david_ponce Exp $
 
 ;; This file is not part of Emacs
 
@@ -45,6 +45,9 @@
 ;;; Change Log:
 
 ;; $Log: findstr.el,v $
+;; Revision 1.2  2000/07/21 13:20:44  david_ponce
+;; Just changed the findstr `message' format!
+;;
 ;; Revision 1.1  2000/07/21 13:12:30  david_ponce
 ;; The first version.
 ;;
@@ -77,7 +80,7 @@ given FILES.  OPTIONS specifies the findstr command options."
       (setq last-nonmenu-event t)
       (save-some-buffers (not compilation-ask-about-save) nil)
       (setq last-nonmenu-event temp))
-    (message "%S" command)
+    (message "%s" command)
     (compile-internal command
                       (format "No more %s matches" program)
                       "findstr"
