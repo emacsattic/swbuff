@@ -6,9 +6,9 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 25 February 2003
 ;; Keywords: convenience
-;; Revision: $Id: tabbar.el,v 1.18 2003/05/14 15:08:50 ponced Exp $
+;; Revision: $Id: tabbar.el,v 1.19 2003/05/22 08:06:09 ponced Exp $
 
-(defconst tabbar-version "1.2")
+(defconst tabbar-version "1.3")
 
 ;; This file is not part of GNU Emacs.
 
@@ -30,7 +30,7 @@
 ;;; Commentary:
 ;;
 ;; This library provides a minor mode to display tabs in the header
-;; line.  It works only on GNU Emacs 21, when a mouse is available.
+;; line.  It works only on GNU Emacs 21.
 ;;
 ;; M-x `tabbar-mode' toggle the display of the tab bar, globally.
 ;;
@@ -481,6 +481,14 @@ current cached copy."
 
 ;;; Buttons and separators
 ;;
+(defun tabbar-find-image (specs)
+  "Find an image, choosing one of a list of image specifications.
+SPECS is a list of image specifications.  See also `find-image'."
+  (when (display-images-p)
+    (condition-case nil
+        (find-image specs)
+      (error nil))))
+
 (defconst tabbar-separator-widget
   '(cons (string)
          (repeat :tag "Image"
@@ -498,9 +506,7 @@ The value (\"\") hide separators.")
 Initialize `VARIABLE-value' with the template element to use in header
 line, to display a separator on the tab bar."
   (let ((text (intern (format "%s-value" variable)))
-        (image (condition-case nil
-                   (find-image (cdr value))
-                 (error nil))))
+        (image (tabbar-find-image (cdr value))))
     (set text (propertize (if image " " (car value))
                           'face 'tabbar-separator-face
                           'display image))
@@ -553,13 +559,8 @@ string shown when the mouse is on the button."
         (disabled (intern (format "%s-disabled" variable)))
         (keymap   (intern (format "%s-keymap" variable)))
         (help     (intern (format "%s-help" variable)))
-        (image-en (condition-case nil
-                      (find-image (cdar value))
-                    (error nil)))
-        (image-di (condition-case nil
-                      (find-image (cddr value))
-                    (error nil)))
-        )
+        (image-en (tabbar-find-image (cdar value)))
+        (image-di (tabbar-find-image (cddr value))))
     (set enabled (propertize (if image-en " " (caar value))
                              'display image-en
                              'face 'tabbar-button-face
@@ -1070,9 +1071,6 @@ With prefix argument ARG, turn on if positive, otherwise off.
 Returns non-nil if the new state is enabled."
   :global t
   :group 'tabbar
-  (unless (display-mouse-p)
-    (message "Sorry, tab bar don't work without a mouse")
-    (setq tabbar-mode nil))
   (if tabbar-mode
 ;;; ON
       (unless (eq header-line-format tabbar-header-line-format)
