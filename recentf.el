@@ -37,7 +37,31 @@
 ;;  (require 'recentf)
 ;;  (recentf-mode 1)
 
+;;; History:
+;; 
+
 ;;; Code:
+
+;;; Compatibility
+(if (featurep 'xemacs)
+    (progn
+      (defalias 'recentf-overlay-lists
+        (lambda () (list (extent-list))))
+      (defalias 'recentf-delete-overlay 'delete-extent)
+      )
+  (defalias 'recentf-overlay-lists 'overlay-lists)
+  (defalias 'recentf-delete-overlay 'delete-overlay)
+  )
+
+;; Canonicalize file names so the same list of recently opened files
+;; could be shared between various versions of Emacs and XEmacs.
+(defun recentf-expand-file-name (name &optional dir)
+  "Convert filename NAME to absolute, and canonicalize it.
+Second arg DIR is directory to start with if NAME is relative (see
+function `expand-file-name').  Also, force directory separator
+character (see variable `directory-sep-char') to ?/."
+  (let ((directory-sep-char ?/))
+    (expand-file-name name)))
 
 (require 'easymenu)
 (require 'wid-edit)
@@ -61,13 +85,14 @@
 ;; and `recentf-menu-title' values.
 (defun recentf-menu-customization-changed (sym val)
   "Function called when menu customization has changed.
-It removes the recentf menu and forces its complete redrawing."
+It removes the recentf menu and forces its complete redrawing.  SYM is
+the variable customized and VAL its new value."
   (when recentf-initialized-p
     (easy-menu-remove-item nil
                            (symbol-value 'recentf-menu-path)
                            (symbol-value 'recentf-menu-title))
     (setq recentf-update-menu-p t))
-  (custom-set-default sym val))
+  (set-default sym val))
 
 (defgroup recentf nil
   "Maintain a menu of recently opened files."
@@ -84,7 +109,7 @@ You should define the options of your own filters in this group."
   :group 'recentf
   :type 'integer)
 
-(defcustom recentf-save-file (expand-file-name "~/.recentf")
+(defcustom recentf-save-file (recentf-expand-file-name "~/.recentf")
   "*File to save `recentf-list' into."
   :group 'recentf
   :type 'file)
@@ -100,7 +125,9 @@ You should define the options of your own filters in this group."
   :type 'string
   :set 'recentf-menu-customization-changed)
 
-(defcustom recentf-menu-path '("files")
+(defcustom recentf-menu-path (if (featurep 'xemacs)
+                                 '("File")
+                               '("files"))
   "*Path where to add the recentf menu.
 If nil add it at top level (see also `easy-menu-change')."
   :group 'recentf
@@ -108,7 +135,9 @@ If nil add it at top level (see also `easy-menu-change')."
                  (sexp :tag "Menu Path"))
   :set 'recentf-menu-customization-changed)
 
-(defcustom recentf-menu-before "open-file"
+(defcustom recentf-menu-before (if (featurep 'xemacs)
+                                   "Open..."
+                                 "open-file")
   "*Name of the menu before which the recentf menu will be added.
 If nil add it at end of menu (see also `easy-menu-change')."
   :group 'recentf
@@ -175,7 +204,41 @@ used to build the menu and must return a new list of menu elements (see
          (if val
              (remove-hook 'kill-buffer-hook 'recentf-remove-file-hook)
            (add-hook 'kill-buffer-hook 'recentf-remove-file-hook))
-         (custom-set-default sym val)))
+         (set-default sym val)))
+
+(defcustom recentf-virtual-pathes-handler
+  (if (eq system-type 'windows-nt)
+      #'recentf-windows-nt-virtual-drives
+    nil)
+  "*Handler of virtual pathes.
+This is a function without argument which must return an alist of:
+
+  (VIRTUAL-PATH . REAL-PATH).
+
+See also the variable `recentf-virtual-pathes-alist'."
+  :group 'recentf
+  :type 'function)
+
+(defcustom recentf-link-behavior 'always-link-source
+  "*Define how recentf should handle filenames which are links.
+That is for which maybe an entry with only another name exists in the
+recent file list.  There are three choices:
+
+- - 'always-link-source': always save the `recentf-file-truename',
+    means the name of the link-source, in the `recentf-list'.
+- - 'only-one-version': if the file is already saved in the `recentf-list'
+     with another name then nothing is done.
+- - nil: there is no special link handling and a file can be saved
+    with different names in the `recentf-list'.
+
+See also `recentf-rebuild-virtual-pathes'."
+  :group 'recentf
+  :type '(radio (const :tag "Save link source"
+                       :value always-link-source)
+                (const :tag "Save only one name"
+                       :value only-one-version)
+                (const :tag "No special link handling"
+                       :value nil)))
 
 (defcustom recentf-mode nil
   "Toggle recentf mode.
@@ -198,9 +261,75 @@ use either \\[customize] or the function `recentf-mode'."
 ;;;;
 ;;;; Common functions
 ;;;;
+
 (defconst recentf-case-fold-search
   (memq system-type '(vax-vms windows-nt))
   "Non-nil if recentf searches and matches should ignore case.")
+
+(defun recentf-windows-nt-virtual-drives ()
+  "Return an alist of Windows NT virtual drive associations.
+This is the default `recentf-virtual-pathes-handler' when
+`system-type' is 'windows-nt.  Run \\[recentf-rebuild-virtual-pathes]
+if you are adding/changing/removing virtual drives with the \"subst\"
+command during Emacs session!"
+  (if (eq system-type 'windows-nt)
+      ;; Force use of the Windows NT built-in shell because some
+      ;; people may use other `shell-file-name' like bash.
+      (let ((shell-file-name (getenv "ComSpec"))
+            (shell-command-switch "/c")
+            (directory-sep-char ?/))
+        (mapcar
+         #'(lambda (line)
+             (let ((vdrive (split-string line ": +=> +")))
+               (cons
+                (file-name-as-directory
+                 (expand-file-name (nth 0 vdrive)))
+                (file-name-as-directory
+                 (expand-file-name (nth 1 vdrive))))))
+         (delete "" ;; remove empty lines (XEmacs `split-string'
+                 ;; needs this)
+                 (split-string
+                  (shell-command-to-string "subst")
+                  "[\n]+"))))))
+
+(defvar recentf-virtual-pathes-alist nil
+  "Hold the alist of virtual pathes associations.
+Each association has the form:
+
+  (<virtual-path> <real-path>).")
+
+;;;###autoload
+(defun recentf-rebuild-virtual-pathes ()
+  "Rebuild the list of virtual pathes.
+The list is kept in variable `recentf-virtual-pathes-alist' so the
+substituted pathes can be handled correctly by recentf.  See also the
+variable `recentf-link-behavior'."
+  (interactive)
+  (setq recentf-virtual-pathes-alist
+        (and (functionp recentf-virtual-pathes-handler)
+             (funcall recentf-virtual-pathes-handler))))
+
+(defun recentf-file-truename (filename)
+  "Return the real file name of FILENAME.
+If `recentf-virtual-pathes-alist' is non-nil substitute a virtual path
+found in FILENAME by the corresponding real path in
+`recentf-virtual-pathes-alist'.  Otherwise just return the
+`file-truename' of FILENAME."
+  (let* ((case-fold-search recentf-case-fold-search)
+         (directory-sep-char ?/)
+         (truename (expand-file-name
+                    (file-truename filename)))
+         (vpathes recentf-virtual-pathes-alist)
+         found vpath)
+    (while (and (not found) vpathes)
+      (setq vpath   (car vpathes)
+            vpathes (cdr vpathes))
+      (if (string-match (concat "^" (regexp-quote (car vpath)))
+                        truename)
+          (setq truename (replace-match (cdr vpath) nil nil
+                                        truename)
+                found    t)))
+    truename))
 
 (defun recentf-include-p (filename)
   "Return t if FILENAME match none of the `recentf-exclude' regexps."
@@ -212,10 +341,39 @@ use either \\[customize] or the function `recentf-mode'."
 
 (defun recentf-add-file (filename)
   "Add or move FILENAME at the beginning of `recentf-list'.
-Does nothing if FILENAME matches one of the `recentf-exclude' regexps."
-  (let ((filename (expand-file-name filename)))
+Does nothing if FILENAME matches one of the `recentf-exclude' regexps.
+The behavior depends on `recentf-link-behavior'."
+  (let* ((filename (recentf-expand-file-name filename))
+         (true-filename (recentf-file-truename filename))
+         r-list found)
     (when (recentf-include-p filename)
-      (setq recentf-list (cons filename (delete filename recentf-list)))
+      (cond
+       ;; Add the FILENAME to the list, but ensure there is no other
+       ;; "identical" files in the list with different names.
+       ((eq recentf-link-behavior 'only-one-version)
+        (setq r-list (copy-sequence recentf-list))
+        (while (and (not found) r-list)
+          (setq found (string-equal (recentf-file-truename (car r-list))
+                                    true-filename)
+                r-list (cdr r-list)))
+        ;; There is no "identical" file in the `recentf-list' so we
+        ;; must add it now.
+        (if (not found)
+            (setq recentf-list
+                  (cons filename (delete filename recentf-list)))))
+
+       ;; Add the `recentf-file-truename' to the list, so we never
+       ;; have a file twice in the list with different names.
+       ((eq recentf-link-behavior 'always-link-source)
+        (setq recentf-list
+              (cons true-filename
+                    (delete true-filename
+                            (delete filename recentf-list)))))
+
+       ;; Simply add or move the file at the beginning.
+       (t
+        (setq recentf-list (cons filename
+                                 (delete filename recentf-list)))))
       (setq recentf-update-menu-p t))))
 
 (defun recentf-remove-if-non-readable (filename)
@@ -235,7 +393,7 @@ If FILENAME is not readable it is removed from `recentf-list'."
       (setq recentf-update-menu-p t))))
 
 (defun recentf-trunc-list (l n)
-  "Return a list of the first N elements of L."
+  "Return from L the list of its first N elements."
   (let ((lh nil))
     (while (and l (> n 0))
       (setq lh (cons (car l) lh))
@@ -301,6 +459,7 @@ to them.  It is guaranteed that FILTER receives only a list of single
 menu-elements (no sub-menu)."
   (if (and (functionp filter) l)
       (let ((case-fold-search recentf-case-fold-search)
+            (directory-sep-char ?/)
             menu-element sub-menu-elements single-elements)
         ;; split L in two sub-listes:
         ;;   one of sub-menus elements and
@@ -494,14 +653,15 @@ filter combines the `recentf-sort-basenames-descending' and
   "Filter the list of `recentf-menu-elements' L.
 Show filenames relative to `default-directory'."
   (setq recentf-update-menu-p t)        ; force menu update
-  (mapcar (function
-           (lambda (menu-element)
-             (let* ((ful-path (recentf-menu-element-value menu-element))
-                    (rel-path (file-relative-name ful-path)))
-               (if (string-match "^\\.\\." rel-path)
-                   menu-element
-                 (recentf-make-menu-element rel-path ful-path)))))
-          l))
+  (let ((dir (expand-file-name default-directory)))
+    (mapcar (function
+             (lambda (menu-element)
+               (let* ((ful-path (recentf-menu-element-value menu-element))
+                      (rel-path (file-relative-name ful-path dir)))
+                 (if (string-match "^\\.\\." rel-path)
+                     menu-element
+                   (recentf-make-menu-element rel-path ful-path)))))
+            l)))
 
 (defcustom recentf-arrange-rules
   '(
@@ -552,7 +712,7 @@ Nil means no filter.  See also `recentf-menu-filter'.  You can't use
            (recentf-menu-customization-changed sym val))))
 
 (defun recentf-match-rule-p (matcher file-path)
-  "Return non-nil if FILE-PATH match the rule specified by MATCHER.
+  "Return non-nil if the rule specified by MATCHER match FILE-PATH.
 See `recentf-arrange-rules' for details on MATCHER."
   (if (stringp matcher)
       (string-match matcher file-path)
@@ -770,20 +930,31 @@ unchanged."
 
 (defun recentf-cancel-dialog (&rest ignore)
   "Cancel the current dialog.
-Used by `recentf-edit-list' and `recentf-open-files' dialogs."
+Used by `recentf-edit-list' and `recentf-open-files' dialogs.
+IGNORE arguments."
   (interactive)
   (kill-buffer (current-buffer))
   (message "Dialog canceled."))
 
-(defvar recentf-dialog-mode-map nil
-  "`recentf-dialog-mode' keymap.")
+(defvar recentf-button-keymap
+  (let (parent-keymap mouse-button1 keymap)
+    (if (featurep 'xemacs)
+        (setq parent-keymap widget-button-keymap
+              mouse-button1 [button1])
+      (setq parent-keymap widget-keymap
+            mouse-button1 [down-mouse-1]))
+    (setq keymap (copy-keymap parent-keymap))
+    (define-key keymap mouse-button1 #'widget-button-click)
+    keymap)
+  "Keymap used inside buttons.")
 
-(if recentf-dialog-mode-map
-    ()
-  (setq recentf-dialog-mode-map (make-sparse-keymap))
-  (define-key recentf-dialog-mode-map "q" 'recentf-cancel-dialog)
-  (define-key recentf-dialog-mode-map [down-mouse-1] 'widget-button-click)
-  (set-keymap-parent recentf-dialog-mode-map widget-keymap))
+(defvar recentf-dialog-mode-map
+  (let ((km (make-sparse-keymap)))
+    (define-key km "q" 'recentf-cancel-dialog)
+    (define-key km [down-mouse-1] 'widget-button-click)
+    (set-keymap-parent km widget-keymap)
+    km)
+  "`recentf-dialog-mode' keymap.")
 
 (defun recentf-dialog-mode ()
   "Major mode used in recentf dialogs.
@@ -818,7 +989,8 @@ These are the special commands of `recentf-dialog-mode' mode:
           (easy-menu-change recentf-menu-path
                             recentf-menu-title
                             (recentf-make-menu-items)
-                            recentf-menu-before))
+                            recentf-menu-before)
+          t)
       (error nil))))
 
 (defun recentf-dump-variable (variable &optional limit)
@@ -858,7 +1030,9 @@ is a list (default to the full list)."
 Holds list of files to be deleted from `recentf-list'.")
 
 (defun recentf-edit-list-action (widget &rest ignore)
-  "Checkbox WIDGET action used by `recentf-edit-list' to select/unselect a file."
+  "Checkbox WIDGET action.
+Used by `recentf-edit-list' to select/unselect a file.  IGNORE other
+arguments."
   (let ((value (widget-get widget ':tag)))
     ;; if value is already in the selected items
     (if (memq value recentf-edit-selected-items)
@@ -882,10 +1056,10 @@ Holds list of files to be deleted from `recentf-list'.")
     (kill-all-local-variables)
     (let ((inhibit-read-only t))
       (erase-buffer))
-    (let ((all (overlay-lists)))
+    (let ((all (recentf-overlay-lists)))
       ;; Delete all the overlays.
-      (mapcar 'delete-overlay (car all))
-      (mapcar 'delete-overlay (cdr all)))
+      (mapcar 'recentf-delete-overlay (car all))
+      (mapcar 'recentf-delete-overlay (cdr all)))
     (setq recentf-edit-selected-items nil)
     ;; Insert the dialog header
     (widget-insert "Select the files to be deleted from the 'recentf-list'.\n\n")
@@ -903,6 +1077,8 @@ Holds list of files to be deleted from `recentf-list'.")
     (widget-insert "\n\n")
     ;; Insert the Ok button
     (widget-create 'push-button
+                   :button-keymap recentf-button-keymap ; XEmacs
+                   :keymap        recentf-button-keymap ; Emacs
                    :notify (lambda (&rest ignore)
                              (if recentf-edit-selected-items
                                  (progn (kill-buffer (current-buffer))
@@ -919,6 +1095,8 @@ Holds list of files to be deleted from `recentf-list'.")
     (widget-insert " ")
     ;; Insert the Cancel button
     (widget-create 'push-button
+                   :button-keymap recentf-button-keymap ; XEmacs
+                   :keymap        recentf-button-keymap ; Emacs
                    :notify 'recentf-cancel-dialog
                    "Cancel")
     (recentf-dialog-mode)
@@ -946,7 +1124,8 @@ Holds list of files to be deleted from `recentf-list'.")
   (setq recentf-update-menu-p t))
 
 (defun recentf-open-files-action (widget &rest ignore)
-  "Button WIDGET action used by `recentf-open-files' to open a file."
+  "Button WIDGET action used by `recentf-open-files' to open a file.
+IGNORE other arguments."
   (kill-buffer (current-buffer))
   (funcall recentf-menu-action (widget-value widget)))
 
@@ -968,6 +1147,8 @@ Holds list of files to be deleted from `recentf-list'.")
                   file-path)
           (widget-insert "\n"))
       (widget-create 'push-button
+                     :button-keymap recentf-button-keymap ; XEmacs
+                     :keymap        recentf-button-keymap ; Emacs
                      :button-face 'default
                      :tag menu-item
                      :help-echo (concat "Open " file-path)
@@ -992,10 +1173,10 @@ which buffer to use for the interaction."
     (kill-all-local-variables)
     (let ((inhibit-read-only t))
       (erase-buffer))
-    (let ((all (overlay-lists)))
+    (let ((all (recentf-overlay-lists)))
       ;; Delete all the overlays.
-      (mapcar 'delete-overlay (car all))
-      (mapcar 'delete-overlay (cdr all)))
+      (mapcar 'recentf-delete-overlay (car all))
+      (mapcar 'recentf-delete-overlay (cdr all)))
     ;; Insert the dialog header
     (widget-insert "Click on a file to open it. ")
     (widget-insert "Click on Cancel or type \"q\" to quit.\n\n" )
@@ -1008,6 +1189,8 @@ which buffer to use for the interaction."
     (widget-insert "\n")
     ;; Insert the Cancel button
     (widget-create 'push-button
+                   :button-keymap recentf-button-keymap ; XEmacs
+                   :keymap        recentf-button-keymap ; Emacs
                    :notify 'recentf-cancel-dialog
                    "Cancel")
     (recentf-dialog-mode)
@@ -1033,24 +1216,37 @@ were operated on recently."
   (let ((on-p (if arg
                   (> (prefix-numeric-value arg) 0)
                 (not recentf-mode))))
-    (if on-p
-        (unless recentf-initialized-p
-          (setq recentf-initialized-p t)
-          (if (file-readable-p recentf-save-file)
-              (load-file recentf-save-file))
-          (setq recentf-update-menu-p t)
-          (add-hook 'find-file-hooks       'recentf-add-file-hook)
-          (add-hook 'write-file-hooks      'recentf-add-file-hook)
-          (add-hook 'menu-bar-update-hook  'recentf-update-menu-hook)
-          (add-hook 'kill-emacs-hook       'recentf-save-list))
-      (when recentf-initialized-p
-        (setq recentf-initialized-p nil)
-        (recentf-save-list)
-        (easy-menu-remove-item nil recentf-menu-path recentf-menu-title)
-        (remove-hook 'find-file-hooks       'recentf-add-file-hook)
-        (remove-hook 'write-file-hooks      'recentf-add-file-hook)
-        (remove-hook 'menu-bar-update-hook  'recentf-update-menu-hook)
-        (remove-hook 'kill-emacs-hook       'recentf-save-list)))
+    (cond
+     ;; `recentf-mode' enabled.
+     (on-p
+      ;; Rebuild the `recentf-virtual-pathes-alist' when
+      ;; `recentf-mode' is enabled.  Normally this is the only time
+      ;; this function must be called.
+      (recentf-rebuild-virtual-pathes)
+      (unless recentf-initialized-p
+        (setq recentf-initialized-p t)
+        (if (file-readable-p recentf-save-file)
+            (load-file recentf-save-file))
+        (setq recentf-update-menu-p t)
+        (add-hook 'find-file-hooks       'recentf-add-file-hook)
+        (add-hook 'write-file-hooks      'recentf-add-file-hook)
+        (add-hook (if (featurep 'xemacs)
+                      'activate-menubar-hook
+                    'menu-bar-update-hook)
+                  'recentf-update-menu-hook)
+        (add-hook 'kill-emacs-hook       'recentf-save-list)))
+     ;; `recentf-mode' disabled.
+     (recentf-initialized-p
+      (setq recentf-initialized-p nil)
+      (recentf-save-list)
+      (easy-menu-remove-item nil recentf-menu-path recentf-menu-title)
+      (remove-hook 'find-file-hooks  'recentf-add-file-hook)
+      (remove-hook 'write-file-hooks 'recentf-add-file-hook)
+      (remove-hook (if (featurep 'xemacs)
+                       'activate-menubar-hook
+                     'menu-bar-update-hook)
+                   'recentf-update-menu-hook)
+      (remove-hook 'kill-emacs-hook 'recentf-save-list)))
     (setq recentf-mode on-p)))
 
 (provide 'recentf)
