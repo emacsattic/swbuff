@@ -1,6 +1,6 @@
 ;; recentf.el --- setup a menu of recently opened files
 
-;; Copyright (C) 1999 Free Software Foundation, Inc.
+;; Copyright (C) 1999, 2000 Free Software Foundation, Inc.
 
 ;; Author: David Ponce <david.ponce@wanadoo.fr>
 ;; Created: July 19 1999
