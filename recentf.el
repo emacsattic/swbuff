@@ -120,9 +120,15 @@ Nil means no filter.  The following functions are predefined:
 
 - - `recentf-sort-ascending' to sort menu items in ascending order.
 - - `recentf-sort-descending' to sort menu items in descending order.
+- - `recentf-sort-basenames-ascending' to sort file names in descending order.
+- - `recentf-sort-basenames-descending' to sort file names in descending order.
+- - `recentf-show-basenames' to show file names (no directories) in menu items.
+- - `recentf-show-basenames-ascending' to show file names in ascending order.
+- - `recentf-show-basenames-descending' to show file names in descending order.
 
-The filter function is called with one argument, the list of filenames to be
-displayed in the menu and must return a new list of filenames."
+The filter function is called with one argument, the list of menu elements
+used to build the menu and must return a new list of menu elements (see
+`recentf-menu-elements' for menu element form)."
   :group 'recentf
   :type 'function
   :set 'recentf-menu-customization-changed)
@@ -211,11 +217,11 @@ were operated on recently."
   (when recentf-update-menu-p
     (condition-case nil
         (progn
+          (setq recentf-update-menu-p nil)
           (easy-menu-change recentf-menu-path
                             recentf-menu-title
                             (recentf-make-menu-items)
-                            recentf-menu-before)
-          (setq recentf-update-menu-p nil))
+                            recentf-menu-before))
       (error nil))))
 
 ;;;###autoload
@@ -255,14 +261,17 @@ were operated on recently."
 (defun recentf-make-menu-items ()
   "Make menu items from `recentf-list'."
   (let ((file-items
-	 (mapcar '(lambda (entry)
-		    (vector entry (list recentf-menu-action entry) t))
-		 (funcall (or recentf-menu-filter 'identity)
-			  (recentf-elements recentf-max-menu-items)))))
+         (mapcar 'recentf-make-menu-item
+                 (funcall (or recentf-menu-filter 'identity)
+                          (recentf-menu-elements recentf-max-menu-items)))))
     (append (or file-items (list ["No files" t nil]))
             (and recentf-menu-append-commands-p
                  (cons ["---" nil nil]
                        recentf-menu-items-for-commands)))))
+
+(defun recentf-make-menu-item (menu-element)
+  "Make a menu item from a menu element (see `recentf-menu-elements')."
+  (vector (car menu-element) (list recentf-menu-action (cdr menu-element)) t))
 
 (defun recentf-add-file (filename)
   "Add or move FILENAME at the beginning of `recentf-list'.
@@ -303,17 +312,84 @@ If FILENAME is not readable it is removed from `recentf-list'."
       (setq l (cdr l)))
     (nreverse lh)))
 
+(defun recentf-menu-elements (n)
+  "Return a list of the first N menu elements from `recentf-list'.
+Each menu element has this form:
+
+ (MENU-ITEM . FILE-PATH)
+
+MENU-ITEM is the menu item string displayed.
+
+FILE-PATH is the path used to open the file when the corresponding MENU-ITEM
+is selected.
+
+At the start each MENU-ITEM is set to its corresponding FILE-PATH."
+  (mapcar '(lambda (item) (cons item item)) (recentf-elements n)))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Predefined menu filter functions ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 (defun recentf-sort-ascending (l)
-  "Sort the list of strings L in ascending order."
-  (sort l '(lambda (e1 e2) (string-lessp e1 e2))))
+  "Sort the list of menu elements L in ascending order.
+The MENU-ITEM part of each menu element is compared."
+  (sort l '(lambda (e1 e2) (string-lessp (car e1) (car e2)))))
 
 (defun recentf-sort-descending (l)
-  "Sort the list of strings L in descending order."
-  (sort l '(lambda (e1 e2) (string-lessp e2 e1))))
+  "Sort the list of menu elements L in descending order.
+The MENU-ITEM part of each menu element is compared."
+  (sort l '(lambda (e1 e2) (string-lessp (car e2) (car e1)))))
+
+(defun recentf-sort-basenames-ascending (l)
+  "Sort the list of menu elements L in ascending order.
+Only file names (without directories) are compared."
+  (sort l '(lambda (e1 e2) (string-lessp
+                            (file-name-nondirectory (cdr e1))
+                            (file-name-nondirectory (cdr e2))))))
+
+(defun recentf-sort-basenames-descending (l)
+  "Sort the list of menu elements L in descending order.
+Only file names (without directories) are compared."
+  (sort l '(lambda (e1 e2) (string-lessp
+                            (file-name-nondirectory (cdr e2))
+                            (file-name-nondirectory (cdr e1))))))
+
+(defun recentf-show-basenames (l)
+  "Filter the list of menu elements L to show only file names (no directories)
+in the menu. When file names are duplicated their directory component is added."
+  (let ((names  (mapcar '(lambda (item) (file-name-nondirectory (cdr item))) l))
+        (dirs   (mapcar '(lambda (item) (file-name-directory (cdr item))) l))
+        (pathes (mapcar 'cdr l))
+        (pos    -1)
+        item filtered-items filtered-list)
+    (while names
+      (setq item  (car names))
+      (setq names (cdr names))
+      (setq pos   (1+ pos))
+      (setq filtered-list
+            (cons (cons (if (or (member item names) (member item filtered-items))
+                            (concat item " (" (nth pos dirs) ")")
+                          item)
+                        (nth pos pathes))
+                  filtered-list))
+      (setq filtered-items (cons item filtered-items)))
+    (nreverse filtered-list)))
+
+(defun recentf-show-basenames-ascending (l)
+  "Filter the list of menu elements L to show only file names in the menu,
+sorted in ascending order. This filter combines the `recentf-sort-basenames-ascending'
+and `recentf-show-basenames' filters."
+  (recentf-show-basenames (recentf-sort-basenames-ascending l)))
+
+(defun recentf-show-basenames-descending (l)
+  "Filter the list of menu elements L to show only file names in the menu,
+sorted in descending order. This filter combines the `recentf-sort-basenames-descending'
+and `recentf-show-basenames' filters."
+  (recentf-show-basenames (recentf-sort-basenames-descending l)))
 
 (provide 'recentf)
 
 (run-hooks 'recentf-load-hook)
 
 ;;; recentf.el ends here.
-
