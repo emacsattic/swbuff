@@ -1,3 +1,11 @@
+2004-01-21  David Ponce  <david@dponce.com>
+
+	* tabbar.el
+
+	(tabbar-default-face, tabbar-unselected-face)
+	(tabbar-selected-face, tabbar-separator-face, tabbar-button-face):
+	Use better[?] default values.
+
 2004-01-20  David Ponce  <david@dponce.com>
 
 	* tabbar.el
