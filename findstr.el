@@ -1,4 +1,4 @@
-;; findstr.el --- igrep-find use findstr if running a Windows NT shell.
+;; findstr.el --- Use Windows NT findstr to match expression in files
 
 ;; Copyright (C) 2000 by David Ponce
 
@@ -7,7 +7,7 @@
 ;; Created: 21 Jul 2000
 ;; Version: 1.0
 ;; Keywords: tools
-;; VC: $Id: findstr.el,v 1.2 2000/07/21 13:20:44 david_ponce Exp $
+;; VC: $Id: findstr.el,v 1.3 2001/08/03 08:33:30 ponce Exp $
 
 ;; This file is not part of Emacs
 
@@ -28,8 +28,8 @@
 
 ;;; Commentary:
 
-;; This library advise `igrep-find' to use the native Windows NT
-;; command findstr to find expressions in multiple files.
+;; This library use the Windows NT native command findstr to match
+;; expressions in multiple files.
 
 ;; Installation
 ;;
@@ -45,6 +45,12 @@
 ;;; Change Log:
 
 ;; $Log: findstr.el,v $
+;; Revision 1.3  2001/08/03 08:33:30  ponce
+;; `findstr' is now Windows specific and no more modify `igrep-find'
+;;  behaviour.
+;;
+;; Many improvements ;-)
+;;
 ;; Revision 1.2  2000/07/21 13:20:44  david_ponce
 ;; Just changed the findstr `message' format!
 ;;
@@ -54,59 +60,47 @@
 
 ;;; Code:
 (require 'igrep)
+(require 'compile)
 
-(defun findstr-nt-shell-p ()
-  "Return non-nil if running a Windows NT shell."
-  (and (eq system-type 'windows-nt)
-       (let ((case-fold-search t))
-         (string-match "cmd\\(\\.exe\\|proxy\\(\\.exe\\)?\\)?" shell-file-name))))
-  
-(defun findstr (program expression files &optional options)
-  "Use the native Windows NT findstr command to find EXPRESSION in
-given FILES.  OPTIONS specifies the findstr command options."
-  (setq program "findstr")
-  (if (null options)
+;; The following default regexp take into account that Windows file
+;; name can begin with a drive letter and contain spaces!
+(defvar findstr-regexp-alist
+  '(("^\\(\\([a-zA-Z]:\\)?[^:(\t\n]+\\)[:( \t]+\\([0-9]+\\)[:) \t]" 1 3))
+  "Regexps to match the `findstr' entries.")
+
+(defun findstr-internal (program expression files &optional options)
+  "Use PROGRAM to find EXPRESSION in FILES.
+PROGRAM is the native Windows NT findstr command.
+OPTIONS specifies the findstr command options."
+  (or (stringp options)
       (setq options ""))
-  (if (not (listp files))
+  (or (listp files)
       (setq files (list files)))
-  (let ((command (format "%s /n %s /c:%s %s"
-                         program
-                         options
-                         (shell-quote-argument expression)
-                         (mapconcat 'identity files " "))))
-    ;; Force save-some-buffers to use the minibuffer
-    ;; to query user about whether to save modified buffers.
-    (let ((temp last-nonmenu-event))
-      (setq last-nonmenu-event t)
-      (save-some-buffers (not compilation-ask-about-save) nil)
-      (setq last-nonmenu-event temp))
+  (let ((shell-file-name (getenv "ComSpec"))
+        (shell-command-switch "/c")
+        (w32-quote-process-args nil)
+        (command (mapconcat #'identity
+                            `(,program ,options ,expression ,@files)
+                            " ")))
+    (save-some-buffers (not compilation-ask-about-save) nil)
     (message "%s" command)
     (compile-internal command
                       (format "No more %s matches" program)
-                      "findstr"
+                      program
                       nil
-                      grep-regexp-alist)
-    ))
+                      findstr-regexp-alist)))
 
-(defadvice igrep-find (around my-igrep-find first (&rest igrep-args) activate)
-  "`igrep-find' use findstr if running a Windows NT shell."
+;;;###autoload
+(defun findstr (&rest igrep-args)
+  "Run Windows NT findstr to match expression in files.
+All arguments IGREP-ARGS are handled by `findstr-internal'."
   (interactive
-   (let ((igrep-find t)
-         (igrep-program (if (findstr-nt-shell-p)
-                            "findstr"
-                          igrep-program))
-         (igrep-options (if (findstr-nt-shell-p)
-                            "/s"
-                          igrep-options))
-         (igrep-read-options (or (findstr-nt-shell-p)
-                                 igrep-read-options)))
+   (let ((igrep-program "findstr")
+         (igrep-options "/n /s")
+         (igrep-read-options nil))
      (igrep-read-args)))
-  (if (findstr-nt-shell-p)
-      (apply 'findstr igrep-args)
-    ad-do-it))
-;;;     (let ((igrep-find t))
-;;;       (apply 'igrep igrep-args))))
-  
+  (apply 'findstr-internal igrep-args))
+
 (provide 'findstr)
 
 ;;; findstr.el ends here
