@@ -1,5 +1,5 @@
 ;;; jmaker.el -- Java Makefile generator add-on to JDE.
-;; $Revision: 1.2 $
+;; $Revision: 1.3 $
 
 ;; Copyright (C) 1998 by David Ponce
 
@@ -76,7 +76,7 @@
 (require 'jde)
 (require 'tempo)
 
-(defconst jmaker-version "$Revision: 1.2 $"
+(defconst jmaker-version "$Revision: 1.3 $"
   "jmaker version number.")
 
 (defgroup jmaker nil
@@ -204,7 +204,7 @@ This is a temporary buffer which could be edited and must be saved to allow buil
 	"Returns jmaker version number"
 	(interactive)
 	(string-match "[0123456789.]+" jmaker-version)
-	(match-string 0 jmaker-version))
+	(message "%s" (match-string 0 jmaker-version)))
 
 (defun jmaker-jde-hook ()
 	"JDE hook to add jmaker items to JDE sub-menus."
@@ -235,6 +235,10 @@ This is a temporary buffer which could be edited and must be saved to allow buil
 
 ;;
 ;; $Log: jmaker.el,v $
+;; Revision 1.3  1998/09/28 22:18:58  ebat311
+;; Fixed an error in function `jmaker-version-number' which did not display
+;; the version number.
+;;
 ;; Revision 1.2  1998/09/15 11:26:55  ebat311
 ;; Added support for Emacs 20.3.1.
 ;; From Paul Kinnucan: "Emacs 20.3.1 fixes a bug in the derive
