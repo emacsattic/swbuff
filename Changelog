@@ -1,3 +1,25 @@
+2004-09-13  David Ponce  <david@dponce.com>
+
+	* tabbar.el
+
+	(tabbar-button-label-function): New option.
+	(tabbar-line-button): Use it.
+	(tabbar-normalize-image): Don't override existing image
+	properties.
+	(tabbar-home-button, tabbar-scroll-left-button)
+	(tabbar-scroll-right-button, tabbar-separator): Doc fix.
+	(tabbar-line-separator): Simplify.
+	(tabbar-line-buttons): New function.
+	(tabbar-line-format): Use it.
+	(tabbar-button-label): New function.
+	(tabbar-buffer-group-mode-on-button-image)
+	(tabbar-buffer-group-mode-off-button-image): New constants.
+	(tabbar-buffer-home-button): New option.
+	(tabbar-buffer-button-label): New function.
+	(tabbar-buffer-set-group-mode): New function.
+	(tabbar-buffer-select-tab)
+	(tabbar-buffer-toggle-group-mode): Use it.
+
 2004-09-09  David Ponce  <david@dponce.com>
 
 	* tabbar.el
