@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 25 February 2003
 ;; Keywords: convenience
-;; Revision: $Id: tabbar.el,v 1.43 2004/09/29 14:46:06 ponced Exp $
+;; Revision: $Id: tabbar.el,v 1.44 2004/10/07 10:25:47 ponced Exp $
 
 (defconst tabbar-version "1.4")
 
@@ -560,7 +560,7 @@ current cached copy."
 
 ;;; Faces
 ;;
-(defface tabbar-default-face
+(defface tabbar-default
   '(
     ;;(((class color grayscale) (background light))
     ;; :inherit variable-pitch
@@ -595,34 +595,34 @@ current cached copy."
   "Default face used in the tab bar."
   :group 'tabbar)
 
-(defface tabbar-unselected-face
+(defface tabbar-unselected
   '((t
-     :inherit tabbar-default-face
+     :inherit tabbar-default
      :box (:line-width 1 :color "white" :style released-button)
      ))
   "Face used for unselected tabs."
   :group 'tabbar)
 
-(defface tabbar-selected-face
+(defface tabbar-selected
   '((t
-     :inherit tabbar-default-face
+     :inherit tabbar-default
      :box (:line-width 1 :color "white" :style pressed-button)
      :foreground "blue"
      ))
   "Face used for the selected tab."
   :group 'tabbar)
 
-(defface tabbar-separator-face
+(defface tabbar-separator
   '((t
-     :inherit tabbar-default-face
+     :inherit tabbar-default
      :height 0.1
      ))
   "Face used for the select mode button."
   :group 'tabbar)
 
-(defface tabbar-button-face
+(defface tabbar-button
   '((t
-     :inherit tabbar-default-face
+     :inherit tabbar-default
      :box (:line-width 1 :color "white" :style released-button)
      :foreground "dark red"
      ))
@@ -631,7 +631,9 @@ current cached copy."
 
 (defcustom tabbar-background-color nil
   "*Background color of the tab bar.
-If nil, use the `tabbar-default-face' background color."
+By default, use the background color specified for the
+`tabbar-default' face (or inherited from another face), or the
+background color of the `default' face otherwise."
   :group 'tabbar
   :type '(choice (const :tag "Default" nil)
                  (color)))
@@ -639,7 +641,7 @@ If nil, use the `tabbar-default-face' background color."
 (defsubst tabbar-background-color ()
   "Return the background color of the tab bar."
   (or tabbar-background-color
-      (let* ((face 'tabbar-default-face)
+      (let* ((face 'tabbar-default)
              (color (face-background face)))
         (while (null color)
           (or (facep (setq face (face-attribute face :inherit)))
@@ -681,28 +683,31 @@ is derived from it.")
 
 (defconst tabbar-home-button-enabled-image
   '((:type pbm :data "\
-P2
-10 10
-255
-184 184 184 184 0 184 184 184 184 184 184 184 184 0 0 0 184 184 184 184
-184 184 0 0 0 0 0 184 184 184 184 0 0 0 0 0 0 0 184 184 184 184 255 0 0
-0 255 255 255 184 184 0 0 0 0 0 0 0 184 184 184 184 0 0 0 0 0 255 255 184
-184 184 184 0 0 0 255 255 184 184 184 184 184 184 0 255 255 184 184 184
-184 184 184 184 184 255 184 184 184 184
+P2 13 13 255 255 255 255 255 255 255 255 255 255 255 255 255 255 255
+255 255 255 255 255 255 255 255 255 255 255 255 255 255 255 255 255 0
+6 0 255 255 255 255 255 255 255 255 255 255 9 130 9 255 255 255 255
+255 255 255 255 255 255 26 130 26 255 255 255 255 255 255 255 0 9 26
+41 130 41 26 9 0 255 255 255 255 5 145 140 135 130 125 120 115 5 255
+255 255 255 0 9 26 41 130 41 26 9 0 255 255 255 255 255 255 255 26 130
+26 255 255 255 255 255 255 255 255 255 255 9 130 9 255 255 255 255 255
+255 255 255 255 255 0 6 0 255 255 255 255 255 255 255 255 255 255 255
+255 255 255 255 255 255 255 255 255 255 255 255 255 255 255 255 255
+255 255 255
 "))
   "Default image for the enabled home button.")
 
 (defconst tabbar-home-button-disabled-image
   '((:type pbm :data "\
-P2
-10 10
-255
-184 184 184 184 120 184 184 184 184 184 184 184 184 120 120 120 184 184
-184 184 184 184 120 184 184 184 120 184 184 184 184 120 120 160 184 160
-120 120 184 184 184 184 255 120 184 120 255 255 255 184 184 120 120 160
-184 160 120 120 184 184 184 184 120 184 184 184 120 255 255 184 184 184
-184 120 120 120 255 255 184 184 184 184 184 184 120 255 255 184 184 184
-184 184 184 184 184 255 184 184 184 184
+P2 13 13 255 255 255 255 255 255 255 255 255 255 255 255 255 255 255
+255 255 255 255 255 255 255 255 255 255 255 255 255 255 255 255 255
+255 255 255 255 255 255 255 255 255 255 255 255 255 255 255 255 255
+255 255 255 255 255 255 255 255 255 255 255 255 255 255 255 255 255
+255 255 0 0 1 2 3 2 1 0 0 255 255 255 255 0 132 128 123 119 114 110
+106 0 255 255 255 255 0 0 1 2 3 2 1 0 0 255 255 255 255 255 255 255
+255 255 255 255 255 255 255 255 255 255 255 255 255 255 255 255 255
+255 255 255 255 255 255 255 255 255 255 255 255 255 255 255 255 255
+255 255 255 255 255 255 255 255 255 255 255 255 255 255 255 255 255
+255 255 255 255 255 255 255 255 255
 "))
   "Default image for the disabled home button.")
 
@@ -725,32 +730,23 @@ The variable `tabbar-button-widget' gives details on this widget."
 
 (defconst tabbar-scroll-left-button-enabled-image
   '((:type pbm :data "\
-P2
-8 10
-255
-184 184 184 184 184 184 184 184 184 184 184 184 184 0 184 184 184 184 184
-184 0 0 255 184 184 184 184 0 0 0 255 184 184 184 0 0 0 0 255 184 184 184
-184 0 0 0 255 184 184 184 184 184 0 0 255 184 184 184 184 184 184 0 255
-184 184 184 184 184 184 184 255 184 184 184 184 184 184 184 184 184
+P2 13 13 255 255 255 255 255 255 255 255 255 255 255 255 255 255 255
+255 255 255 255 255 255 255 255 128 16 48 255 255 255 255 255 255 255
+255 144 28 86 128 0 255 255 255 255 255 255 160 44 92 159 135 113 0
+255 255 255 255 160 44 97 165 144 129 120 117 0 255 255 176 44 98 175
+174 146 127 126 127 128 0 255 255 0 160 184 156 143 136 134 135 137
+138 0 255 255 176 32 67 144 146 144 145 146 148 149 0 255 255 255 255
+160 42 75 140 154 158 159 160 0 255 255 255 255 255 255 160 40 74 154
+170 171 0 255 255 255 255 255 255 255 255 160 41 82 163 0 255 255 255
+255 255 255 255 255 255 255 160 32 48 255 255 255 255 255 255 255 255
+255 255 255 255 255 255
 "))
-  "Default image for the enabled scroll left button.")
-
-(defconst tabbar-scroll-left-button-disabled-image
-  '((:type pbm :data "\
-P2
-8 10
-255
-184 184 184 184 184 184 184 184 184 184 184 184 184 120 184 184 184 184
-184 184 120 120 255 184 184 184 184 120 184 120 255 184 184 184 120 184
-184 120 255 184 184 184 184 120 184 120 255 184 184 184 184 184 120 120
-255 184 184 184 184 184 184 120 255 184 184 184 184 184 184 184 255 184
-184 184 184 184 184 184 184 184
-"))
-  "Default image for the disabled scroll left button.")
+  "Default image for the enabled scroll left button.
+A disabled button image will be automatically build from it.")
 
 (defcustom tabbar-scroll-left-button
   (cons (cons " <" tabbar-scroll-left-button-enabled-image)
-        (cons " =" tabbar-scroll-left-button-disabled-image))
+        (cons " =" nil))
   "The scroll left button.
 The variable `tabbar-button-widget' gives details on this widget."
   :group 'tabbar
@@ -767,32 +763,23 @@ The variable `tabbar-button-widget' gives details on this widget."
 
 (defconst tabbar-scroll-right-button-enabled-image
   '((:type pbm :data "\
-P2
-8 10
-255
-184 184 184 184 184 184 184 184 184 0 184 184 184 184 184 184 184 0 0 184
-184 184 184 184 184 0 0 0 184 184 184 184 184 0 0 0 0 184 184 184 184 0
-0 0 255 255 184 184 184 0 0 255 255 184 184 184 184 0 255 255 184 184 184
-184 184 184 255 184 184 184 184 184 184 184 184 184 184 184 184 184
+P2 13 13 255 255 255 255 255 255 255 255 255 255 255 255 255 255 255
+48 32 160 255 255 255 255 255 255 255 255 255 255 44 161 71 32 160 255
+255 255 255 255 255 255 255 36 157 163 145 62 32 160 255 255 255 255
+255 255 30 128 133 137 142 124 50 32 160 255 255 255 255 29 120 121
+124 126 126 124 105 42 32 176 255 255 31 126 127 128 128 128 128 126
+124 89 32 255 255 33 134 135 136 137 137 138 119 49 32 176 255 255 34
+143 144 145 146 128 54 32 160 255 255 255 255 36 152 153 134 57 32 160
+255 255 255 255 255 255 38 141 60 32 160 255 255 255 255 255 255 255
+255 48 32 160 255 255 255 255 255 255 255 255 255 255 255 255 255 255
+255 255 255 255 255 255 255 255
 "))
-  "Default image for the enabled scroll right button.")
-
-(defconst tabbar-scroll-right-button-disabled-image
-  '((:type pbm :data "\
-P2
-8 10
-255
-184 184 184 184 184 184 184 184 184 120 184 184 184 184 184 184 184 120
-120 184 184 184 184 184 184 120 184 120 184 184 184 184 184 120 184 184
-120 184 184 184 184 120 184 120 255 255 184 184 184 120 120 255 255 184
-184 184 184 120 255 255 184 184 184 184 184 184 255 184 184 184 184 184
-184 184 184 184 184 184 184 184
-"))
-  "Default image for the disabled scroll right button.")
+  "Default image for the enabled scroll right button.
+A disabled button image will be automatically build from it.")
 
 (defcustom tabbar-scroll-right-button
   (cons (cons " >" tabbar-scroll-right-button-enabled-image)
-        (cons " =" tabbar-scroll-right-button-disabled-image))
+        (cons " =" nil))
   "The scroll right button.
 The variable `tabbar-button-widget' gives details on this widget."
   :group 'tabbar
@@ -1055,12 +1042,12 @@ element."
          (cons
           (propertize (car label)
                       'tabbar-button name
-                      'face 'tabbar-button-face
+                      'face 'tabbar-button
                       'pointer 'hand
                       'local-map (tabbar-make-button-keymap name)
                       'help-echo 'tabbar-help-on-button)
           (propertize (cdr label)
-                      'face 'tabbar-button-face
+                      'face 'tabbar-button
                       'pointer 'arrow)))))
 
 (defun tabbar-line-separator ()
@@ -1074,17 +1061,17 @@ element."
           (cond
            (image
             (propertize " "
-                        'face 'tabbar-separator-face
+                        'face 'tabbar-separator
                         'pointer 'arrow
                         'display (tabbar-normalize-image image)))
            ((numberp (car tabbar-separator))
             (propertize " "
-                        'face 'tabbar-separator-face
+                        'face 'tabbar-separator
                         'pointer 'arrow
                         'display (list 'space
                                        :width (car tabbar-separator))))
            ((propertize (or (car tabbar-separator) " ")
-                        'face 'tabbar-separator-face
+                        'face 'tabbar-separator
                         'pointer 'arrow))))
     ))
 
@@ -1117,8 +1104,8 @@ Call `tabbar-tab-label-function' to obtain a label for TAB."
            'local-map (tabbar-make-tab-keymap tab)
            'help-echo 'tabbar-help-on-tab
            'face (if (tabbar-selected-p tab (tabbar-current-tabset))
-                     'tabbar-selected-face
-                   'tabbar-unselected-face)
+                     'tabbar-selected
+                   'tabbar-unselected)
            'pointer 'hand)
           tabbar-separator-value))
 
@@ -1394,37 +1381,9 @@ first."
 
 ;;; Buffer tabs
 ;;
-(defconst tabbar-buffer-group-mode-on-button-image
-  '((:type pbm :data "\
-P2
-10 10
-255
-184 184 184 184 120 184 184 184 184 184 184 184 184 120 120 120 184
-184 184 184 184 184 120 184 184 184 120 184 184 184 184 120 120 160
-184 160 120 120 184 184 184 184 255 255 255 255 255 255 255 184 184 0
-0 0 0 0 0 0 184 184 184 184 0 0 0 0 0 255 255 184 184 184 184 0 0 0
-255 255 184 184 184 184 184 184 0 255 255 184 184 184 184 184 184 184
-184 255 184 184 184 184
-"))
-  "Default image for the home button when showing group tabs.")
-
-(defconst tabbar-buffer-group-mode-off-button-image
-  '((:type pbm :data "\
-P2
-10 10
-255
-184 184 184 184 0 184 184 184 184 184 184 184 184 0 0 0 184 184 184
-184 184 184 0 0 0 0 0 184 184 184 184 0 0 0 0 0 0 0 184 184 184 184
-255 255 255 255 255 255 255 184 184 120 120 160 184 160 120 120 184
-184 184 184 120 184 184 184 120 255 255 184 184 184 184 120 120 120
-255 255 184 184 184 184 184 184 120 255 255 184 184 184 184 184 184
-184 184 255 184 184 184 184
-"))
-  "Default image for the home button when showing buffer tabs.")
-
 (defcustom tabbar-buffer-home-button
-  (cons (cons "[-]" tabbar-buffer-group-mode-on-button-image)
-        (cons "[+]" tabbar-buffer-group-mode-off-button-image))
+  (cons (cons "[-]" tabbar-home-button-disabled-image)
+        (cons "[+]" tabbar-home-button-enabled-image))
   "The home button displayed when showing buffer tabs.
 The enabled button value is displayed when showing tabs for groups of
 buffers, and the disabled button value is disabled when showing buffer
