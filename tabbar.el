@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 25 February 2003
 ;; Keywords: convenience
-;; Revision: $Id: tabbar.el,v 1.41 2004/09/24 18:29:55 ponced Exp $
+;; Revision: $Id: tabbar.el,v 1.42 2004/09/26 08:05:39 ponced Exp $
 
 (defconst tabbar-version "1.4")
 
@@ -676,11 +676,8 @@ is derived from it.")
 
 ;;; Home button
 ;;
-(defvar tabbar-home-button-enabled nil
-  "Text of the enabled home button.")
-
-(defvar tabbar-home-button-disabled nil
-  "Text of the disabled home button.")
+(defvar tabbar-home-button-value nil
+  "Value of the home button.")
 
 (defconst tabbar-home-button-enabled-image
   '((:type pbm :data "\
@@ -719,15 +716,12 @@ The variable `tabbar-button-widget' gives details on this widget."
   :set '(lambda (variable value)
           (custom-set-default variable value)
           ;; Schedule refresh of button value.
-          (setq tabbar-home-button-enabled nil)))
+          (setq tabbar-home-button-value nil)))
 
 ;;; Scroll left button
 ;;
-(defvar tabbar-scroll-left-button-enabled nil
-  "Text of the enabled scroll left button.")
-
-(defvar tabbar-scroll-left-button-disabled nil
-  "Text of the disabled scroll left button.")
+(defvar tabbar-scroll-left-button-value nil
+  "Value of the scroll left button.")
 
 (defconst tabbar-scroll-left-button-enabled-image
   '((:type pbm :data "\
@@ -764,15 +758,12 @@ The variable `tabbar-button-widget' gives details on this widget."
   :set '(lambda (variable value)
           (custom-set-default variable value)
           ;; Schedule refresh of button value.
-          (setq tabbar-scroll-left-button-enabled nil)))
+          (setq tabbar-scroll-left-button-value nil)))
 
 ;;; Scroll right button
 ;;
-(defvar tabbar-scroll-right-button-enabled nil
-  "Text of the enabled scroll right button.")
-
-(defvar tabbar-scroll-right-button-disabled nil
-  "Text of the disabled scroll right button.")
+(defvar tabbar-scroll-right-button-value nil
+  "Value of the scroll right button.")
 
 (defconst tabbar-scroll-right-button-enabled-image
   '((:type pbm :data "\
@@ -809,7 +800,7 @@ The variable `tabbar-button-widget' gives details on this widget."
   :set '(lambda (variable value)
           (custom-set-default variable value)
           ;; Schedule refresh of button value.
-          (setq tabbar-scroll-right-button-enabled nil)))
+          (setq tabbar-scroll-right-button-value nil)))
 
 ;;; Separator
 ;;
@@ -828,7 +819,7 @@ If IMAGE is non-nil, try to use that image, else use STRING-OR-WIDTH.
 The value (\"\"), or (0) hide separators.")
 
 (defvar tabbar-separator-value nil
-  "Text of the separator used between tabs.")
+  "Value of the separator used between tabs.")
 
 (defcustom tabbar-separator (list " ")
   "Separator used between tabs.
@@ -851,9 +842,9 @@ That is for buttons and separators."
           (custom-set-default variable value)
           ;; Schedule refresh of all buttons and separator values.
           (setq tabbar-separator-value nil
-                tabbar-home-button-enabled nil
-                tabbar-scroll-left-button-enabled nil
-                tabbar-scroll-right-button-enabled nil)))
+                tabbar-home-button-value nil
+                tabbar-scroll-left-button-value nil
+                tabbar-scroll-right-button-value nil)))
 
 (defsubst tabbar-find-image (specs)
   "Find an image, choosing one of a list of image specifications.
@@ -1059,18 +1050,18 @@ That is, a propertized string used as an `header-line-format' template
 element."
   (let ((label (funcall tabbar-button-label-function name)))
     ;; Cache the display value of the enabled/disabled buttons in
-    ;; variables `tabbar-NAME-button-{enabled|disabled}'.
-    (set (intern (format "tabbar-%s-button-enabled"  name))
-         (propertize (car label)
-                     'tabbar-button name
-                     'face 'tabbar-button-face
-                     'pointer 'hand
-                     'local-map (tabbar-make-button-keymap name)
-                     'help-echo 'tabbar-help-on-button))
-    (set (intern (format "tabbar-%s-button-disabled" name))
-         (propertize (cdr label)
-                     'face 'tabbar-button-face
-                     'pointer 'arrow))))
+    ;; variables `tabbar-NAME-button-value'.
+    (set (intern (format "tabbar-%s-button-value"  name))
+         (cons
+          (propertize (car label)
+                      'tabbar-button name
+                      'face 'tabbar-button-face
+                      'pointer 'hand
+                      'local-map (tabbar-make-button-keymap name)
+                      'help-echo 'tabbar-help-on-button)
+          (propertize (cdr label)
+                      'face 'tabbar-button-face
+                      'pointer 'arrow)))))
 
 (defun tabbar-line-separator ()
   "Return the display representation of a tab bar separator.
@@ -1103,23 +1094,23 @@ TABSET is the tab set used to choose the appropriate buttons."
   ;; If requested, refresh buttons and separator L&F.
   (or tabbar-separator-value
       (tabbar-line-separator))
-  (or tabbar-home-button-enabled
+  (or tabbar-home-button-value
       (tabbar-line-button 'home))
-  (or tabbar-scroll-left-button-enabled
+  (or tabbar-scroll-left-button-value
       (tabbar-line-button 'scroll-left))
-  (or tabbar-scroll-right-button-enabled
+  (or tabbar-scroll-right-button-value
       (tabbar-line-button 'scroll-right))
   (concat
    (if tabbar-home-function
-       tabbar-home-button-enabled
-     tabbar-home-button-disabled)
+       (car tabbar-home-button-value)
+     (cdr tabbar-home-button-value))
    (if (> (tabbar-start tabset) 0)
-       tabbar-scroll-left-button-enabled
-     tabbar-scroll-left-button-disabled)
+       (car tabbar-scroll-left-button-value)
+     (cdr tabbar-scroll-left-button-value))
    (if (< (tabbar-start tabset)
           (1- (length (tabbar-tabs tabset))))
-       tabbar-scroll-right-button-enabled
-     tabbar-scroll-right-button-disabled)
+       (car tabbar-scroll-right-button-value)
+     (cdr tabbar-scroll-right-button-value))
    tabbar-separator-value))
 
 (defsubst tabbar-line-tab (tab)
@@ -1445,7 +1436,7 @@ The variable `tabbar-button-widget' gives details on this widget."
   :set '(lambda (variable value)
           (custom-set-default variable value)
           ;; Schedule refresh of button value.
-          (setq tabbar-home-button-enabled nil)))
+          (setq tabbar-home-button-value nil)))
 
 (defcustom tabbar-buffer-list-function
   'tabbar-buffer-list
@@ -1563,7 +1554,7 @@ Return the the first group where the current buffer is."
   "Set display of tabs for group of buffers to FLAG."
   (setq tabbar-buffer-group-mode flag
         ;; Redisplay the home button.
-        tabbar-home-button-enabled nil))
+        tabbar-home-button-value nil))
 
 (defun tabbar-buffer-tabs ()
   "Return the buffers to display on the tab bar, in a tab set."
