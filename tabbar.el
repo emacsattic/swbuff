@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 25 February 2003
 ;; Keywords: convenience
-;; Revision: $Id: tabbar.el,v 1.47 2005/03/14 09:23:27 ponced Exp $
+;; Revision: $Id: tabbar.el,v 1.48 2005/03/14 15:09:53 ponced Exp $
 
 (defconst tabbar-version "1.4")
 
@@ -1285,6 +1285,11 @@ Depend on the setting of the option `tabbar-cycling-scope'."
 (defconst tabbar-header-line-format '(:eval (tabbar-line))
   "The tab bar header line format.")
 
+(defsubst tabbar-mode-on-p ()
+  "Return non-nil if tabbar mode is on."
+  (eq (default-value 'header-line-format)
+      tabbar-header-line-format))
+
 ;;;###autoload
 (define-minor-mode tabbar-mode
   "Toggle display of a tab bar in the header line.
@@ -1294,24 +1299,24 @@ Returns non-nil if the new state is enabled."
   :group 'tabbar
   (if tabbar-mode
 ;;; ON
-      (unless (eq header-line-format tabbar-header-line-format)
+      (unless (tabbar-mode-on-p)
         ;; Save current default value of `header-line-format'.
         (setq tabbar-old-global-hlf (default-value 'header-line-format))
         (add-hook 'kill-buffer-hook 'tabbar-buffer-kill-buffer-hook)
         (tabbar-init-tabsets-store)
         (setq-default header-line-format tabbar-header-line-format))
 ;;; OFF
-    ;; Restore previous `header-line-format', if it has not changed.
-    (when (eq (default-value 'header-line-format)
-              tabbar-header-line-format)
-      (setq-default header-line-format tabbar-old-global-hlf))
-    (remove-hook 'kill-buffer-hook 'tabbar-buffer-kill-buffer-hook)
-    (tabbar-free-tabsets-store)
-    ;; Turn off locals tab bar mode
-    (mapc #'(lambda (b)
-              (with-current-buffer b
-                (tabbar-local-mode -1)))
-          (buffer-list))
+    (when (tabbar-mode-on-p)
+      ;; Turn off locals tab bar mode.
+      (mapc #'(lambda (b)
+                (condition-case nil
+                    (with-current-buffer b (tabbar-local-mode -1))
+                  (error nil)))
+            (buffer-list))
+      ;; Restore previous `header-line-format'.
+      (setq-default header-line-format tabbar-old-global-hlf)
+      (tabbar-free-tabsets-store)
+      (remove-hook 'kill-buffer-hook 'tabbar-buffer-kill-buffer-hook))
     ))
 
 (defvar tabbar-old-local-hlf nil
@@ -1332,7 +1337,7 @@ Returns non-nil if the new state is enabled.
 Does nothing if the tab bar global mode is off."
   :global nil
   :group 'tabbar
-  (unless tabbar-mode
+  (unless (tabbar-mode-on-p)
     (error "Tab bar mode must be enabled."))
 ;;; ON
   (if tabbar-local-mode
