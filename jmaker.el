@@ -1,5 +1,5 @@
 ;; @(#) jmaker.el -- Java Makefile generator
-;; @(#) $Id: jmaker.el,v 1.16 2000/03/31 12:45:16 david_ponce Exp $
+;; @(#) $Id: jmaker.el,v 1.17 2000/03/31 15:26:42 david_ponce Exp $
 
 ;; This file is not part of Emacs
 
@@ -11,7 +11,7 @@
 ;; LCD Archive Entry:
 ;; jmaker|David Ponce|<david@dponce.com>|
 ;; Java Makefile generator|
-;; $Date: 2000/03/31 12:45:16 $|$Revision: 1.16 $|~/misc/jmaker.el|
+;; $Date: 2000/03/31 15:26:42 $|$Revision: 1.17 $|~/misc/jmaker.el|
 
 ;; COPYRIGHT NOTICE
 ;;
@@ -59,7 +59,8 @@
 ;; Anywhere use:
 ;;   M-x `jmaker-generate-meta-makefile' to generate a new meta Makefile in the
 ;;   asked directory. If an old meta Makefile already exists the command requires
-;;   confirmation to overwrite it.
+;;   confirmation to overwrite it. The command give also the option to update or
+;;   create the Makefiles in the given directory tree.
 ;; 
 ;;   M-x `jmaker-generate-all-makefiles' to generate new Makefiles in the
 ;;   asked directory tree. A dialog allows you to select which Makefiles
@@ -99,7 +100,7 @@
 (eval-when-compile
   (require 'wid-edit))
 
-(defconst jmaker-version "$Revision: 1.16 $"
+(defconst jmaker-version "$Revision: 1.17 $"
   "jmaker version tag.")
 
 (defgroup jmaker nil
@@ -209,7 +210,8 @@ command `jmaker-insert-meta-makefile', as a side-effect."
   (message "Using 'jmaker' version %s." (jmaker-version-number)))
 
 (defun jmaker-get-java-names ()
-  "Return a list of all java file names without extension in the current directory."
+  "Return the list of all .java file names without extension found
+in `default-directory'."
   (mapcar 'file-name-sans-extension
           (directory-files default-directory nil ".\\.java$")))
 
@@ -254,9 +256,10 @@ DIR is a subdirectory in ROOT tree."
           (directory-files dir t))))
 
 (defun jmaker-all-target ()
-  "Returns a Makefile string for the \"all\" target. It is build with the name
-of all .java files in the current directory. If the current directory contains
-Sample1.java and Sample2.java `jmaker-all-target' returns:
+  "Return a string giving the Makefile target to compile all java files.
+It is build from the name of all .java files in `default-directory'. For
+exemple, if the directory contains Sample1.java and Sample2.java the function
+will return:
 
 all: \
   Sample1 \
@@ -271,9 +274,10 @@ all: \
           "\n"))
 
 (defun jmaker-file-targets ()
-  "Return a Makefile string for java file targets. It is build with the name
-of all .java files in the current directory. If the current directory contains
-Sample1.java and Sample2.java `jmaker-file-targets' returns:
+  "Return a string giving the Makefile targets to compile each java file.
+It is build from the name of all .java files in `default-directory'. For
+exemple, if the directory contains Sample1.java and Sample2.java the function
+will return:
 
 Sample1: Sample1.class
 Sample2: Sample2.class
@@ -285,8 +289,8 @@ Sample2: Sample2.class
              ""))
 
 (defun jmaker-sub-makefile-targets ()
-  "Return a string which contains Makefile rules to recursively run make on all
-Makefiles found in the `default-directory' tree. The result looks like the
+  "Return a string giving Makefile targets to recursively run make on all
+Makefiles found in `default-directory' tree. The result looks like the
 following:
 
 \"all: \
@@ -323,18 +327,19 @@ FORCE:
             "\nFORCE:\n")))
 
 (defun jmaker-makefile-generator ()
-  "Build and insert a Makefile contents in the current buffer.
+  "Generate a full java Makefile in the current buffer.
 Call `jde-load-project-file' to update the JDE project settings."
   (jde-load-project-file)
   (jmaker-insert-makefile))
 
+;; Generate a full java meta Makefile in the current buffer.
 (defalias 'jmaker-meta-makefile-generator 'jmaker-insert-meta-makefile)
 
 (defun jmaker-generate-file-noselect (dir name generator &optional over)
-  "Generate a file NAME in directory DIR and return the updated file buffer.
-GENERATOR is the function used to generate the file in the current buffer.
-If the file NAME already exists the command requires confirmation to overwrite it
-unless OVER is non-nil."
+  "Edit the file NAME in directory DIR and return the updated file buffer.
+GENERATOR is the function used to generate the file buffer contents.
+If the file NAME already exists the command requires confirmation to
+overwrite it unless OVER is non-nil."
   (let ((file (concat (file-name-as-directory dir) name)))
     (or over
         (and (file-exists-p file)
@@ -389,8 +394,8 @@ ROOT is the root of the directory tree scanned."
             (directory-files root))))
 
 (defun jmaker-generall-dialog-toggle-selection (widget &rest ignore)
-  "Checkbox widget action used by `jmaker-generall-dialog'
-to select/unselect a Makefile."
+  "Checkbox widget action used by `jmaker-generall-dialog' to select or
+unselect a Makefile."
   (let ((value (widget-get widget ':tag))
         (item (widget-get widget ':doc)))
     ;; if value is already in the selected items
@@ -426,9 +431,9 @@ hold the callback argument.")
 
 ;;;###autoload
 (defun jmaker-generall-dialog (root &optional callback)
-  "Show a dialog which allows the user to [un]select the Makefile
-to generate in the directory tree ROOT.
-CALLBACK is an optional function called with one argument: ROOT,
+  "Show a dialog which allows the user to select or unselect the Makefiles
+to be generated in the directory tree ROOT.
+CALLBACK is an optional function called with the argument ROOT,
 after the command complete (that is after Makefiles were generated)."
   (with-current-buffer (get-buffer-create "*jmaker-generall-dialog*")
     (switch-to-buffer (current-buffer))
@@ -516,16 +521,16 @@ If the Makefile already exists the command requires confirmation to overwrite it
 ;;;###autoload
 (defun jmaker-generate-all-makefiles (root)
   "Generate Java Makefiles in the ROOT directory tree. Display a dialog
-to select subdirectories where a Makefile will be generated, that is
-where .java file are found (see also `jmaker-generall-dialog')."
+to select the Makefiles that will be created or overwritten, potentially
+in directories where .java files exist (see also `jmaker-generall-dialog')."
   (interactive "DDirectory: ")
   (jmaker-generall-dialog root))
 
 ;;;###autoload
 (defun jmaker-generate-meta-makefile (root)
   "Generates a Makefile.meta file in directory ROOT used to recursively run
-make on each Makefile found in ROOT directory tree. The command give the option
-to update or create the Makefiles in ROOT tree (see `jmaker-generate-all-makefiles').
+make on each Makefile found in ROOT directory tree. The command give also the option
+to update or create the Makefiles in the ROOT tree (see `jmaker-generate-all-makefiles').
 If Makefile.meta already exists the command requires confirmation to overwrite it."
   (interactive "DDirectory: ")
   (if (y-or-n-p (format "Update or create the Makefiles in %s?" root))
@@ -567,6 +572,9 @@ If Makefile.meta already exists the command requires confirmation to overwrite i
 
 ;;
 ;; $Log: jmaker.el,v $
+;; Revision 1.17  2000/03/31 15:26:42  david_ponce
+;; Documentation changes.
+;;
 ;; Revision 1.16  2000/03/31 12:45:16  david_ponce
 ;; Minor changes in code presentation.
 ;; Improved version of `jmaker-convert-directory-to-package'.
