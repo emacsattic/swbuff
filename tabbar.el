@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 25 February 2003
 ;; Keywords: convenience
-;; Revision: $Id: tabbar.el,v 1.44 2004/10/07 10:25:47 ponced Exp $
+;; Revision: $Id: tabbar.el,v 1.45 2004/10/11 09:11:06 ponced Exp $
 
 (defconst tabbar-version "1.4")
 
@@ -1322,26 +1322,40 @@ Returns non-nil if the new state is enabled."
 (define-minor-mode tabbar-local-mode
   "Toggle local display of the tab bar.
 With prefix argument ARG, turn on if positive, otherwise off.
+When turned on:
+  If a local header line is shown, it is hidden to show the tab bar.
+  Otherwise the tab bar is locally hidden.
+When turned off:
+  If a local header line is hidden or the tab bar is locally hidden,
+  it is shown again.
 Returns non-nil if the new state is enabled.
-When on and tab bar global mode is on, if a buffer local value of
-`header-line-format' exists, it is saved, then the local header line
-is killed to show the tab bar.  When off, the saved local value of the
-header line is restored, hiding the tab bar."
+Does nothing if the tab bar global mode is off."
   :global nil
   :group 'tabbar
+  (unless tabbar-mode
+    (error "Tab bar mode must be enabled."))
 ;;; ON
   (if tabbar-local-mode
-      (if (and tabbar-mode (local-variable-p 'header-line-format)
-               (not (local-variable-p 'tabbar-old-local-hlf)))
+      (if (and (local-variable-p 'header-line-format)
+               header-line-format)
+          ;; A local header line exists, hide it to show the tab bar.
           (progn
+            ;; Fail in case of an inconsistency because another local
+            ;; header line is already hidden.
+            (when (local-variable-p 'tabbar-old-local-hlf)
+              (error "Another local header line is already hidden"))
             (setq tabbar-old-local-hlf header-line-format)
             (kill-local-variable 'header-line-format))
-        (setq tabbar-local-mode nil))
+        ;; Otherwise hide the tab bar in this buffer.
+        (setq header-line-format nil))
 ;;; OFF
-    (when (local-variable-p 'tabbar-old-local-hlf)
-      (setq header-line-format tabbar-old-local-hlf)
-      (kill-local-variable 'tabbar-old-local-hlf))
-    ))
+    (if (local-variable-p 'tabbar-old-local-hlf)
+        ;; A local header line is hidden, show it again.
+        (progn
+          (setq header-line-format tabbar-old-local-hlf)
+          (kill-local-variable 'tabbar-old-local-hlf))
+      ;; The tab bar is locally hidden, show it again.
+      (kill-local-variable 'header-line-format))))
 
 ;;; Hooks
 ;;
