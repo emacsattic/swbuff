@@ -1,5 +1,5 @@
 ;; @(#) recentf.el -- Setup a menu of recently opened files
-;; @(#) $Id: recentf.el,v 1.2 1999/07/20 21:39:36 ebat311 Exp $
+;; @(#) $Id: recentf.el,v 1.3 1999/07/21 10:10:46 ebat311 Exp $
 
 ;; This file is not part of Emacs
 
@@ -11,7 +11,7 @@
 ;; LCD Archive Entry:
 ;; recentf|David Ponce|david.ponce@wanadoo.fr|
 ;; Setup a menu of recently opened files|
-;; $Date: 1999/07/20 21:39:36 $|$Revision: 1.2 $|~/misc/recentf.el|
+;; $Date: 1999/07/21 10:10:46 $|$Revision: 1.3 $|~/misc/recentf.el|
 
 ;; COPYRIGHT NOTICE
 ;;
@@ -105,7 +105,7 @@
 (require 'cl)
 (require 'easymenu)
 
-(defconst recentf-version "$Revision: 1.2 $"
+(defconst recentf-version "$Revision: 1.3 $"
   "recentf version number.")
 
 (defconst recentf-save-file-header
@@ -113,15 +113,30 @@
   "Header to be written into the `recentf-save-file'."
   )
 
+(defvar recentf-list nil
+  "List of recently opened files."
+  )
+
+(defvar recentf-update-menu-p t
+  "Non-nil if the recentf menu must be updated."
+  )
+
+(defvar recentf-initialized-p nil
+  "Non-nil if recentf already initialized."
+  )
+
+(defun recentf-menu-cutomization-changed (sym val)
+  "Function called when menu customization has changed.
+It removes the recentf menu and forces its complete redrawing."
+  (when recentf-initialized-p
+    (easy-menu-remove-item nil recentf-menu-path recentf-menu-title)
+    (setq recentf-update-menu-p t))
+  (custom-set-default sym val)
+  )
+
 (defgroup recentf nil
   "Maintain a menu of recently opened files."
   :group 'files
-  )
-
-(defcustom recentf-max-menu-items 10
-  "*Maximum of items in the recentf menu."
-  :group 'recentf
-  :type 'integer
   )
 
 (defcustom recentf-max-saved-items 20
@@ -146,6 +161,7 @@
   "*Name of the recentf menu."
   :group 'recentf
   :type 'string
+  :set 'recentf-menu-cutomization-changed
   )
 
 (defcustom recentf-menu-path '("files")
@@ -154,6 +170,7 @@ If nil add it at top-level (see also `easy-menu-change')."
   :group 'recentf
   :type '(choice (const :tag "Top Level" nil)
                  (sexp :tag "Menu Path"))
+  :set 'recentf-menu-cutomization-changed
   )
 
 (defcustom recentf-menu-before "open-file"
@@ -162,6 +179,7 @@ If nil add it add at end of menu (see also `easy-menu-change')."
   :group 'recentf
   :type '(choice (string :tag "Name")
                  (const :tag "Last" nil))
+  :set 'recentf-menu-cutomization-changed
   )
 
 (defcustom recentf-menu-action 'recentf-find-file
@@ -172,24 +190,20 @@ removed from `recentf-list'. You can use `find-file' instead to open non existin
 files and keep them is the list of recently opened files."
   :group 'recentf
   :type 'function
+  :set 'recentf-menu-cutomization-changed
+  )
+
+(defcustom recentf-max-menu-items 10
+  "*Maximum of items in the recentf menu."
+  :group 'recentf
+  :type 'integer
+  :set 'recentf-menu-cutomization-changed
   )
 
 (defcustom recentf-load-hook nil
    "*Hook run when package has been loaded."
   :group 'recentf
   :type 'hook
-  )
-
-(defvar recentf-list nil
-  "List of recently opened files."
-  )
-
-(defvar recentf-update-menu-p t
-  "Non-nil if the recentf menu must be updated."
-  )
-
-(defvar recentf-initialized-p nil
-  "Non-nil if recentf already initialized."
   )
 
 ;;;###autoload
@@ -317,7 +331,12 @@ If FILENAME is not readable it is removed from `recentf-list'."
 
 ;;
 ;; $Log: recentf.el,v $
-;; Revision 1.2  1999/07/20 21:39:36  ebat311
+;; Revision 1.3  1999/07/21 10:10:46  ebat311
+;; FIXED:
+;;   User customization of the recentf menu was not correctly handled.
+;;   Thanks to "Steve Kemp" <stevek@epc.co.uk> who has reported this bug.
+;;
+;; Revision 1.2  1999-07-20 23:39:36+02  ebat311
 ;; New default function `recentf-find-file' to invoke with an filename item of
 ;; the recentf menu. It calls `find-file' to edit an existing file and removes the
 ;; name of a non existing file from the list of recently opened files.
