@@ -8,7 +8,7 @@
 ;; Maintainer: FSF
 ;; Keywords: files
 
-(defconst recentf-version "$Revision: 1.28 $")
+(defconst recentf-version "$Revision: 1.29 $")
 
 ;; This file is part of GNU Emacs.
 
@@ -69,9 +69,6 @@
 ;;
 (defvar recentf-list nil
   "List of recently opened files.")
-
-(defvar recentf-positions nil
-  "List of positions in recently opened files.")
 
 (defvar recentf-data-cache nil
   "Cache of data used to build the recentf menu.
@@ -256,11 +253,6 @@ cleanup the list."
            ;; Unavailable until recentf has been loaded.
            (recentf-auto-cleanup))))
 
-(defcustom recentf-restore-position-flag t
-  "*non-nil means to restore last visited position of opened files."
-  :group 'recentf
-  :type 'boolean)
-
 (defcustom recentf-load-hook nil
    "*Normal hook run at end of loading the `recentf' package."
   :group 'recentf
@@ -397,18 +389,6 @@ process the canonical name."
       (setq rl (cdr rl)))
     (null rl)))
 
-(defsubst recentf-get-position (file)
-  "Return the last visited position of FILE."
-  (assoc file recentf-positions))
-
-(defun recentf-save-position ()
-  "Save the point in current buffer as file last visited position."
-  (let* ((filename (recentf-expand-file-name buffer-file-name))
-         (position (recentf-get-position filename)))
-    (if position
-        (setcdr position (point))
-      (push (cons filename (point)) recentf-positions))))
-
 (defsubst recentf-add-file (filename)
   "Add or move FILENAME at the beginning of the recent list.
 Does nothing it if it matches any of the `recentf-exclude' regexps."
@@ -423,14 +403,6 @@ Return non-nil if FILENAME has been removed."
     (let ((m (recentf-string-member
               (recentf-expand-file-name filename) recentf-list)))
       (and m (setq recentf-list (delq (car m) recentf-list))))))
-
-(defun recentf-sync-positions ()
-  "Synchronize recent positions with the recent list."
-  (let (position positions)
-    (dolist (f recentf-list)
-      (when (setq position (recentf-get-position f))
-        (push position positions)))
-    (setq recentf-positions (nreverse positions))))
 
 (defun recentf-find-file (filename)
   "Edit file FILENAME using `find-file'.
@@ -452,18 +424,6 @@ Return non-nil if F1 is less than F2."
         (recentf-string-lessp (file-name-nondirectory f1)
                               (file-name-nondirectory f2))
       (recentf-string-lessp d1 d2))))
-
-(defun recentf-open-file (file)
-  "Open FILE and move point to the last visited position."
-  (let ((visited (find-buffer-visiting file))
-        position)
-    (if visited
-        (switch-to-buffer visited)
-      (funcall recentf-menu-action file)
-      (when recentf-restore-position-flag
-        (setq position (recentf-get-position file))
-        (when (number-or-marker-p (cdr position))
-          (goto-char (cdr position)))))))
 
 ;;; Menu building
 ;;
@@ -595,7 +555,7 @@ menu-elements (no sub-menu)."
         (value (recentf-menu-element-value elt)))
     (if (recentf-sub-menu-element-p elt)
         (cons item (mapcar 'recentf-make-menu-item value))
-      (vector item (list 'recentf-open-file value)
+      (vector item (list recentf-menu-action value)
 ;;;              :help (concat "Open " value)
               :active t))))
 
@@ -996,10 +956,9 @@ IGNORE arguments."
   "Update the recent list when a buffer is killed.
 That is, remove a non readable file from the recent list, if
 `recentf-keep-non-readable-files-flag' is nil."
-  (when buffer-file-name
-    (unless (and (not recentf-keep-non-readable-files-flag)
-                 (recentf-remove-if-non-readable buffer-file-name))
-      (recentf-save-position))))
+  (and buffer-file-name
+       (not recentf-keep-non-readable-files-flag)
+       (recentf-remove-if-non-readable buffer-file-name)))
 
 (defun recentf-update-menu ()
   "Update the recentf menu from the current recent list."
@@ -1120,7 +1079,7 @@ Click on Cancel or type \"q\" to quit.\n")
 Used internally by `recentf-open-files'.
 IGNORE other arguments."
   (kill-buffer (current-buffer))
-  (recentf-open-file (widget-value widget)))
+  (funcall recentf-menu-action (widget-value widget)))
 
 (defvar recentf-open-files-item-shift ""
   "Amount of space to shift right sub-menu items.
@@ -1211,13 +1170,12 @@ default."
   "Save the recent list.
 Write data into the file specified by `recentf-save-file'."
   (interactive)
-  (recentf-sync-positions)
-  (with-temp-file (expand-file-name recentf-save-file)
+  (with-temp-buffer
     (erase-buffer)
     (insert (format recentf-save-file-header (current-time-string)))
     (recentf-dump-variable 'recentf-list recentf-max-saved-items)
-    (recentf-dump-variable 'recentf-positions recentf-max-saved-items)
     (recentf-dump-variable 'recentf-filter-changer-state)
+    (write-file (expand-file-name recentf-save-file))
     nil))
 
 (defun recentf-load-list ()
