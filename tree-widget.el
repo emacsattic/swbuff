@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 16 Feb 2001
 ;; Keywords: extensions
-;; Revision: $Id: tree-widget.el,v 1.11 2003/09/30 10:16:24 ponced Exp $
+;; Revision: $Id: tree-widget.el,v 1.12 2003/10/01 16:56:31 ponced Exp $
 
 (defconst tree-widget-version "2.0")
 
@@ -29,42 +29,43 @@
 
 ;;; Commentary:
 ;;
-;; This library provide a `tree-widget' useful to display data
-;; structures organized in hierarchical order.
+;; This library provide a tree widget useful to display data
+;; structures organized in a hierarchical order.
 ;;
-;; The following `tree-widget' extra properties are recognized:
+;; The following properties are specific to the tree widget:
 ;;
 ;;   :open
 ;;      Set to non-nil to unfold the tree.  By default the tree is
 ;;      folded.
 ;;
 ;;   :node
-;;      The widget used for the tree node.  By default this is an
-;;      `item' widget which displays the tree :tag property value if
-;;      defined or a string representation of the tree value using the
-;;      function `widget-princ-to-string'.
+;;      Specify the widget used to represent a tree node.  By default
+;;      this is an `item' widget which displays the tree-widget :tag
+;;      property value if defined or a string representation of the
+;;      tree-widget value.
 ;;
 ;;   :keep
-;;      Specify a list of extra properties to keep when the tree is
+;;      Specify a list of properties to keep when the tree is
 ;;      folded so they can be recovered when the tree is unfolded.
-;;      This property is also honoured in `tree-widget' children.
+;;      This property can be used in child widgets too.
 ;;
 ;;   :dynargs
-;;      Specify a function to be called when the tree is unfolded.
-;;      This function will receives the tree widget as its argument
-;;      and must return a list of children widget definitions.  Thus
-;;      dynamlically providing the tree children in response to an
-;;      unfold request.  The list of children definitions is kept in
-;;      the tree :args property and the :dynargs function can just
-;;      return its value when unfolding the tree again.  To force a
-;;      new evaluation of the tree content just set its :args property
-;;      to nil and redraw the node.
+;;      Specify a function to be called when the tree is unfolded, to
+;;      dynamically provide the tree children in response to an unfold
+;;      request.  This function will be passed the tree widget and
+;;      must return a list of child widgets.  That list will be stored
+;;      as the :args property of the parent tree.
+
+;;      To speed up successive unfold requests, the :dynargs function
+;;      can directly return the :args value if non-nil.  Refreshing
+;;      child values can be achieved by giving the :args property the
+;;      value nil, then redrawing the tree.
 ;;
 ;;   :has-children
 ;;      Specify if this tree has children.  This property has meaning
 ;;      only when used with the above :dynargs one.  It indicates that
-;;      children widget exist but will be provided when unfolding the
-;;      node.
+;;      child widgets exist but will be dynamically provided when
+;;      unfolding the node.
 ;;
 ;;   :open-control  (default `tree-widget-open-control')
 ;;   :close-control (default `tree-widget-close-control')
@@ -77,7 +78,7 @@
 ;;   :no-handle     (default `tree-widget-no-handle')
 ;;
 ;; The above nine properties define the widgets used to draw the tree.
-;; For example, using these widget display values:
+;; For example, using widgets that display this values:
 ;;
 ;;   open-control     "[-] "
 ;;   close-control    "[+] "
@@ -98,17 +99,20 @@
 ;;       |-[>] 1.2.1  no-guide+no-handle+guide+handle+leaf-control
 ;;       `-[>] 1.2.2  no-guide+no-handle+end-guide+handle+leaf-control
 ;;
-;; On versions of Emacs that support this feature, it is possible to
-;; use images instead of strings to draw a nice-looking tree.  See the
-;; `tree-widget-themes-directory' and `tree-widget-theme' options for
-;; more details.
+;; On versions of [X]Emacs that support this feature, the tree widget
+;; try to use images instead of strings to draw a nice-looking tree.
+;; See the `tree-widget-themes-directory' and `tree-widget-theme'
+;; options for more details.
 ;;
-;; Basic examples of `tree-widget' usage are provided in the file
-;; tree-widget-examples.el.  A more sophisticated example is provided
-;; in the dir-tree.el source.
+;; Basic examples of tree-widget usage are provided in the file
+;; tree-widget-examples.el.  A more sophisticated example is in the
+;; dir-tree.el file.
 ;;
-;; To install and use, put this file on your Emacs-Lisp load path and
-;; add the following into your ~/.emacs startup file:
+;; To install and use the tree widget first download the latest
+;; distribution tarball (tree-widget-VERSION.tar.gz) from
+;; <http://sourceforge.net/projects/emhacks/> and unpack it in a
+;; directory on your `load-path'.  Then add the following into your
+;; ~/.emacs startup file or in libraries that depend on tree-widget:
 ;;
 ;; (require 'tree-widget)
 ;;
