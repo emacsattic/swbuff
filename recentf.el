@@ -1,6 +1,6 @@
 ;;; recentf.el --- setup a menu of recently opened files
 
-;; Copyright (C) 1999, 2000, 2001, 2002, 2003
+;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004
 ;;   Free Software Foundation, Inc.
 
 ;; Author: David Ponce <david@dponce.com>
@@ -8,7 +8,7 @@
 ;; Maintainer: FSF
 ;; Keywords: files
 
-(defconst recentf-version "$Revision: 1.31 $")
+(defconst recentf-version "$Revision: 1.32 $")
 
 ;; This file is part of GNU Emacs.
 
@@ -794,7 +794,7 @@ Arrange them in sub-menus following rules in `recentf-arrange-rules'."
                 elts  (cdr elts)))
         (unless menu
           (push elt others)))
-      
+
       (setq l nil
             min (if (natnump recentf-arrange-by-rules-min-items)
                     recentf-arrange-by-rules-min-items 0))
@@ -809,7 +809,7 @@ Arrange them in sub-menus following rules in `recentf-arrange-rules'."
              menu (recentf-apply-menu-filter
                    recentf-arrange-by-rule-subfilter (nreverse elts)))
             (push menu l))))
-      
+
       (if (and (stringp recentf-arrange-by-rule-others) others)
           (nreverse
            (cons
@@ -1216,13 +1216,16 @@ default."
   "Save the recent list.
 Write data into the file specified by `recentf-save-file'."
   (interactive)
-  (with-temp-buffer
-    (erase-buffer)
-    (insert (format recentf-save-file-header (current-time-string)))
-    (recentf-dump-variable 'recentf-list recentf-max-saved-items)
-    (recentf-dump-variable 'recentf-filter-changer-state)
-    (write-file (expand-file-name recentf-save-file))
-    nil))
+  (condition-case error
+      (with-temp-buffer
+        (erase-buffer)
+        (insert (format recentf-save-file-header (current-time-string)))
+        (recentf-dump-variable 'recentf-list recentf-max-saved-items)
+        (recentf-dump-variable 'recentf-filter-changer-state)
+        (write-file (expand-file-name recentf-save-file))
+        nil)
+    (error
+     (message "recentf mode: %s" (error-message-string error)))))
 
 (defun recentf-load-list ()
   "Load a previously saved recent list.
