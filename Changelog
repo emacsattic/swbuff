@@ -1,3 +1,22 @@
+2004-09-26  David Ponce  <david@dponce.com>
+
+	* tabbar.el
+
+	(tabbar-home-button-enabled, tabbar-home-button-disabled)
+	(tabbar-scroll-left-button-enabled)
+	(tabbar-scroll-left-button-disabled)
+	(tabbar-scroll-right-button-enabled)
+	(tabbar-scroll-right-button-disabled): Remove.
+	(tabbar-home-button-value)
+	(tabbar-scroll-left-button-value)
+	(tabbar-scroll-right-button-value): New variables.
+	(tabbar-home-button, tabbar-scroll-left-button)
+	(tabbar-scroll-right-button, tabbar-use-images)
+	(tabbar-line-button, tabbar-line-buttons)
+	(tabbar-buffer-home-button)
+	(tabbar-buffer-set-group-mode): Use them.
+	(tabbar-separator-value): Doc fix.
+
 2004-09-23  David Ponce  <david@dponce.com>
 
 	* tabbar.el
