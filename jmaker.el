@@ -1,5 +1,5 @@
 ;;; jmaker.el -- Java Makefile generator add-on to JDE.
-;; $Revision: 1.6 $
+;; $Revision: 1.7 $
 
 ;; Copyright (C) 1998 by David Ponce
 
@@ -76,7 +76,7 @@
 (require 'jde)
 (require 'tempo)
 
-(defconst jmaker-version "$Revision: 1.6 $"
+(defconst jmaker-version "$Revision: 1.7 $"
   "jmaker version number.")
 
 (defgroup jmaker nil
@@ -289,16 +289,21 @@ given `root' directory. Each file path is relative to the `root' directory."
 						(directory-files dir))))
 
 (defun jmaker-generate-makefile ()
-	"Generate a Makefile buffer to compile Java files in the current directory.
-This is a temporary buffer which could be edited and must be saved to allow building."
+	"Generates a Java `Makefile' file which could be used to compile Java files
+in the current directory.
+If the file `Makefile' already exists the command requires confirmation
+to overwrite it."
 	(interactive)
-	(with-output-to-temp-buffer "Makefile"
-		(set-buffer standard-output)
-		(makefile-mode)
-		(jmaker-insert-makefile)
-		(switch-to-buffer standard-output)
-		)
-	)
+	(let ((makefile (concat (file-name-as-directory default-directory) "Makefile")))
+		(and (file-exists-p makefile)
+				 (or (y-or-n-p (format "File `%s' exists; overwrite? " makefile))
+						 (error "Canceled")))
+		(with-current-buffer (find-file-noselect makefile)
+			(makefile-mode)
+			(erase-buffer)
+			(jmaker-insert-makefile)
+			(goto-char (point-min))
+			(switch-to-buffer (current-buffer)))))
 
 (defun jmaker-generate-super-makefile (root)
 	"Generates the file `root'/Makefile.super which could be used to recursively make
@@ -314,9 +319,8 @@ to overwrite it."
 			(makefile-mode)
 			(erase-buffer)
 			(jmaker-insert-super-makefile)
-			(switch-to-buffer (current-buffer))
-			(beginning-of-buffer)
-			(tempo-forward-mark))))
+			(goto-char (point-min))
+			(switch-to-buffer (current-buffer)))))
 
 (defun jmaker-jde-hook ()
 	"JDE hook to add jmaker items to JDE sub-menus."
@@ -351,6 +355,10 @@ to overwrite it."
 
 ;;
 ;; $Log: jmaker.el,v $
+;; Revision 1.7  1998/10/05 21:34:55  ebat311
+;; `jmaker-generate-...' commands now generate file buffers and
+;; require confirmation if the file already exists.
+;;
 ;; Revision 1.6  1998/10/05 21:17:22  ebat311
 ;; Added super Makefile generation.
 ;; Some coding optimized and simplified.
