@@ -7,7 +7,7 @@
 ;; Created: 3 Dec 1998
 ;; Version: 2.0
 ;; Keywords: jde
-;; VC: $Id: jsee.el,v 1.7 2000/09/04 13:58:20 david_ponce Exp $
+;; VC: $Id: jsee.el,v 1.8 2000/09/29 09:29:49 david_ponce Exp $
 
 ;; This file is not part of Emacs
 
@@ -54,6 +54,9 @@
 ;;; Change Log:
 
 ;; $Log: jsee.el,v $
+;; Revision 1.8  2000/09/29 09:29:49  david_ponce
+;; Updated to new semantic API.
+;;
 ;; Revision 1.7  2000/09/04 13:58:20  david_ponce
 ;; (jsee-browse-api-doc): Fixed XEmacs `local-variable-p' compatibility
 ;; problem.
@@ -95,7 +98,7 @@
 ;;; Code:
 (require 'jde)
 
-(defconst jsee-version "2.0 $Date: 2000/09/04 13:58:20 $"
+(defconst jsee-version "2.0 $Date: 2000/09/29 09:29:49 $"
   "jsee version information.")
 
 ;;;
@@ -184,7 +187,7 @@ the file is deleted or nil if not."
   "Return the package name in the current file.
 This function uses the semantic bovinator parser table to find the
 package statement."
-  (let* ((tokens (semantic-bovinate-toplevel nil t t))
+  (let* ((tokens (semantic-bovinate-toplevel t))
          (packages (semantic-find-nonterminal-by-token 'package tokens)))
     (if packages
         (semantic-token-name (car packages)))))
