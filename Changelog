@@ -1,3 +1,30 @@
+2003-10-15  David Ponce  <david@dponce.com>
+
+	* tabbar.el
+
+	(tabbar-home-button-enabled-image)
+	(tabbar-home-button-disabled-image)
+	(tabbar-scroll-left-button-enabled-image)
+	(tabbar-scroll-left-button-disabled-image)
+	(tabbar-scroll-right-button-enabled-image)
+	(tabbar-scroll-right-button-disabled-image): Add :mask property
+	to have transparent background.
+
+2003-10-13  David Ponce  <david@dponce.com>
+
+	* ruler-mode.el
+
+	(ruler-mode-left-fringe-cols): Add new optional argument REAL, to
+	return a real number instead of a rounded integer value.  Define
+	as inline function.
+	(ruler-mode-right-fringe-cols): Likewise.
+	(ruler-mode-scroll-bar-cols): New function.
+	(ruler-mode-left-scroll-bar-cols): Use it.  Define as macro.
+	(ruler-mode-right-scroll-bar-cols): Likewise.
+	(ruler-mode-space): New function.
+	(ruler-mode-ruler): Use it.  Handle variations of fringe style,
+	scroll bar mode and margins in a more robust way.
+
 2003-10-08  David Ponce  <david@dponce.com>
 
 	* tabbar.el
