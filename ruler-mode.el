@@ -42,18 +42,19 @@
 ;; [header-line down-mouse-2] set `fill-column' to the ruler
 ;; graduation where the mouse pointer is on.
 ;;
-;; In the ruler the character `ruler-mode-fill-column-char' shows the
-;; `current-column' location and the character
-;; `ruler-mode-current-column-char' shows the `fill-column' location.
-;; `window-margins' areas are shown with a different backgound color.
+;; In the ruler the character `ruler-mode-current-column-char' shows
+;; the `current-column' location and the character
+;; `ruler-mode-fill-column-char' shows the `fill-column' location.
+;; `window-margins' areas are shown with a different background color.
 ;;
 ;; It is also possible to customize the following characters:
 ;;
-;; - `ruler-mode-margins-char' character used to pad margin areas.
+;; - `ruler-mode-margins-char' character used to pad margin areas
+;;   (space by default).
 ;; - `ruler-mode-basic-graduation-char' character used for basic
-;;   graduations (dots).
+;;   graduations ('.' by default).
 ;; - `ruler-mode-inter-graduation-char' character used for
-;;   intermediate graduations (plus sign).
+;;   intermediate graduations ('!' by default).
 ;;
 ;; The following faces are customizable:
 ;;
@@ -66,6 +67,13 @@
 ;;   `window-margins' areas.
 ;; - `ruler-mode-column-number-face' the face used to highlight the
 ;;   number graduations.
+;;
+;; `ruler-mode-default-face' inherits from the built-in `default' face.
+;; All `ruler-mode' faces inerit from `ruler-mode-default-face'.
+;;
+;; WARNING: To keep ruler graduations aligned on text columns it is
+;; important to use the same font family and size for ruler and text
+;; areas.
 
 ;; Installation
 ;;
