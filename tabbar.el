@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 25 February 2003
 ;; Keywords: convenience
-;; Revision: $Id: tabbar.el,v 1.38 2004/09/10 09:56:51 ponced Exp $
+;; Revision: $Id: tabbar.el,v 1.39 2004/09/15 07:07:08 ponced Exp $
 
 (defconst tabbar-version "1.4")
 
@@ -233,6 +233,14 @@ selected tab."
 The help string is displayed when the mouse is onto the button.  The
 function is passed the tab and should return a help string or nil for
 none."
+  :group 'tabbar
+  :type 'function)
+
+(defcustom tabbar-button-label-function
+  'tabbar-buffer-button-label
+  "Function that obtains a button label displayed on the tab bar.
+The function is passed a button name should return a propertized
+string to display."
   :group 'tabbar
   :type 'function)
 
@@ -705,7 +713,7 @@ P2
   (cons (cons "[o]" tabbar-home-button-enabled-image)
         (cons "[x]" tabbar-home-button-disabled-image))
   "The home button.
-See the variable `tabbar-button-widget' for details."
+The variable `tabbar-button-widget' gives details on this widget."
   :group 'tabbar
   :type tabbar-button-widget
   :set '(lambda (variable value)
@@ -750,7 +758,7 @@ P2
   (cons (cons " <" tabbar-scroll-left-button-enabled-image)
         (cons " =" tabbar-scroll-left-button-disabled-image))
   "The scroll left button.
-See the variable `tabbar-button-widget' for details."
+The variable `tabbar-button-widget' gives details on this widget."
   :group 'tabbar
   :type tabbar-button-widget
   :set '(lambda (variable value)
@@ -795,7 +803,7 @@ P2
   (cons (cons " >" tabbar-scroll-right-button-enabled-image)
         (cons " =" tabbar-scroll-right-button-disabled-image))
   "The scroll right button.
-See the variable `tabbar-button-widget' for details."
+The variable `tabbar-button-widget' gives details on this widget."
   :group 'tabbar
   :type tabbar-button-widget
   :set '(lambda (variable value)
@@ -824,7 +832,7 @@ The value (\"\"), or (0) hide separators.")
 
 (defcustom tabbar-separator (list " ")
   "Separator used between tabs.
-See the variable `tabbar-separator-widget' for details."
+The variable `tabbar-separator-widget' gives details on this widget."
   :group 'tabbar
   :type tabbar-separator-widget
   :set '(lambda (variable value)
@@ -864,10 +872,15 @@ SPECS is a list of image specifications.  See also `find-image'."
   "Make IMAGE centered and transparent.
 If optional MARGIN is non-nil, it must be a number of pixels to add as
 an extra margin around the image."
-  (setcdr image (plist-put (plist-put (cdr image) :ascent 'center)
-                           :mask '(heuristic t)))
-  (when (natnump margin)
-    (setcdr image (plist-put (cdr image) :margin margin)))
+  (let ((plist (cdr image)))
+    (or (plist-get plist :ascent)
+        (setq plist (plist-put plist :ascent 'center)))
+    (or (plist-get plist :mask)
+        (setq plist (plist-put plist :mask '(heuristic t))))
+    (or (not (natnump margin))
+        (plist-get plist :margin)
+        (plist-put plist :margin margin))
+    (setcdr image plist))
   image)
 
 ;;; Button keymaps and callbacks
@@ -1027,23 +1040,15 @@ Pass mouse click events on a tab to `tabbar-click-on-tab'."
 
 ;;; Tab bar construction
 ;;
-(defun tabbar-line-button (name)
-  "Return an `header-line-format' template element for button NAME.
-The enabled/disabled button elements are cached in variables
-`tabbar-NAME-button-<enabled/disabled>'.
-The variable `tabbar-NAME-button-keymap' must be set with a keymap to
-use when the button is enabled.
-The function `tabbar-NAME-button-help' must be defined to return the
-help-echo string associated to the button."
-  (let* ((button   (intern (format "tabbar-%s-button" name)))
-         (enabled  (intern (format "%s-enabled"  button)))
-         (disabled (intern (format "%s-disabled" button)))
-         (keymap   (intern (format "%s-keymap"   button)))
-         (help     (intern (format "%s-help"     button)))
-         (value    (symbol-value button))
-         (on       (tabbar-find-image (cdar value)))
-         (off      (and on (tabbar-find-image (cddr value))))
-         (face     'tabbar-button-face))
+(defun tabbar-button-label (name)
+  "Return a label for button NAME.
+That is a pair (ENABLED . DISABLED), where ENABLED and DISABLED are
+respectively the appearence of the button when enabled and disabled.
+They are propertized strings which could display images, as specified
+by the variable `tabbar-NAME-button'."
+  (let* ((btn (symbol-value (intern (format "tabbar-%s-button" name))))
+         (on  (tabbar-find-image (cdar btn)))
+         (off (and on (tabbar-find-image (cddr btn)))))
     (when on
       (tabbar-normalize-image on 1)
       (if off
@@ -1051,38 +1056,73 @@ help-echo string associated to the button."
         ;; If there is no disabled button image, derive one from the
         ;; button enabled image.
         (setq off (copy-sequence on))
-        (tabbar-disable-image off))
-      (setq face nil))
-    (set enabled (propertize (or (caar value) " ")
-                             'display on
-                             'face face
-                             'local-map (symbol-value keymap)
-                             'help-echo help))
-    (set disabled (propertize (or (cadr value) " ")
-                              'display off
-                              'face face))))
+        (tabbar-disable-image off)))
+    (cons
+     (propertize (or (caar btn) " ") 'display on)
+     (propertize (or (cadr btn) " ") 'display off))))
+
+(defun tabbar-line-button (name)
+  "Return an `header-line-format' template element for button NAME.
+The variable `tabbar-NAME-button-keymap' must be set with a keymap to
+use when the button is enabled.
+The function `tabbar-NAME-button-help' must be defined to return the
+help-echo string associated to the button."
+  (let* ((keymap   (intern (format "tabbar-%s-button-keymap" name)))
+         (help     (intern (format "tabbar-%s-button-help"   name)))
+         (label    (funcall tabbar-button-label-function name)))
+    ;; Cache the enabled/disabled button elements in variables
+    ;; `tabbar-NAME-button-{enabled|disabled}'.
+    (set (intern (format "tabbar-%s-button-enabled"  name))
+         (propertize (car label)
+                     'face 'tabbar-button-face
+                     'local-map (symbol-value keymap)
+                     'help-echo help))
+    (set (intern (format "tabbar-%s-button-disabled" name))
+         (propertize (cdr label)
+                     'face 'tabbar-button-face))))
 
 (defun tabbar-line-separator ()
   "Return an `header-line-format' template element for a separator.
 The separator element is cached in variable `tabbar-separator-value'."
   (let ((image (tabbar-find-image (cdr tabbar-separator))))
-    (and image (tabbar-normalize-image image))
     (setq tabbar-separator-value
           (cond
            (image
             (propertize " "
                         'face 'tabbar-separator-face
-                        'display image)
-            )
+                        'display (tabbar-normalize-image image)))
            ((numberp (car tabbar-separator))
             (propertize " "
                         'face 'tabbar-separator-face
                         'display (list 'space
-                                       :width (car tabbar-separator)))
-            )
+                                       :width (car tabbar-separator))))
            ((propertize (or (car tabbar-separator) " ")
-                        'face 'tabbar-separator-face)
-            )))))
+                        'face 'tabbar-separator-face))))
+    ))
+
+(defun tabbar-line-buttons ()
+  "Return a propertized string for tab bar buttons."
+  ;; If requested, refresh buttons and separator L&F.
+  (or tabbar-separator-value
+      (tabbar-line-separator))
+  (or tabbar-home-button-enabled
+      (tabbar-line-button 'home))
+  (or tabbar-scroll-left-button-enabled
+      (tabbar-line-button 'scroll-left))
+  (or tabbar-scroll-right-button-enabled
+      (tabbar-line-button 'scroll-right))
+  (concat
+   (if tabbar-home-function
+       tabbar-home-button-enabled
+     tabbar-home-button-disabled)
+   (if (> (tabbar-start tabset) 0)
+       tabbar-scroll-left-button-enabled
+     tabbar-scroll-left-button-disabled)
+   (if (< (tabbar-start tabset)
+          (1- (length (tabbar-tabs tabset))))
+       tabbar-scroll-right-button-enabled
+     tabbar-scroll-right-button-disabled)
+   tabbar-separator-value))
 
 (defsubst tabbar-line-tab (tab)
   "Return an `header-line-format' template element for TAB.
@@ -1110,20 +1150,9 @@ Call `tabbar-tab-label-function' to obtain a label for TAB."
              (seloffset width)
              (scroll 0)
              (padcolor (tabbar-background-color))
-             offset tab elt elts sizes maxscroll)
-        ;; On demand, refresh buttons and separator L&F.
-        (or tabbar-separator-value
-            (tabbar-line-separator))
-        (or tabbar-home-button-enabled
-            (tabbar-line-button 'home))
-        (or tabbar-scroll-left-button-enabled
-            (tabbar-line-button 'scroll-left))
-        (or tabbar-scroll-right-button-enabled
-            (tabbar-line-button 'scroll-right))
-        (setq offset (+ (string-width tabbar-home-button-enabled)
-                        (string-width tabbar-scroll-left-button-enabled)
-                        (string-width tabbar-scroll-right-button-enabled)
-                        (string-width tabbar-separator-value)))
+             (buttons (tabbar-line-buttons))
+             (offset (string-width buttons))
+             tab elt elts sizes maxscroll)
         (when tabbar-show-selected
           (while (not (memq sel tabs))
             (tabbar-scroll tabset -1)
@@ -1153,20 +1182,9 @@ Call `tabbar-tab-label-function' to obtain a label for TAB."
         ;; Cache and return the new tab bar.
         (tabbar-set-template
          tabset
-         (list
-          (if tabbar-home-function
-              tabbar-home-button-enabled
-            tabbar-home-button-disabled)
-          (if (> (tabbar-start tabset) 0)
-              tabbar-scroll-left-button-enabled
-            tabbar-scroll-left-button-disabled)
-          (if (< (tabbar-start tabset)
-                 (1- (length (tabbar-tabs tabset))))
-              tabbar-scroll-right-button-enabled
-            tabbar-scroll-right-button-disabled)
-          tabbar-separator-value elts
-          (propertize "%-" 'face (list :background padcolor
-                                       :foreground padcolor))))
+         (list buttons elts
+               (propertize "%-" 'face (list :background padcolor
+                                            :foreground padcolor))))
         )))
 
 (defun tabbar-line ()
@@ -1377,6 +1395,50 @@ first."
 
 ;;; Buffer tabs
 ;;
+(defconst tabbar-buffer-group-mode-on-button-image
+  '((:type pbm :data "\
+P2
+10 10
+255
+184 184 184 184 120 184 184 184 184 184 184 184 184 120 120 120 184
+184 184 184 184 184 120 184 184 184 120 184 184 184 184 120 120 160
+184 160 120 120 184 184 184 184 255 255 255 255 255 255 255 184 184 0
+0 0 0 0 0 0 184 184 184 184 0 0 0 0 0 255 255 184 184 184 184 0 0 0
+255 255 184 184 184 184 184 184 0 255 255 184 184 184 184 184 184 184
+184 255 184 184 184 184
+"))
+  "Default image for the home button when showing group tabs.")
+
+(defconst tabbar-buffer-group-mode-off-button-image
+  '((:type pbm :data "\
+P2
+10 10
+255
+184 184 184 184 0 184 184 184 184 184 184 184 184 0 0 0 184 184 184
+184 184 184 0 0 0 0 0 184 184 184 184 0 0 0 0 0 0 0 184 184 184 184
+255 255 255 255 255 255 255 184 184 120 120 160 184 160 120 120 184
+184 184 184 120 184 184 184 120 255 255 184 184 184 184 120 120 120
+255 255 184 184 184 184 184 184 120 255 255 184 184 184 184 184 184
+184 184 255 184 184 184 184
+"))
+  "Default image for the home button when showing buffer tabs.")
+
+(defcustom tabbar-buffer-home-button
+  (cons (cons "[-]" tabbar-buffer-group-mode-on-button-image)
+        (cons "[+]" tabbar-buffer-group-mode-off-button-image))
+  "The home button displayed when showing buffer tabs.
+The enabled button value is displayed when showing tabs for groups of
+buffers, and the disabled button value is disabled when showing buffer
+tabs.
+Images default to the enabled image specified in `tabbar-home-button'.
+The variable `tabbar-button-widget' gives details on this widget."
+  :group 'tabbar
+  :type tabbar-button-widget
+  :set '(lambda (variable value)
+          (custom-set-default variable value)
+          ;; Schedule refresh of button value.
+          (setq tabbar-home-button-enabled nil)))
+
 (defcustom tabbar-buffer-list-function
   'tabbar-buffer-list
   "*Function that returns the list of buffers to show in tabs.
@@ -1489,6 +1551,12 @@ Return the the first group where the current buffer is."
   "Display tabs for group of buffers, when non-nil.")
 (make-variable-buffer-local 'tabbar-buffer-group-mode)
 
+(defsubst tabbar-buffer-set-group-mode (flag)
+  "Set display of tabs for group of buffers to FLAG."
+  (setq tabbar-buffer-group-mode flag
+        ;; Redisplay the home button.
+        tabbar-home-button-enabled nil))
+
 (defun tabbar-buffer-tabs ()
   "Return the buffers to display on the tab bar, in a tab set."
   (let ((group (tabbar-buffer-update-groups))
@@ -1506,6 +1574,35 @@ Return the the first group where the current buffer is."
         (setq tabset (tabbar-get-tabset group)))
       (tabbar-select-tab-value buffer tabset))
     tabset))
+
+(defun tabbar-buffer-button-label (name)
+  "Return a label for button NAME.
+That is a pair (ENABLED . DISABLED), where ENABLED and DISABLED are
+respectively the appearence of the button when enabled and disabled.
+They are propertized strings which could display images, as specified
+by the variable `tabbar-button-label'.
+When NAME is 'home, return a different ENABLED button depending on the
+value of `tabbar-buffer-group-mode'.  Otherwise just call the function
+`tabbar-button-label'."
+  (let ((lab (tabbar-button-label name)))
+    (when (eq name 'home)
+      (let* ((btn tabbar-buffer-home-button)
+             (on  (tabbar-find-image (cdar btn)))
+             (off (tabbar-find-image (cddr btn))))
+        ;; When `tabbar-buffer-home-button' does not provide a value,
+        ;; default to the enabled value of `tabbar-home-button'.
+        (if on
+            (tabbar-normalize-image on 1)
+          (setq on (get-text-property 0 'display (car lab))))
+        (if off
+            (tabbar-normalize-image off 1)
+          (setq off (get-text-property 0 'display (car lab))))
+      (setcar lab
+              (if tabbar-buffer-group-mode
+                  (propertize (or (caar btn) (car lab)) 'display on)
+                (propertize (or (cadr btn) (car lab)) 'display off)))
+      ))
+    lab))
 
 (defun tabbar-buffer-tab-label (tab)
   "Return the label to display TAB.
@@ -1545,14 +1642,14 @@ mouse-2: pop to buffer, mouse-3: delete other windows"
      (t
       (switch-to-buffer buffer)))
     ;; Disable group mode.
-    (setq tabbar-buffer-group-mode nil)
+    (tabbar-buffer-set-group-mode nil)
     ))
 
 (defun tabbar-buffer-toggle-group-mode (event)
   "On mouse EVENT, toggle group mode.
 When enabled, display tabs for group of buffers, instead of buffer
 tabs."
-  (setq tabbar-buffer-group-mode (not tabbar-buffer-group-mode)))
+  (tabbar-buffer-set-group-mode (not tabbar-buffer-group-mode)))
 
 (defun tabbar-buffer-toggle-group-mode-help ()
   "Return the help string shown when mouse is onto the toggle button."
