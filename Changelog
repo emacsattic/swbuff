@@ -1,0 +1,354 @@
+2003-09-29  David Ponce  <david@dponce.com>
+
+	* tree-widget-examples.el
+
+	(tree-widget-example-1): Can prompt for an alternate image theme
+	to use.
+
+	* tree-widget.el
+
+	(tree-widget--theme): New internal buffer local variable.
+	(tree-widget-set-theme): New function.
+	(tree-widget-find-image): Use local theme.
+
+2003-09-29  David Ponce  <david@dponce.com>
+
+	* dir-tree.el
+
+	Code and whitespace cleanup.
+	(dir-tree-file-widget): Remove obsolete use of :format-handler.
+	(dir-tree): Move point at beginning of buffer.
+
+	* tree-widget-examples.el
+
+	Code and whitespace cleanup.
+	(tree-widget-examples-version): Update to 1.2.
+	(tree-widget-example-1): Add leaf nodes.  Better node names.
+	(tree-widget-example-2-dynargs): Likewise.
+	(tree-widget-example-2): Likewise.
+
+	* tree-widget.el
+
+	Major version that introduces new tree layout based on widgets
+	only, and image support on GNU Emacs 21.
+	
+	Code and whitespace cleanup.
+	(tree-widget-version): Update to 2.0.
+	(tree-widget-node-handle-widget): Remove.
+	(tree-widget--image-cache): New variable.
+	(tree-widget--clear-images-and-set): New function.
+	(tree-widget-image-enable)
+	(tree-widget-themes-directory, tree-widget-theme)
+	(tree-widget-image-properties-emacs)
+	(tree-widget-image-properties-xemacs): New options.
+	(tree-widget-use-image-p)
+	(tree-widget-image-type-available-p)
+	(tree-widget-create-image)
+	(tree-widget-image-conversion)
+	(tree-widget-find-image): New functions.
+	(tree-widget-node-handle): Remove.
+	(tree-widget-control, tree-widget-open-control)
+	(tree-widget-empty-control, tree-widget-close-control)
+	(tree-widget-leaf-control, tree-widget-guide)
+	(tree-widget-end-guide, tree-widget-no-guide)
+	(tree-widget-handle, tree-widget-no-handle): New widgets.
+	(tree-widget): Remove tree element strings.
+	(tree-widget-p, tree-widget-get-super): Doc fix.
+	(tree-widget-keep): Use dolist.
+	(tree-widget-super-format-handler): New function.
+	(tree-widget-format-handler): Use it.  Mark as obsolete.
+	(tree-widget-node): Cleanup.
+	(tree-widget-open-control, tree-widget-close-control)
+	(tree-widget-empty-control, tree-widget-leaf-control)
+	(tree-widget-guide, tree-widget-end-guide)
+	(tree-widget-no-guide, tree-widget-handle)
+	(tree-widget-no-handle): New functions.
+	(tree-widget-children-value-save): Cleanup.
+	(tree-widget-toggle-folding): Remove.
+	(tree-widget-close-node, tree-widget-open-node): New functions.
+	(tree-widget-value-delete): Cleanup.
+	(tree-widget-value-create): New implementation to use only
+	widgets and handle images.
+	(tree-widget-map): Cleanup.
+
+2003-09-16  David Ponce  <david@dponce.com>
+
+	* recentf.el
+
+	Sync. with GNU Emacs devel. version.
+	
+	(recentf-exclude): Accept predicates too.
+	(recentf-file-readable-p): New function.
+	(recentf-include-p): Handle predicates in recentf-exclude.
+	(recentf-add-file): Doc fix.
+	(recentf-remove-if-non-readable): Use recentf-file-readable-p.
+	(recentf-cleanup): Likewise.
+	
+	Ensure that recentf correctly update the menu bar.
+	(recentf-menu-path,recentf-menu-before): Doc fix.
+	(recentf-menu-bar): New function.
+	(recentf-create-menu): New function.
+	(recentf-clear-data): Use recentf-menu-bar.
+	(recentf-update-menu): Use above new functions and
+	easy-menu-add-item instead of easy-menu-change.
+
+2003-09-04  David Ponce  <david@dponce.com>
+
+	* ruler-mode.el
+
+	From Dave Love <fx@gnu.org>
+
+	(ruler-mode-fill-column-char)
+	(ruler-mode-current-column-char): Use char-displayable-p, not
+	window-system.
+
+2003-08-25  David Ponce  <david@dponce.com>
+
+	* tabbar.el
+
+	When a tab is selected, auto-scroll the tab bar to keep the
+	selected tab in visible area.
+
+	(tabbar-show-selected): New variable.
+	(tabbar-select-tab): Set it.
+	(tabbar-line-template): New function.
+	(tabbar-line): Use it.
+
+2003-08-05  David Ponce  <david@dponce.com>
+
+	* gdiff-setup.el
+
+	(vc-ensure-vc-buffer): Refreshed from GNU Emacs.
+	(gdiff-program): No default value.
+	(gdiff-program-options): New option.
+
+	* gdiff.el
+
+	(gdiff-execute-nowait): Remove OPTIONS argument.  Use
+	`gdiff-program-options' instead.
+
+2003-07-27  David Ponce  <david@dponce.com>
+
+	* jmaker.el
+	
+	(jmaker-version): Updated to 2.4.
+
+	(require 'tempo): Added.
+	(jmaker-make-use-jde-settings): Require 'jde instead of
+	'jde-compile feature.
+	(jmaker-java-compiler-options): Don't override
+	`jde-classpath-separator'.
+
+2003-06-10  David Ponce  <david@dponce.com>
+
+	* recentf.el 
+
+	(recentf-save-list): Use `write-file' from a temporary buffer to
+	save the list.  That keeps a backup copy.
+
+	Removed 2003-06-06 changes to save positions.  The saveplace
+	library already does that, and works well with recentf.
+	
+2003-06-06  David Ponce  <david@dponce.com>
+
+	* recentf.el
+
+	Add new option to restore point when opening a recent file.
+	
+	(recentf-positions): New variable.
+	(recentf-restore-position-flag): New option.
+	(recentf-get-position, recentf-save-position)
+	(recentf-sync-positions, recentf-open-file): New functions.
+	(recentf-make-menu-item): Use `recentf-open-file'.
+	(recentf-track-closed-file): Save position in current buffer.
+	(recentf-open-files-action): Use `recentf-open-file'.
+	(recentf-save-list): Save positions of recently opened file.
+
+2003-06-05  David Ponce  <david@dponce.com>
+
+	* ruler-mode.el
+
+	Whitespace fix.
+
+	* tabbar.el
+
+	(tabbar-buffer-group-mode): Make buffer local.
+
+2003-05-27  David Ponce  <david@dponce.com>
+
+	* ruler-mode.el
+
+	Version 1.6
+
+	Take into account changes made to the display margins, fringes and
+	scroll-bar handling.
+
+	(ruler-mode-margins-char): Removed.  No more used.
+	(ruler-mode-pad-face, ruler-mode-fringes-face): New faces.
+	(ruler-mode-margins-face): New definition.  Moved.
+	(ruler-mode-left-fringe-cols)
+	(ruler-mode-right-fringe-cols)
+	(ruler-mode-left-scroll-bar-cols)
+	(ruler-mode-right-scroll-bar-cols): Reimplemented.  Moved.
+	(ruler-mode-full-window-width)
+	(ruler-mode-window-col): New functions.
+	(ruler-mode-mouse-set-left-margin)
+	(ruler-mode-mouse-set-right-margin)
+	(ruler-mode-mouse-add-tab-stop)
+	(ruler-mode-mouse-del-tab-stop): Reimplemented.
+	(ruler-mode-mouse-current-grab-object): Renamed to...
+	(ruler-mode-dragged-symbol): New.
+	(ruler-mode-mouse-grab-any-column): Use it.  Cleaned up.
+	(ruler-mode-mouse-drag-any-column): Likewise.
+	(ruler-mode-mouse-drag-any-column-iteration): Simplified.
+	(ruler-mode-left-margin-help-echo)
+	(ruler-mode-right-margin-help-echo): Removed.
+	(ruler-mode-margin-help-echo)
+	(ruler-mode-fringe-help-echo): New constants.
+	(ruler-mode-ruler): Use them.  Reimplemented.
+
+2003-05-22  David Ponce  <david@dponce.com>
+
+	* tabbar.el
+
+	(tabbar-version): Updated to 1.3.
+	(tabbar-find-image): New function.
+	(tabbar-setup-separator, tabbar-setup-button): Use it.
+	(tabbar-mode): Let use tab bar mode without a mouse, using
+	keyboard navigation.
+
+2003-05-14  David Ponce  <david@dponce.com>
+
+	* tabbar.el
+
+	(tabbar-backward-tab): Fixed call to `tabbar-cycle'.
+
+2003-05-04  David Ponce  <david@dponce.com>
+
+	* jjar.el
+
+	(jjar-get-matching-files-in-tree): Fixed regexp.
+
+	* jmaker.el
+
+	(jmaker-makefile-buffer-template): Fixed template value and :set
+	clause.
+	(jmaker-java-compiler-options): Simplified.  No more use
+	`jde-quote-classpath'.  Ensure that `jde-classpath-separator' is
+	a semicolon.
+	(jmaker-generall-dialog): Set buffer local variables after
+	buffer cleanup.
+
+2003-05-02  David Ponce  <david@dponce.com>
+
+	* recentf.el
+
+	(recentf-cleanup): Swap tests for exclusion and accessibility.
+	When network files are not available, even if they are excluded,
+	checking for accessibility first blocks Emacs.  Thanks to Tak Ota
+	<Takaaki.Ota@am.sony.com> who suggested that fix.
+
+2003-04-30  David Ponce  <david@dponce.com>
+
+	* tabbar.el:
+
+	(tabbar-current-tabset): Made buffer local.
+	(tabbar-home-button-callback, tabbar-scroll-left-button-callback)
+	(tabbar-scroll-right-button-callback): Select the window that
+	received the mouse event.
+
+2003-04-25  David Ponce  <david@dponce.com>
+
+	* dir-tree.el:
+
+	New file.
+
+	* findstr.el:
+	
+	Updated comments.
+	(findstr-version): New constant.
+
+	* gdiff-setup:
+
+	Updated comments.
+
+	* gdiff.el:
+
+	Updated comments.
+	(gdiff-version): New constant.
+	(gdiff-version): Function renamed to...
+	(gdiff-vc-version): New.
+	(gdiff-vc-internal): Use it.
+
+	* jjar.el:
+
+	Updated comments.
+	(jjar-version): New constant.
+	(require 'cl): At compilation time.
+	(jjar-overlay-lists, jjar-delete-overlay): New functions.
+	(jjar-jar-command, jjar-jar-nocompress-option)
+	(jjar-jar-verbose-option, jjar-load-hook)
+	(jjar-build-option, jjar-base-directory, jjar-files)
+	(jjar-get-matching-files-in-tree)
+	(jjar-get-matching-files, jjar-make-jar-command)
+	(jjar-get-jar-options, jjar-execute)
+	(jjar-cancel-dialog, jjar-dialog-mode-map)
+	(jjar-dialog-mode, jjar-wildcards-dialog)
+	(jjar-files-dialog-toggle-selection, jjar-files-dialog)
+	(jjar-create, jjar-update): Doc fix & some code cleanup.
+	(jjar-customize): Removed.
+
+	* jmaker.el:
+	
+	Updated comments.
+	(jmaker-version): Updated to 2.3.
+	(require 'cl): At compilation time.
+	(jmaker-overlay-delete): Renamed to...
+	(jmaker-delete-overlay): New.
+	(jmaker-generall-dialog-setup-selected-aux): Use `dolist'.
+	(jmaker-generall-dialog-toggle-selection): Use `push'.
+	(jmaker-generall-dialog-header): Simplified.
+	(jmaker-overlay-lists)
+	(jmaker-generall-dialog): Code cleanup.
+	
+	* jsee.el:
+
+	Updated comments.
+	(jsee-version): Moved. Updated to 2.1.
+	(jde-jsee-load-hook, jsee-call, jsee-delete-file)
+	(jsee-get-package-name, jsee-file-class)
+	(jde-jsee-javadoc, jde-jsee-javadoc-output-dir)
+	(jsee-javadoc-get-output-dir)
+	(jsee-javadoc-get-classpath-option)
+	(jsee-javadoc-get-output-filename)
+	(jsee-javadoc-delete-previous-output)
+	(jsee-javadoc-browse-output, jsee-pre-generate-handler)
+	(jsee-post-generate-handler, jsee-make-doc-generator-command)
+	(jsee-run-doc-generator, jsee-browse-api-doc)
+	(jsee-default-load-hook): Doc fix & some code cleanup.
+	(jsee-customize): Removed.
+
+	* overlay-fix.el:
+
+	(overlay-fix-version): New constant.
+
+	* swbuff.el:
+
+	Updated comments.
+	(swbuff-version): Moved. Updated to 3.2.
+	(swbuff-status-buffer-name): Moved.
+	(swbuff-load-hook, swbuff-one-window-p)
+	(swbuff-show-status-window, swbuff-pre-command-hook)
+	(swbuff-switch-to-previous-buffer)
+	(swbuff-switch-to-next-buffer)
+	(swbuff-default-load-hook): Doc fix.
+
+	* tree-widget-example.el:
+
+	Updated comments.
+	(tree-widget-examples-version): New constant.
+
+	* tree-widget.el:
+
+	Updated comments.
+	(tree-widget-version): New constant.
