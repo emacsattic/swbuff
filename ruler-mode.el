@@ -5,7 +5,7 @@
 ;; Author: David Ponce <david@dponce.com>
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 24 Mar 2001
-;; Version: 1.2.1
+;; Version: 1.3
 ;; Keywords: environment
 
 ;; This file is part of GNU Emacs.
