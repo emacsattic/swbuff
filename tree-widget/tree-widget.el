@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 16 Feb 2001
 ;; Keywords: extensions
-;; Revision: $Id: tree-widget.el,v 1.1 2004/04/30 13:23:45 ponced Exp $
+;; Revision: $Id: tree-widget.el,v 1.2 2004/04/30 13:33:29 ponced Exp $
 
 (defconst tree-widget-version "2.1")
 
@@ -136,16 +136,15 @@
   :type  'boolean
   :group 'tree-widget)
 
-(defcustom tree-widget-themes-directory nil
+;; Use "tree-widget-themes" as default for compatibility.
+(defcustom tree-widget-themes-directory "tree-widget-themes"
   "*Name of the directory where to lookup for image themes.
-It defaults to \"tree-widget-themes\".
+Default to the directory where is located the tree-widget library.
+If a relative name is specified, try to locate that sub-directory in
+`load-path', then in the data directory, and use the first one found.
 
-Unless it is absolute directory name, it should be the name of a
-sub-directory located in `load-path', or in the data directory.
-
-If running GNU Emacs, the data directory is in the variable
-`data-directory'.  If running XEmacs, it is what
-\(`locate-data-directory' \"tree-widget\") returns."
+The data directory is the value of: the variable `data-directory' on
+GNU Emacs; \(`locate-data-directory' \"tree-widget\") on XEmacs."
   :type '(choice (const :tag "Default" nil)
                  (directory :format "%{%t%}:\n%v")
                  )
@@ -257,41 +256,44 @@ Does nothing if NAME is the name of the current theme."
 (defun tree-widget-themes-directory ()
   "Locate the directory where to search for a theme.
 It is defined in variable `tree-widget-themes-directory'.
-If it is an absolute name, use it.  If it is a relative name, try to
-locate that sub-directory in `load-path', then in the data directory,
-and use the first one found which is readable.
 Return the absolute name of the directory found, or nil if the
-specified directory doesn't exist or is not readable."
-  (let ((dir (aref tree-widget--theme 1))
-        path found)
-    (cond
-     ;; Don't locate again a previously not found directory.
-     ((eq dir 'void) nil)
-     ;; The directory is in the cache, return it.
-     (dir)
-     ;; Locate the specified themes directory.
-     ((setq dir (or tree-widget-themes-directory "tree-widget-themes"))
-      (if (file-name-absolute-p dir)
-          ;; Check if the given absolute directory name is valid.
-          (and (file-directory-p (setq dir (expand-file-name dir)))
-               (file-readable-p dir)
-               (setq found dir))
-        ;; Search for a sub-directory in `load-path' and data directory
-        (setq path (append load-path
-                           ;; The data directory depends on which, GNU
-                           ;; Emacs or XEmacs, is running.
-                           (list (if (fboundp 'locate-data-directory)
-                                     (locate-data-directory "tree-widget")
-                                   data-directory))))
-        (while (and path (not found))
-          (when (car path)
-            (setq found (expand-file-name dir (car path)))
-            (or (and (file-directory-p found) (file-readable-p found))
-                (setq found nil)))
-          (setq path (cdr path))))
+specified directory is not accessible."
+  (let ((found (aref tree-widget--theme 1)))
+    (if found
+        ;; The directory is available in the cache.
+        (unless (eq found 'void) found)
+      (cond
+       ;; By default use the directory where tree-widget is located.
+       ((null tree-widget-themes-directory)
+        (setq found (locate-library "tree-widget"))
+        (when found
+          (setq found (file-name-directory found))
+          (or (file-accessible-directory-p found)
+              (setq found nil))))
+       ;; Check accessibility of absolute directory name.
+       ((file-name-absolute-p tree-widget-themes-directory)
+        (setq found (expand-file-name tree-widget-themes-directory))
+        (or (file-accessible-directory-p found)
+            (setq found nil)))
+       ;; Locate a sub-directory in `load-path' and data directory.
+       (t
+        (let ((path
+               (append load-path
+                       ;; The data directory depends on which, GNU
+                       ;; Emacs or XEmacs, is running.
+                       (list (if (fboundp 'locate-data-directory)
+                                 (locate-data-directory "tree-widget")
+                               data-directory)))))
+          (while (and path (not found))
+            (when (car path)
+              (setq found (expand-file-name
+                           tree-widget-themes-directory (car path)))
+              (or (file-accessible-directory-p found)
+                  (setq found nil)))
+            (setq path (cdr path))))))
       ;; Store the result in the cache for later use.
       (aset tree-widget--theme 1 (or found 'void))
-      found))))
+      found)))
 
 (defsubst tree-widget-set-image-properties (props)
   "In current theme, set images properties to PROPS."
