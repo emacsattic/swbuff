@@ -5,7 +5,7 @@
 ;; Author: David Ponce <david@dponce.com>
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 24 Mar 2001
-;; Version: 1.2
+;; Version: 1.2.1
 ;; Keywords: environment
 
 ;; This file is part of GNU Emacs.
@@ -426,10 +426,19 @@ START-EVENT is the mouse click event."
                  #'ruler-mode-post-command-hook t)))
 
 (defconst ruler-mode-ruler-help-echo
-  (concat "S-mouse-1: set left margin, "
-          "S-mouse-3: set right margin, "
-          "mouse-2: set fill column")
-  "Default help string shown when mouse pointer is over the ruler.")
+  "\
+S-mouse-1/3: set L/R margin, \
+mouse-2: set fill col, \
+C-mouse-2: show tabs"
+  "Help string shown when mouse pointer is over the ruler.
+`ruler-mode-show-tab-stops' is nil.")
+
+(defconst ruler-mode-ruler-help-echo-tab
+  "\
+C-mouse1/3: set/unset tab, \
+C-mouse-2: hide tabs"
+  "Help string shown when mouse pointer is over the ruler.
+`ruler-mode-show-tab-stops' is non-nil.")
 
 (defconst ruler-mode-left-margin-help-echo
   "Left margin %S"
@@ -505,7 +514,10 @@ That is a pair (FRINGE-COLS . VSCROLLBAR-COLS) where:
                             'face 'ruler-mode-default-face
                             ruler)
          (put-text-property 0 (length ruler)
-                            'help-echo ruler-mode-ruler-help-echo
+                            'help-echo 
+                            (if ruler-mode-show-tab-stops
+                                ruler-mode-ruler-help-echo-tab
+                              ruler-mode-ruler-help-echo)
                             ruler)
          ;; Setup the local map.
          (put-text-property 0 (length ruler)
