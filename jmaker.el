@@ -1,5 +1,5 @@
 ;;; jmaker.el -- Java Makefile generator add-on to JDE.
-;; $Revision: 1.1 $
+;; $Revision: 1.2 $
 
 ;; Copyright (C) 1998 by David Ponce
 
@@ -76,7 +76,7 @@
 (require 'jde)
 (require 'tempo)
 
-(defconst jmaker-version "$Revision: 1.1 $"
+(defconst jmaker-version "$Revision: 1.2 $"
   "jmaker version number.")
 
 (defgroup jmaker nil
@@ -225,7 +225,9 @@ This is a temporary buffer which could be edited and must be saved to allow buil
 		)
 	)
 
-(add-hook 'jde-mode-hooks 'jmaker-jde-hook)
+(if (and (>= emacs-major-version 20) (>= emacs-minor-version 3))
+		(add-hook 'jde-mode-hook 'jmaker-jde-hook)
+	(add-hook 'jde-mode-hooks 'jmaker-jde-hook))
 
 (provide 'jmaker)
 
@@ -233,6 +235,13 @@ This is a temporary buffer which could be edited and must be saved to allow buil
 
 ;;
 ;; $Log: jmaker.el,v $
+;; Revision 1.2  1998/09/15 11:26:55  ebat311
+;; Added support for Emacs 20.3.1.
+;; From Paul Kinnucan: "Emacs 20.3.1 fixes a bug in the derive
+;; mode macro that caused the jde-mode hook variable to be named
+;; `jde-mode-hooks' (note plural) instead of `jde-mode-hook' (singular),
+;; which is customary."
+;;
 ;; Revision 1.1  1998/07/22 13:48:17  ebat311
 ;; Initial revision
 ;;
