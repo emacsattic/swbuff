@@ -5,9 +5,9 @@
 ;; Author: David Ponce <david@dponce.com>
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: July 22 1998
-;; Version: 1.21
+;; Version: 2.0
 ;; Keywords: tools
-;; VC: $Id: jmaker.el,v 1.21 2000/08/16 14:23:42 david_ponce Exp $
+;; VC: $Id: jmaker.el,v 1.22 2000/08/18 14:49:18 david_ponce Exp $
 
 ;; This file is not part of Emacs
 
@@ -47,28 +47,16 @@
 
 ;; Usage:
 ;;
-;; While editing a Java file use:
-;;   M-x `jmaker-generate-makefile' to generate a new Makefile in the current
-;;   directory. If an old one already exists the command requires confirmation
-;;   to overwrite it.
-;;
-;; Anywhere use:
-;;   M-x `jmaker-generate-meta-makefile' to generate a new meta Makefile in the
-;;   asked directory. If an old meta Makefile already exists the command requires
-;;   confirmation to overwrite it. The command give also the option to update or
-;;   create the Makefiles in the given directory tree.
-;; 
-;;   M-x `jmaker-generate-all-makefiles' to generate new Makefiles in the
-;;   asked directory tree. A dialog allows you to select which Makefiles
-;;   will be created or overwritten.
+;; M-x `jmaker-generate-makefile' to generate a new Makefile in the
+;; given directory. If an old one already exists the command requires
+;; confirmation to overwrite it. The command give also the option to
+;; update or create Makefiles in the given directory tree.
 ;; 
 ;; CAUTION: jmaker doesn't take back any modifications you could have made
-;; to an existing Makefile!
+;; to existing Makefiles!
 ;;
 ;; To build a project with make you can use the `compile' command or the
 ;; `jde-build' command if `jde-build-use-make' is set to a non-nil value.
-;; To build a set of projects you can use the `compile' command and give it
-;; the file name of the meta Makefile (make [others options] -f Makefile.meta)
 ;;
 ;; A JMaker menu item is added to the menu bar in jde-mode.
 
@@ -85,6 +73,19 @@
 ;;; Change Log:
 
 ;; $Log: jmaker.el,v $
+;; Revision 1.22  2000/08/18 14:49:18  david_ponce
+;; New major version 2.0 of jmaker.el.
+;;
+;; There is no more meta Makefiles. New generated Makefiles automatically
+;; process all sub-directories of a project :-). So, jmaker provides only
+;; one command to generate Makefiles in a project directory tree:
+;; `jmaker-generate-makefile'.
+;;
+;; IMPORTANT: the new Makefile template is not compatible with the one
+;; created by previous versions of jmaker. You must reset
+;; `jmaker-makefile-buffer-template' to its standard settings and redo
+;; any customization you have made. Sorry!
+;;
 ;; Revision 1.21  2000/08/16 14:23:42  david_ponce
 ;; Improved XEmacs compatibility.
 ;; Fixed a side effect bug in `jmaker-get-makefiles-in-tree'.
@@ -194,14 +195,11 @@
 
 ;;; Code:
 (require 'jde)
-(require 'tempo)
 (require 'compile)
-(require 'widget)
-(eval-when-compile
-  (require 'wid-edit))
+(require 'wid-edit)
 
-(defconst jmaker-version "$Revision: 1.21 $"
-  "jmaker version tag.")
+(defconst jmaker-version "2.0 $Date: 2000/08/18 14:49:18 $"
+  "jmaker version  information.")
 
 (defgroup jmaker nil
   "Java Makefile generator"
@@ -220,31 +218,56 @@
     "\"JAVAC       = \" jde-compiler  'n"
     "\"JAVAC_FLAGS = \" (jde-get-compile-options) 'n"
     "'n"
-    "\"#### Build Rules\" 'n"
+    "\"#### Targets settings\" 'n"
+    "\"CLASS_FILES   = \" (jmaker-make-get-file-targets) 'n"
+    "\"SUBDIRS       = \" (jmaker-make-get-subdir-targets) 'n"
+    "\"SUBDIRS_CLEAN = $(patsubst %,%.clean,$(SUBDIRS))\" 'n"
+    "\"SUBDIRS_MAKE  = $(patsubst %,%.make,$(SUBDIRS))\" 'n"
+    "'n"
+    "\"#### Main targets\" 'n"
+    "'n"
+    "\"# Default\" 'n"
+    "\"all: $(CLASS_FILES) $(SUBDIRS_MAKE)\" 'n"
+    "'n"
+    "\"# Cleanup\" 'n"
+    "\"clean: $(SUBDIRS_CLEAN)\" 'n"
+    "\"\\t$(RM) *.class\" 'n"
+    "\"\\t@echo \\\"Cleanup done.\\\"\" 'n"
+    "'n"
+    "\"# Rebuild\" 'n"
+    "\"build: clean all\" 'n"
+    "\"\\t@echo \\\"Rebuild done.\\\"\" 'n"
+    "'n"
+    "\"#### Aux targets\" 'n"
+    "'n"
+    "\"# Files compilation\" 'n"
     "\"%.class: %.java\" 'n"
     "\"\\t$(JAVAC) $(JAVAC_FLAGS) $<\" 'n"
     "'n"
-    "\"#### Global target\" 'n"
-    "(jmaker-all-target)"
+    "\"# Sub-directories compilation\" 'n"
+    "\"%.make:\" 'n"
+    "\"\\t$(MAKE) -k -C $(subst .make,,$@)\" 'n"
     "'n"
-    "\"#### Single targets\" 'n"
-    "(jmaker-file-targets)"
+    "\"# Sub-directories cleanup\" 'n"
+    "\"%.clean:\" 'n"
+    "\"\\t$(MAKE) -k -C $(subst .clean,,$@) clean\" 'n"
     "'n"
-    "\"#### Cleanup\" 'n"
-    "\"clean:\" 'n"
-    "\"\\t$(RM) *.class\" 'n"
+    "\"# Phony Targets\" 'n"
+    "\".PHONY: clean build help\" 'n"
     "'n"
-    "\"#### Rebuild\" 'n"
-    "\"build:\\tclean all\" 'n"
-    "'n"
-    "\"#### Usage\" 'n"
+    "\"#### Help\" 'n"
     "\"help:\" 'n"
-    "\"\\t@echo \\\"Usage: make [all|<single target>|clean|build|help]\\\"\" 'n"
-    "\"\\t@echo \\\"  all             - build all as needed (default)\\\"\" 'n"
-    "\"\\t@echo \\\"  <single target> - build the given file as needed\\\"\" 'n"
-    "\"\\t@echo \\\"  clean           - remove all .class files\\\"\" 'n"
-    "\"\\t@echo \\\"  build           - build all inconditionnally\\\"\" 'n"
-    "\"\\t@echo \\\"  help            - display this help\\\"\" 'n"
+    "\"\\t@echo \\\"Usage: make [targets...]\\\"\" 'n"
+    "\"\\t@echo \\\"\\\"\" 'n"
+    "\"\\t@echo \\\"where targets include:\\\"\" 'n"
+    "\"\\t@echo \\\"\\\"\" 'n"
+    "\"\\t@echo \\\"  help           display this help\\\"\" 'n"
+    "\"\\t@echo \\\"  all            compile all (default)\\\"\" 'n"
+    "\"\\t@echo \\\"  clean          remove all class files\\\"\" 'n"
+    "\"\\t@echo \\\"  build          rebuild all inconditionnally\\\"\" 'n"
+    "\"\\t@echo \\\"  <class file>   compile the given file\\\"\" 'n"
+    "\"\\t@echo \\\"  <subdir>.make  compile the given subdir\\\"\" 'n"
+    "\"\\t@echo \\\"  <subdir>.clean clean the given subdir\\\"\" 'n"
     "'n"
     )
   "*Template for Java Makefile.
@@ -258,38 +281,6 @@ command `jmaker-insert-makefile', as a side-effect."
                                    (jde-gen-read-template val)
                                    nil
                                    "Insert a Java Makefile in the current buffer."))
-          (set-default sym val)))
-
-(defcustom jmaker-meta-makefile-buffer-template
-  '(
-    "\"####\" 'n"
-    "\"#### Java meta Makefile automatically generated by jmaker \""
-    "(jmaker-version-number) 'n"
-    "\"#### Creation date: \" (current-time-string) 'n"
-    "\"####\" 'n"
-    "'n"
-    "\"#### Sub-Makefiles targets\" 'n"
-    "(jmaker-sub-makefile-targets)"
-    "'n"
-    "\"#### Usage\" 'n"
-    "\"help:\" 'n"
-    "\"\\t@echo \\\"Usage: make [all|<single target>|help]\\\"\" 'n"
-    "\"\\t@echo \\\"  all             - build all as needed (default)\\\"\" 'n"
-    "\"\\t@echo \\\"  <single target> - build the given target as needed\\\"\" 'n"
-    "\"\\t@echo \\\"  help            - display this help\\\"\" 'n"
-    "'n"
-    )
-  "*Template for Java meta Makefile.
-Setting this variable defines a template instantiation
-command `jmaker-insert-meta-makefile', as a side-effect."
-  :group 'jmaker
-  :type '(repeat string)
-  :set '(lambda (sym val)
-          (defalias 'jmaker-insert-meta-makefile
-            (tempo-define-template "jmaker-meta-makefile-buffer-template"
-                                   (jde-gen-read-template val)
-                                   nil
-                                   "Insert a Java Makefile.meta in the current buffer."))
           (set-default sym val)))
 
 (defcustom jmaker-end-of-line-style 'unix
@@ -306,22 +297,12 @@ The possible choices are:
                  (const :tag "Dos"     dos )
                  (const :tag "Mac"     mac )))
 
-;;;###autoload
-(defun jmaker-customize ()
-  "Show the jmaker customization options panel."
-  (interactive)
-  (customize-group "jmaker"))
-
+;;;
+;;; Common functions
+;;;
 (defun jmaker-version-number ()
-  "Return jmaker version number."
-  (string-match "[0123456789.]+" jmaker-version)
-  (match-string 0 jmaker-version))
-
-;;;###autoload
-(defun jmaker-display-version ()
-  "Display jmaker version."
-  (interactive)
-  (message "Using 'jmaker' version %s." (jmaker-version-number)))
+  (and (string-match "\\(.*\\)\\s-+\\$Date:" jmaker-version)
+       (match-string 1 jmaker-version)))
 
 (defun jmaker-get-java-names ()
   "Return the list of all .java file names without extension found
@@ -329,132 +310,36 @@ in `default-directory'."
   (mapcar 'file-name-sans-extension
           (directory-files default-directory nil ".\\.java$")))
 
-(defun jmaker-convert-directory-to-package (dir)
-  "Converts the given directory path to a valid Java package name
-by replacing `directory-sep-char' by '.' and removing extra
-`directory-sep-char' at end."
-  (if (string= dir "")
-      ""
-    (if jde-xemacsp
-        (replace-in-string 
-         (substring (file-name-as-directory dir) 0 -1)
-         (regexp-quote (char-to-string directory-sep-char)) "."  t)
-      (subst-char-in-string directory-sep-char ?.
-                            (substring (file-name-as-directory dir) 0 -1) t))))
+(defun jmaker-check-for-java-files (dir)
+  "Helper function for `jmaker-contains-java-files-p'."
+  (and (file-directory-p dir)
+       (not (string-match "\\(\\.\\.?\\|CVS\\)$" dir))
+       (let ((flist (directory-files dir t))
+             file)
+         (while flist
+           (setq file (car flist))
+           (if (file-regular-p file)
+               (if (string-match ".\\.java$" file)
+                   (throw 'jmaker-contains-java-files-p file))
+             (jmaker-check-for-java-files file))
+           (setq flist (cdr flist))))))
 
-(defun jmaker-get-makefiles-in-tree (root)
-  "Return the list of Makefiles found in the ROOT directory tree.
-Each Makefile path is relative to ROOT."
-  (message "Searching Makefiles...")
-  (let ((makefile-list
-         (nconc (and (file-directory-p root)
-                     (file-readable-p (concat root "/Makefile"))
-                     (jmaker-get-makefiles-in-tree-aux root root))
-                '("./Makefile"))))
-    (message "Searching Makefiles...Done")
-    makefile-list))
+(defun jmaker-contains-java-files-p (dir)
+  "Return non-nil if directory tree DIR contains some .java files."
+  (catch 'jmaker-contains-java-files-p
+    (jmaker-check-for-java-files dir)))
 
-(defun jmaker-get-makefiles-in-tree-aux (root dir)
-  "Auxiliary function used by `jmaker-get-makefiles-in-tree'.
-DIR is a subdirectory in ROOT tree."
-  
-  (apply 'nconc
-         (mapcar
-          (function
-           (lambda (entry)
-             (and (not (string= (substring entry -1) "."))
-                  (file-directory-p entry)
-                  (nconc (and (file-exists-p (concat entry "/Makefile"))
-                              (list (concat (file-relative-name entry root)
-                                            "/Makefile")))
-                         (jmaker-get-makefiles-in-tree-aux root entry)))))
-          (directory-files dir t nil nil -1))))
-
-(defun jmaker-all-target ()
-  "Return a string giving the Makefile target to compile all java files.
-It is build from the name of all .java files in `default-directory'. For
-exemple, if the directory contains Sample1.java and Sample2.java the function
-will return:
-
-all: \
-  Sample1 \
-  Sample2
-
-"
-  (concat "all:\t\\\n"
-          (mapconcat (function
-                      (lambda (name)
-                        (concat "\t" name)))
-                     (jmaker-get-java-names)
-                     " \\\n")
-          "\n"))
-
-(defun jmaker-file-targets ()
-  "Return a string giving the Makefile targets to compile each java file.
-It is build from the name of all .java files in `default-directory'. For
-exemple, if the directory contains Sample1.java and Sample2.java the function
-will return:
-
-Sample1: Sample1.class
-Sample2: Sample2.class
-
-"
-  (mapconcat (function
-              (lambda (name)
-                (concat name ":\t" name ".class\n")))
-             (jmaker-get-java-names)
-             ""))
-
-(defun jmaker-sub-makefile-targets ()
-  "Return a string giving Makefile targets to recursively run make on all
-Makefiles found in `default-directory' tree. The result looks like the
-following:
-
-\"all: \
-   test \
-   test.essai1 \
-   other
-
-test: FORCE
-  cd test; $(MAKE)
-
-test.essai1: FORCE
-  cd test/essai1; $(MAKE)
-
-other: FORCE
-  cd other; $(MAKE)
-
-FORCE:
-\"
-"
-  (let* ((directory-sep-char ?/)        ; force Unix directory separator
-         (subdir-list (mapcar (function
-                               (lambda (x)
-                                 (directory-file-name (file-name-directory x))))
-                              (jmaker-get-makefiles-in-tree default-directory))))
-    (concat "all:\t\\\n"
-            (mapconcat (function
-                        (lambda (dir)
-                          (concat "\t" (jmaker-convert-directory-to-package dir))))
-                       subdir-list
-                       " \\\n")
-            "\n\n"
-            (mapconcat (function
-                        (lambda (dir)
-                          (concat (jmaker-convert-directory-to-package dir)
-                                  ":\tFORCE\n\tcd " dir "; $(MAKE)\n")))
-                       subdir-list
-                       "\n")
-            "\nFORCE:\n")))
-
-(defun jmaker-makefile-generator ()
-  "Generate a full java Makefile in the current buffer.
-Call `jde-load-project-file' to update the JDE project settings."
-  (jde-load-project-file)
-  (jmaker-insert-makefile))
-
-;; Generate a full java meta Makefile in the current buffer.
-(defalias 'jmaker-meta-makefile-generator 'jmaker-insert-meta-makefile)
+(defun jmaker-get-subdirs-with-makefile (dir)
+  "Return a list of DIR sub-directories containing a Makefile."
+  (let ((flist (directory-files dir t))
+        entry dlist)
+    (while flist
+      (setq entry (car flist))
+      (and (not (string-match "\\(\\.\\.?\\|CVS\\)$" entry))
+           (file-regular-p (concat entry "/Makefile"))
+           (setq dlist (cons (file-relative-name entry dir) dlist)))
+      (setq flist (cdr flist)))
+    (nreverse dlist)))
 
 (defun jmaker-set-buffer-end-of-line-style ()
   "Set the end-of-line style used when writing a Makefile (see
@@ -468,6 +353,33 @@ variable `jmaker-end-of-line-style')."
              (not (eq newcs buffer-file-coding-system))
              (setq buffer-file-coding-system newcs)
              (message "end-of-line style set to %s" style)))))
+
+;;;
+;;; Makefile parameters
+;;;
+
+(defun jmaker-make-get-file-targets ()
+  "Return a string containing the list of target .class files."
+  (mapconcat (function
+              (lambda (x)
+                (concat x ".class")))
+             (jmaker-get-java-names)
+             " "))
+
+(defun jmaker-make-get-subdir-targets ()
+  "Return a string containing the list of target sub-directories."
+  (mapconcat 'identity
+             (jmaker-get-subdirs-with-makefile default-directory)
+             " "))
+;;;
+;;; Generation tools
+;;;
+
+(defun jmaker-makefile-generator ()
+  "Generate a full java Makefile in the current buffer.
+Call `jde-load-project-file' to update the JDE project settings."
+  (jde-load-project-file)
+  (jmaker-insert-makefile))
 
 (defun jmaker-generate-file-noselect (dir name generator &optional over)
   "Edit the file NAME in directory DIR and return the updated file buffer.
@@ -485,10 +397,6 @@ overwrite it unless OVER is non-nil."
       (funcall generator)
       (current-buffer))))
 
-(defun jmaker-has-java-files-p (dir)
-  "Return non-nil if DIR contains some .java files"
-  (directory-files dir nil ".\\.java$"))
-
 (defun jmaker-generate-makefile-in-dir (dir)
   "Generate a Java Makefile file in directory DIR.
 If the Makefile already exists it is overwritten."
@@ -500,36 +408,47 @@ If the Makefile already exists it is overwritten."
     (save-buffer)
     (kill-buffer (current-buffer))))
 
+(defun jmaker-do-generate-makefile (root)
+  "Helper function for `jmaker-generate-makefile' to actually generate
+the Makefile in directory ROOT."
+  (with-current-buffer
+      (jmaker-generate-file-noselect root
+                                     "Makefile"
+                                     'jmaker-makefile-generator)
+    (makefile-mode)
+    (goto-char (point-min))
+    (switch-to-buffer (current-buffer))))
+
+;;;
+;;; Dialogs
+;;;
+
 (defvar jmaker-generall-dialog-selected nil
   "Used by `jmaker-generall-dialog' to hold the list of Makefiles
 to be generated.")
 
+(defun jmaker-generall-dialog-setup-selected-aux (root)
+  "Helper function for `jmaker-generall-dialog-setup-selected'."
+  (mapcar (function
+           (lambda (entry)
+             (and (jmaker-contains-java-files-p entry)
+                  (add-to-list 'jmaker-generall-dialog-selected
+                               (file-name-as-directory entry))
+                  (jmaker-generall-dialog-setup-selected-aux entry))))
+          (directory-files root t)))
+
 (defun jmaker-generall-dialog-setup-selected (root)
-  "Initialize `jmaker-generall-dialog-selected' with the list of directories where
-Makefiles could be generated, that is directories where .java files are found.
-ROOT is the root of the directory tree scanned."
+  "Initialize `jmaker-generall-dialog-selected' with the list of
+sub-directories of ROOT where Makefiles could be generated."
   (message "Scanning directories...")
   (setq jmaker-generall-dialog-selected nil)
-  (jmaker-generall-dialog-setup-selected-aux root)
+  (if (file-directory-p root)
+      (jmaker-generall-dialog-setup-selected-aux root))
   (message "Scanning directories...Done"))
 
-(defun jmaker-generall-dialog-setup-selected-aux (root)
-  "Auxiliary function used by `jmaker-generall-dialog-setup-selected'."
-  (let ((root (file-name-as-directory root)))
-    (and (jmaker-has-java-files-p root)
-         (add-to-list 'jmaker-generall-dialog-selected root))
-    (mapcar (function
-             (lambda (f)
-               (let ((entry (concat root f)))
-                 (if (and (not (string= f "."))
-                          (not (string= f ".."))
-                          (file-directory-p entry))
-                     (jmaker-generall-dialog-setup-selected-aux entry)))))
-            (directory-files root))))
-
 (defun jmaker-generall-dialog-toggle-selection (widget &rest ignore)
-  "Checkbox widget action used by `jmaker-generall-dialog' to select or
-unselect a Makefile."
+  "Checkbox widget action used by `jmaker-generall-dialog' to select
+or unselect a Makefile."
   (let ((value (widget-get widget ':tag))
         (item (widget-get widget ':doc)))
     ;; if value is already in the selected items
@@ -664,63 +583,39 @@ after the command complete (that is after Makefiles were generated)."
     (widget-setup)
     (goto-char (point-min))))
 
-;;;###autoload
-(defun jmaker-generate-makefile ()
-  "Generates a Java Makefile in the current directory.
-If no .java files exist the command does nothing.
-If the Makefile already exists the command requires confirmation to overwrite it."
-  (interactive)
-  (if (jmaker-has-java-files-p default-directory)
-      (with-current-buffer
-          (jmaker-generate-file-noselect default-directory
-                                         "Makefile"
-                                         'jmaker-makefile-generator)
-        (makefile-mode)
-        (goto-char (point-min))
-        (switch-to-buffer (current-buffer)))
-    (message "No .java file found in %s" default-directory)))
+;;;
+;;; Commands
+;;;
 
 ;;;###autoload
-(defun jmaker-generate-all-makefiles (root)
-  "Generate Java Makefiles in the ROOT directory tree. Display a dialog
-to select the Makefiles that will be created or overwritten, potentially
-in directories where .java files exist (see also `jmaker-generall-dialog')."
-  (interactive "DDirectory: ")
-  (jmaker-generall-dialog root))
-
-;;;###autoload
-(defun jmaker-generate-meta-makefile (root)
-  "Generates a Makefile.meta file in directory ROOT used to recursively run
-make on each Makefile found in ROOT directory tree. The command give also the option
-to update or create the Makefiles in the ROOT tree (see `jmaker-generate-all-makefiles').
-If Makefile.meta already exists the command requires confirmation to overwrite it."
+(defun jmaker-generate-makefile (root)
+  "Generate a Makefile in directory ROOT. If the Makefile already
+exists the command requires confirmation to overwrite it. Give also
+the option to update or create the Makefiles in the ROOT tree. If so,
+displays a dialog to select the Makefiles that will be created or
+overwritten, potentially in sub-directories of ROOT where .java files
+exist (see also `jmaker-generall-dialog')."
   (interactive "DDirectory: ")
   (if (y-or-n-p (format "Update or create the Makefiles in %s?" root))
-      (jmaker-generall-dialog root 'jmaker-do-generate-meta-makefile)
-    (jmaker-do-generate-meta-makefile root)))
+      (jmaker-generall-dialog root 'jmaker-do-generate-makefile)
+    (jmaker-do-generate-makefile root)))
 
-(defun jmaker-do-generate-meta-makefile (root)
-  "Auxiliary function used by `jmaker-generate-meta-makefile' to actually generate
-a Makefile.meta file in directory ROOT.
-If Makefile.meta already exists the command requires confirmation to overwrite it."
-  (with-current-buffer
-      (jmaker-generate-file-noselect root
-                                     "Makefile.meta"
-                                     'jmaker-meta-makefile-generator)
-    (makefile-mode)
-    (goto-char (point-min))
-    (switch-to-buffer (current-buffer))))
+;;;###autoload
+(defun jmaker-customize ()
+  "Show the jmaker customization options panel."
+  (interactive)
+  (customize-group "jmaker"))
+
+;;;
+;;; Setup
+;;;
 
 (defvar jmaker-menu
   (list "JMaker"
-        (list "New"
-              ["Makefile..."          jmaker-generate-makefile t]
-              ["Makefiles in tree..." jmaker-generate-all-makefiles t]
-              ["Meta-makefile..."     jmaker-generate-meta-makefile t]
-              )
-        ["Options..."              jmaker-customize t]
-        ["Make"                    compile t]
-        ["-"                       ignore nil]
+        ["New Makefile..."  jmaker-generate-makefile t]
+        ["Options..."       jmaker-customize t]
+        ["Make"             compile t]
+        ["-"                ignore nil]
         (concat "jmaker " (jmaker-version-number))
         )
   "Menu for jmaker.")
@@ -732,7 +627,6 @@ If Makefile.meta already exists the command requires confirmation to overwrite i
              (if jde-xemacsp
                  (add-submenu '("JDE") jmaker-menu)
                (easy-menu-add-item jde-mode-map '("menu-bar") jmaker-menu)))))
-
 
 (provide 'jmaker)
 
