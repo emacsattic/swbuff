@@ -5,9 +5,9 @@
 ;; Author: David Ponce david@dponce.com
 ;; Maintainer: David Ponce david@dponce.com
 ;; Created: June 14 1999
-;; Version: 1.7
+;; Version: 1.8
 ;; Keywords: tools
-;; VC: $Id: jjar.el,v 1.12 2001/10/26 22:01:08 ponce Exp $
+;; VC: $Id: jjar.el,v 1.13 2002/01/09 12:05:14 ponce Exp $
 
 ;; This file is not part of Emacs
 
@@ -68,6 +68,9 @@
 ;;; Change Log:
 
 ;; $Log: jjar.el,v $
+;; Revision 1.13  2002/01/09 12:05:14  ponce
+;; Version 1.8.
+;;
 ;; Revision 1.12  2001/10/26 22:01:08  ponce
 ;; (jjar-get-matching-files-in-dir): New implementation allowing
 ;; directory path in matching wildcards.
@@ -123,7 +126,7 @@
 (require 'compile)
 (require 'wid-edit)
 
-(defconst jjar-version "1.7 $Date: 2001/10/26 22:01:08 $"
+(defconst jjar-version "1.7 $Date: 2002/01/09 12:05:14 $"
   "jjar version information.")
 
 (defgroup jjar nil
