@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 25 February 2003
 ;; Keywords: convenience
-;; Revision: $Id: tabbar.el,v 1.22 2003/10/08 10:33:25 ponced Exp $
+;; Revision: $Id: tabbar.el,v 1.23 2003/10/15 12:34:03 ponced Exp $
 
 (defconst tabbar-version "1.3")
 
@@ -618,7 +618,7 @@ Arguments WINDOW, OBJECT and POSITION, are not used."
     (funcall tabbar-home-help-function)))
 
 (defconst tabbar-home-button-enabled-image
-  '((:type pbm :ascent center :data "\
+  '((:type pbm :ascent center :mask (heuristic t) :data "\
 P2
 10 10
 255
@@ -631,7 +631,7 @@ P2
   "Default image for the enabled home button.")
 
 (defconst tabbar-home-button-disabled-image
-  '((:type pbm :ascent center :data "\
+  '((:type pbm :ascent center :mask (heuristic t) :data "\
 P2
 10 10
 255
@@ -683,7 +683,7 @@ Arguments WINDOW, OBJECT and POSITION, are not used."
     (funcall tabbar-scroll-left-help-function)))
 
 (defconst tabbar-scroll-left-button-enabled-image
-  '((:type pbm :ascent center :data "\
+  '((:type pbm :ascent center :mask (heuristic t) :data "\
 P2
 8 10
 255
@@ -695,7 +695,7 @@ P2
   "Default image for the enabled scroll left button.")
 
 (defconst tabbar-scroll-left-button-disabled-image
-  '((:type pbm :ascent center :data "\
+  '((:type pbm :ascent center :mask (heuristic t) :data "\
 P2
 8 10
 255
@@ -746,7 +746,7 @@ Arguments WINDOW, OBJECT and POSITION, are not used."
     (funcall tabbar-scroll-right-help-function)))
 
 (defconst tabbar-scroll-right-button-enabled-image
-  '((:type pbm :ascent center :data "\
+  '((:type pbm :ascent center :mask (heuristic t) :data "\
 P2
 8 10
 255
@@ -758,7 +758,7 @@ P2
   "Default image for the enabled scroll right button.")
 
 (defconst tabbar-scroll-right-button-disabled-image
-  '((:type pbm :ascent center :data "\
+  '((:type pbm :ascent center :mask (heuristic t) :data "\
 P2
 8 10
 255
