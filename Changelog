@@ -1,3 +1,10 @@
+2004-02-14  David Ponce  <david@dponce.com>
+
+	* tabbar.el
+
+	(tabbar-line-format): Ensure there is always a valid tab bar
+	background color.
+
 2004-01-21  David Ponce  <david@dponce.com>
 
 	* tabbar.el
