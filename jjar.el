@@ -1,5 +1,5 @@
 ;; @(#) jjar.el -- Java Archive builder
-;; @(#) $Id: jjar.el,v 1.5 1999/07/21 14:45:35 ebat311 Exp $
+;; @(#) $Id: jjar.el,v 1.6 2000/03/10 15:28:20 ebat311 Exp $
 
 ;; This file is not part of Emacs
 
@@ -11,7 +11,7 @@
 ;; LCD Archive Entry:
 ;; jjar|David Ponce|david.ponce@wanadoo.fr|
 ;; Java Archive builder|
-;; $Date: 1999/07/21 14:45:35 $|$Revision: 1.5 $|~/misc/jjar.el|
+;; $Date: 2000/03/10 15:28:20 $|$Revision: 1.6 $|~/misc/jjar.el|
 
 ;; COPYRIGHT NOTICE
 ;;
@@ -90,12 +90,12 @@
 ;;; Code:
 
 (require 'compile)
-(require 'cl)
+;;(require 'cl)
 (require 'widget)
 (eval-when-compile
   (require 'wid-edit))
 
-(defconst jjar-version "$Revision: 1.5 $"
+(defconst jjar-version "$Revision: 1.6 $"
   "jjar version number."
   )
 
@@ -247,7 +247,7 @@ then calls `jjar-choose-wildcards'.
                         :notify (lambda (widget &rest ignore)
                                   (let ((value (widget-get widget ':tag)))
                                     ;; if value is already in the selected subdirs
-                                    (if (find value jjar-selected-subdirs)
+                                    (if (memq value jjar-selected-subdirs)
                                         ;; then remove it
                                         (progn
                                           (setq jjar-selected-subdirs
@@ -286,15 +286,33 @@ then calls `jjar-choose-wildcards'.
       (widget-setup)))
   )
 
+;; (defun jjar-get-base-subdirs ()
+;;   "Return the list of sub-directories of `jjar-base-directory'."
+;;   (mapcan '(lambda (f)
+;;              (let ((file (concat jjar-base-directory f)))
+;;                (if  (and (file-directory-p file)
+;;                          (not (string= f "..")))
+;;                    (list f))))
+;;           (directory-files jjar-base-directory))
+;;   )
+
 (defun jjar-get-base-subdirs ()
   "Return the list of sub-directories of `jjar-base-directory'."
-  (mapcan '(lambda (f)
-             (let ((file (concat jjar-base-directory f)))
-               (if  (and (file-directory-p file)
-                         (not (string= f "..")))
-                   (list f))))
-          (directory-files jjar-base-directory))
-  )
+  (cons jjar-base-directory
+        (jjar-directories-tree-aux jjar-base-directory)))
+
+
+(defun jjar-directories-tree-aux (dir)
+  (let ((dir (file-name-as-directory (expand-file-name dir))))
+    (apply 'nconc
+           (mapcar '(lambda (f)
+                      (let ((entry (concat dir f)))
+                        (unless (or (string= f "..")
+                                    (string= f ".")
+                                    (not (file-directory-p entry)))
+                          (cons (file-name-as-directory entry)
+                                (jjar-directories-tree-aux entry)))))
+                   (directory-files dir)))))
 
 (defun jjar-choose-wildcards ()
   "Choose the wildcard expressions used to select files.
@@ -408,44 +426,65 @@ See `jjar-jar-nocompress-option' and `jjar-jar-verbose-option'."
 wildcard expressions. Each wildcard expression returned is relative
 to `jjar-base-directory'."
   (message "Searching matching files, please wait...")
-  (mapcan '(lambda (subdir)
-             (let ((dir (concat jjar-base-directory subdir)))
-               (if (string= subdir ".")
-                   (jjar-get-matching-wildcards-in-dir dir)
-                 (jjar-get-matching-wildcards-in-tree dir))))
-          jjar-selected-subdirs)
-  )
-
-(defun jjar-get-matching-wildcards-in-tree (dir)
-  "Return a list of wildcard expressions corresponding to files in
-DIR tree that match one of `jjar-selected-wildcards' wildcard expressions."
-  (nconc (jjar-get-matching-wildcards-in-dir dir)
-         (jjar-get-matching-wildcards-in-tree-aux dir))
-  )
-
-(defun jjar-get-matching-wildcards-in-tree-aux (dir)
-  "Auxiliary function used by `jjar-get-matching-wildcards-in-tree'."
-  (let ((dir (file-name-as-directory dir)))
-    (mapcan  '(lambda (f)
-                (let ((file (concat dir f)))
-                  (unless (or (string= f "..")
-                              (string= f ".")
-                              (not (file-directory-p file)))
-                    (nconc (jjar-get-matching-wildcards-in-dir file)
-                           (jjar-get-matching-wildcards-in-tree-aux file)))))
-             (directory-files dir)))
-  )
+  (apply 'nconc
+         (mapcar 'jjar-get-matching-wildcards-in-dir jjar-selected-subdirs)))
 
 (defun jjar-get-matching-wildcards-in-dir (dir)
   "Return a list of wildcard expressions corresponding to files in
 DIR that match one of `jjar-selected-wildcards' wildcard expressions."
-  (mapcan '(lambda (wildcard)
-             (and (directory-files dir nil (wildcard-to-regexp wildcard))
-                  (list (concat (file-name-as-directory
+  (delq nil
+        (mapcar '(lambda (wildcard)
+                   (and (directory-files dir nil (wildcard-to-regexp wildcard))
+                        (concat (file-name-as-directory
                                  (file-relative-name dir jjar-base-directory))
-                                wildcard))))
-          jjar-selected-wildcards)
-  )
+                                wildcard)))
+                jjar-selected-wildcards)))
+
+
+;; (defun jjar-get-matching-wilcards ()
+;;   "Return a list of wildcard expressions corresponding to files in
+;; `jjar-selected-subdirs' that match one of `jjar-selected-wildcards'
+;; wildcard expressions. Each wildcard expression returned is relative
+;; to `jjar-base-directory'."
+;;   (message "Searching matching files, please wait...")
+;;   (mapcan '(lambda (subdir)
+;;              (let ((dir (concat jjar-base-directory subdir)))
+;;                (if (string= subdir ".")
+;;                    (jjar-get-matching-wildcards-in-dir dir)
+;;                  (jjar-get-matching-wildcards-in-tree dir))))
+;;           jjar-selected-subdirs)
+;;   )
+
+;; (defun jjar-get-matching-wildcards-in-tree (dir)
+;;   "Return a list of wildcard expressions corresponding to files in
+;; DIR tree that match one of `jjar-selected-wildcards' wildcard expressions."
+;;   (nconc (jjar-get-matching-wildcards-in-dir dir)
+;;          (jjar-get-matching-wildcards-in-tree-aux dir))
+;;   )
+
+;; (defun jjar-get-matching-wildcards-in-tree-aux (dir)
+;;   "Auxiliary function used by `jjar-get-matching-wildcards-in-tree'."
+;;   (let ((dir (file-name-as-directory dir)))
+;;     (mapcan  '(lambda (f)
+;;                 (let ((file (concat dir f)))
+;;                   (unless (or (string= f "..")
+;;                               (string= f ".")
+;;                               (not (file-directory-p file)))
+;;                     (nconc (jjar-get-matching-wildcards-in-dir file)
+;;                            (jjar-get-matching-wildcards-in-tree-aux file)))))
+;;              (directory-files dir)))
+;;   )
+
+;; (defun jjar-get-matching-wildcards-in-dir (dir)
+;;   "Return a list of wildcard expressions corresponding to files in
+;; DIR that match one of `jjar-selected-wildcards' wildcard expressions."
+;;   (mapcan '(lambda (wildcard)
+;;              (and (directory-files dir nil (wildcard-to-regexp wildcard))
+;;                   (list (concat (file-name-as-directory
+;;                                  (file-relative-name dir jjar-base-directory))
+;;                                 wildcard))))
+;;           jjar-selected-wildcards)
+;;   )
 
 (provide 'jjar)
 (run-hooks 'jjar-load-hook)
@@ -454,7 +493,11 @@ DIR that match one of `jjar-selected-wildcards' wildcard expressions."
 
 ;;
 ;; $Log: jjar.el,v $
-;; Revision 1.5  1999/07/21 14:45:35  ebat311
+;; Revision 1.6  2000/03/10 15:28:20  ebat311
+;; No more require cl.
+;; New directory selection scheme.
+;;
+;; Revision 1.5  1999-07-21 16:45:35+02  ebat311
 ;; FIXED:
 ;;   bad :type 'string of customizable variable `jjar-jar-nocompress-option'.
 ;;   Thanks to "Phillip Lord" <plord@hgmp.mrc.ac.uk> who has reported
