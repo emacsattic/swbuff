@@ -1,3 +1,35 @@
+2004-03-29  David Ponce  <david@dponce.com>
+
+	* tabbar.el
+
+	Reorder code.
+	(tabbar-home-button-enabled-image)
+	(tabbar-home-button-disabled-image)
+	(tabbar-scroll-left-button-enabled-image)
+	(tabbar-scroll-left-button-disabled-image)
+	(tabbar-scroll-right-button-enabled-image)
+	(tabbar-scroll-right-button-disabled-image): Remove :ascent and
+	:mask properties.
+	(tabbar-separator)
+	(tabbar-home-button-callback): Use "@" in interactive string to
+	select the input window.
+	(tabbar-scroll-left-button-callback)
+	(tabbar-scroll-right-button-callback)
+	(tabbar-make-select-tab-command): Likewise.
+	(tabbar-use-images): New option.
+	(tabbar-find-image): Use it.  Inlined.
+	(tabbar-disable-image, tabbar-normalize-image): New functions.
+	(tabbar-setup-button): Remove VALUE argument.  Don't call
+	`custom-set-default' here.  Use above new functions.  When not
+	provided, derive the disabled button image from the enabled one.
+	(tabbar-setup-separator): Remove VALUE argument.  Don't call
+	`custom-set-default' here.  Use `tabbar-normalize-image'.
+	(tabbar-separator, tabbar-home-button)
+	(tabbar-scroll-left-button)
+	(tabbar-scroll-right-button): `:set' clear current value.
+	(tabbar-line-format): Refresh buttons and separator when needed.
+	(tabbar-buffer-kill-buffer-hook): Check the sibling buffer.
+
 2004-03-03  David Ponce  <david@dponce.com>
 
 	* tabbar.el
