@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 25 February 2003
 ;; Keywords: convenience
-;; Revision: $Id: tabbar.el,v 1.17 2003/04/30 17:36:35 ponced Exp $
+;; Revision: $Id: tabbar.el,v 1.18 2003/05/14 15:08:50 ponced Exp $
 
 (defconst tabbar-version "1.2")
 
@@ -1046,7 +1046,7 @@ Depend on the setting of the option `tabbar-cycling-scope'."
   "Select the previous visible tab."
   (interactive)
   (let ((tabbar-cycling-scope 'tabs))
-    (tabbar-cycle)))
+    (tabbar-cycle t)))
 
 ;;;###autoload
 (defun tabbar-forward-tab ()
