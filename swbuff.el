@@ -1,5 +1,5 @@
 ;; @(#) swbuff.el -- Quick switch between Emacs buffers.
-;; @(#) $Id: swbuff.el,v 1.5 1999/05/07 11:45:33 ebat311 Exp $
+;; @(#) $Id: swbuff.el,v 1.6 1999/05/07 11:48:31 ebat311 Exp $
 
 ;; This file is not part of Emacs
 
@@ -11,7 +11,7 @@
 ;; LCD Archive Entry:
 ;; swbuff|David Ponce|david.ponce@wanadoo.fr|
 ;; Quick switch between Emacs buffers|
-;; $Date: 1999/05/07 11:45:33 $|$Revision: 1.5 $|~/misc/|
+;; $Date: 1999/05/07 11:48:31 $|$Revision: 1.6 $|~/misc/|
 
 ;; COPYRIGHT NOTICE
 ;;
@@ -84,7 +84,7 @@
 ;;; Code:
 (require 'cl)
 
-(defconst swbuff-version "$Revision: 1.5 $"
+(defconst swbuff-version "$Revision: 1.6 $"
   "swbuff version number."
   )
 
@@ -216,8 +216,7 @@ If there are no buffers, then the message is \"No buffers eligible for switching
   (swbuff-undisplay-buffer-list)
   (if (not (or (eq 'swbuff-switch-to-previous-buffer this-command)
                (eq 'swbuff-switch-to-next-buffer this-command)))
-      (progn (message "buffer list cleanup...")
-             (setq swbuff-buffer-list-string-holder nil)))
+      (setq swbuff-buffer-list-string-holder nil))
   (remove-hook 'pre-command-hook 'swbuff-pre-command-hook)
   )
 
@@ -273,7 +272,10 @@ and `swbuff-switch-to-previous-buffer' commands."
 
 ;;
 ;; $Log: swbuff.el,v $
-;; Revision 1.5  1999/05/07 11:45:33  ebat311
+;; Revision 1.6  1999/05/07 11:48:31  ebat311
+;; Removed a message displayed for debugging purpose.
+;;
+;; Revision 1.5  1999-05-07 13:45:33+02  ebat311
 ;; Improved buffer list display - the filenames list is kept static
 ;; (i.e., not shifting), while the current buffer highlight moves in
 ;; response to `swbuff-switch-to-next-buffer' and
