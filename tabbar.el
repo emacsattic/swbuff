@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 25 February 2003
 ;; Keywords: convenience
-;; Revision: $Id: tabbar.el,v 1.15 2003/04/23 09:11:29 ponced Exp $
+;; Revision: $Id: tabbar.el,v 1.16 2003/04/24 12:02:17 ponced Exp $
 
 (defconst tabbar-version "1.2")
 
@@ -963,15 +963,14 @@ If optional argument BACKWARD is non-nil, cycle to the previous tab
 instead.
 The scope of the cyclic navigation through tabs is specified by the
 option `tabbar-cycling-scope'."
-  (let ((tabset (tabbar-current-tabset))
+  (let ((tabset (tabbar-current-tabset t))
         selected tab)
     (when tabset
-      (setq selected (tabbar-selected-tab (tabbar-current-tabset)))
+      (setq selected (tabbar-selected-tab tabset))
       (cond
        ;; Cycle through visible tabs only.
        ((eq tabbar-cycling-scope 'tabs)
-        (setq tabset (tabbar-current-tabset)
-              tab (tabbar-tab-next tabset selected backward))
+        (setq tab (tabbar-tab-next tabset selected backward))
         ;; When there is no tab after/before the selected one, cycle
         ;; to the first/last visible tab.
         (unless tab
@@ -990,8 +989,7 @@ option `tabbar-cycling-scope'."
         )
        (t
         ;; Cycle through visible tabs then tab groups.
-        (setq tabset (tabbar-current-tabset)
-              tab (tabbar-tab-next tabset selected backward))
+        (setq tab (tabbar-tab-next tabset selected backward))
         ;; When there is no visible tab after/before the selected one,
         ;; cycle to the next/previous available group.
         (unless tab
