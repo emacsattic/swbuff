@@ -1,5 +1,12 @@
 2003-10-03  David Ponce  <david@dponce.com>
 
+	* recentf.el
+
+	(recentf-initialize-file-name-history): New defcustom.
+	(recentf-load-list): When `recentf-initialize-file-name-history'
+	is non-nil, initialize an empty `file-name-history' with the
+	recent list.
+
 	* tree-widget.el
 
 	(tree-widget-image-conversion): Rename to...
