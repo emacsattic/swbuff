@@ -8,7 +8,7 @@
 ;; Maintainer: FSF
 ;; Keywords: files
 
-(defconst recentf-version "$Revision: 1.29 $")
+(defconst recentf-version "$Revision: 1.30 $")
 
 ;; This file is part of GNU Emacs.
 
@@ -99,9 +99,13 @@ See the command `recentf-save-list'."
   :type 'file)
 
 (defcustom recentf-exclude nil
-  "*List of regexps for filenames excluded from the recent list."
+"*List of regexps and predicates for filenames excluded from the recent list.
+When a filename matches any of the regexps or satisfies any of the
+predicates it is excluded from the recent list.
+A predicate is a function that is passed a filename to check and that
+must return non-nil to exclude it."
   :group 'recentf
-  :type '(repeat regexp))
+  :type '(repeat (choice regexp function)))
 
 (defun recentf-menu-customization-changed (variable value)
   "Function called when the recentf menu customization has changed.
@@ -121,7 +125,7 @@ Set VARIABLE with VALUE, and force a rebuild of the recentf menu."
                                  '("File")
                                '("files"))
   "*Path where to add the recentf menu.
-If nil add it at top level (see also `easy-menu-change')."
+If nil add it at top level (see also `easy-menu-add-item')."
   :group 'recentf
   :type '(choice (const :tag "Top Level" nil)
                  (sexp :tag "Menu Path"))
@@ -131,7 +135,7 @@ If nil add it at top level (see also `easy-menu-change')."
                                    "Open..."
                                  "open-file")
   "*Name of the menu before which the recentf menu will be added.
-If nil add it at end of menu (see also `easy-menu-change')."
+If nil add it at end of menu (see also `easy-menu-add-item')."
   :group 'recentf
   :type '(choice (string :tag "Name")
                  (const :tag "Last" nil))
@@ -381,17 +385,34 @@ process the canonical name."
              (funcall recentf-filename-handler filename))
         filename)))
 
+(defsubst recentf-file-readable-p (filename)
+  "Return t if file FILENAME exists and you can read it.
+Like the function `file-readable-p' but return nil on error."
+  (condition-case nil
+      (file-readable-p filename)
+    (error nil)))
+
 (defun recentf-include-p (filename)
-  "Return t if FILENAME match none of the `recentf-exclude' regexps."
+  "Return non-nil if FILENAME should be included in the recent list.
+That is, if it doesn't match any of the `recentf-exclude' checks."
   (let ((case-fold-search recentf-case-fold-search)
-        (rl recentf-exclude))
-    (while (and rl (not (string-match (car rl) filename)))
-      (setq rl (cdr rl)))
-    (null rl)))
+        (checks recentf-exclude)
+        (keepit t)
+        check)
+    (while (and checks keepit)
+      (setq check  (car checks)
+            checks (cdr checks)
+            keepit (not (if (stringp check)
+                            ;; A regexp
+                            (string-match check filename)
+                          ;; A predicate
+                          (funcall check filename)))))
+    keepit))
 
 (defsubst recentf-add-file (filename)
   "Add or move FILENAME at the beginning of the recent list.
-Does nothing it if it matches any of the `recentf-exclude' regexps."
+Does nothing if the name satisfies any of the `recentf-exclude' regexps or
+predicates."
   (setq filename (recentf-expand-file-name filename))
   (when (recentf-include-p filename)
     (recentf-push filename)))
@@ -399,7 +420,7 @@ Does nothing it if it matches any of the `recentf-exclude' regexps."
 (defsubst recentf-remove-if-non-readable (filename)
   "Remove FILENAME from the recent list, if file is not readable.
 Return non-nil if FILENAME has been removed."
-  (unless (file-readable-p filename)
+  (unless (recentf-file-readable-p filename)
     (let ((m (recentf-string-member
               (recentf-expand-file-name filename) recentf-list)))
       (and m (setq recentf-list (delq (car m) recentf-list))))))
@@ -559,10 +580,28 @@ menu-elements (no sub-menu)."
 ;;;              :help (concat "Open " value)
               :active t))))
 
+(eval-when-compile
+  (if (fboundp 'easy-menu-create-menu)
+      (defalias 'recentf-create-menu
+        'easy-menu-create-menu)
+    (defsubst recentf-create-menu (menu-name menu-items)
+      "Create a menu called MENU-NAME with items described in MENU-ITEMS."
+      (cons menu-name menu-items))
+    )
+  (if (featurep 'xemacs)
+      (defsubst recentf-menu-bar ()
+        current-menubar)
+    (defsubst recentf-menu-bar ()
+      "Return the keymap of the global menu bar."
+      (lookup-key global-map [menu-bar]))
+    )
+  )
+
 (defun recentf-clear-data ()
   "Clear data used to build the recentf menu.
 This force a rebuild of the menu."
-  (easy-menu-remove-item nil recentf-menu-path recentf-menu-title)
+  (easy-menu-remove-item (recentf-menu-bar)
+                         recentf-menu-path recentf-menu-title)
   (setq recentf-data-cache nil))
 
 ;;; Predefined menu filters
@@ -967,10 +1006,11 @@ That is, remove a non readable file from the recent list, if
     (unless (equal recentf-data-cache cache)
       (setq recentf-data-cache cache)
       (condition-case err
-          (easy-menu-change recentf-menu-path
-                            recentf-menu-title
-                            (recentf-make-menu-items)
-                            recentf-menu-before)
+          (easy-menu-add-item
+           (recentf-menu-bar) recentf-menu-path
+           (recentf-create-menu recentf-menu-title
+                                (recentf-make-menu-items))
+           recentf-menu-before)
         (error
          (message "recentf update menu failed: %s"
                   (error-message-string err)))))))
@@ -1187,12 +1227,12 @@ Read data from the file specified by `recentf-save-file'."
       (load-file file))))
 
 (defun recentf-cleanup ()
-  "Remove all non-readable and excluded files from the recent list."
+  "Remove all excluded or non-readable files from the recent list."
   (interactive)
   (message "Cleaning up the recentf list...")
   (let (newlist)
     (dolist (f recentf-list)
-      (if (and (recentf-include-p f) (file-readable-p f))
+      (if (and (recentf-include-p f) (recentf-file-readable-p f))
           (push f newlist)
         (message "File %s removed from the recentf list" f)))
     (setq recentf-list (nreverse newlist))
