@@ -1,191 +1,85 @@
-;; @(#) recentf.el -- Setup a menu of recently opened files
-;; @(#) $Id: recentf.el,v 1.8 1999/09/30 21:37:03 ebat311 Exp $
+;; recentf.el --- setup a menu of recently opened files
 
-;; This file is not part of Emacs
+;; Copyright (C) 1999 Free Software Foundation, Inc.
 
-;; Copyright (C) 1999 by David Ponce
-;; Author:       David Ponce david.ponce@wanadoo.fr
-;; Maintainer:   David Ponce david.ponce@wanadoo.fr
-;; Created:      July 19 1999
+;; Author: David Ponce <david.ponce@wanadoo.fr>
+;; Created: July 19 1999
+;; Keywords: customization
 
-;; LCD Archive Entry:
-;; recentf|David Ponce|david.ponce@wanadoo.fr|
-;; Setup a menu of recently opened files|
-;; $Date: 1999/09/30 21:37:03 $|$Revision: 1.8 $|~/misc/recentf.el|
+;; This file is part of GNU Emacs.
 
-;; COPYRIGHT NOTICE
-;;
-;; This program is free software; you can redistribute it and/or modify
+;; GNU Emacs is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
 ;; the Free Software Foundation; either version 2, or (at your option)
 ;; any later version.
 
-;; This program is distributed in the hope that it will be useful,
+;; GNU Emacs is distributed in the hope that it will be useful,
 ;; but WITHOUT ANY WARRANTY; without even the implied warranty of
 ;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ;; GNU General Public License for more details.
 
 ;; You should have received a copy of the GNU General Public License
-;; along with this program; see the file COPYING.  If not, write to the
+;; along with GNU Emacs; see the file COPYING.  If not, write to the
 ;; Free Software Foundation, Inc., 59 Temple Place - Suite 330,
 ;; Boston, MA 02111-1307, USA.
 
-;;; Description:
-;;
-;;  This elisp package maintains a menu of recently opened files.
-
-;;; Installation:
-;;
-;;  Put this file on your Emacs-Lisp load path and add following into your
-;;  ~/.emacs startup file
-;;
-;;      (require 'recentf)
-
-;;; Usage:
-;;
-;;  Select an item on the recentf menu to open the corresponding file.
-
-;;; Customization:
-;;
-;;  M-x `recentf-customize' to customize all the recentf options.
-;;
-;;  The following variables could be set:
-;;
-;;  o `recentf-max-menu-items'
-;;     Maximum of items in the recentf menu.
-;;     The default is to display the last 10 opened files.
-;;
-;;  o `recentf-max-saved-items'
-;;     Maximum of items saved to `recentf-save-file'.
-;;     The default is to save 20 items.
-;;
-;;  o `recentf-save-file'
-;;     File to save the list of recently opened files into.
-;;     The default is the file ".recentf" in the user's home directory.
-;;
-;;  o `recentf-exclude'
-;;     List of regexps for filenames excluded from the list of recently opened files.
-;;     No files are excluded by default.
-;;
-;;  o `recentf-menu-title'
-;;     Name of the recentf menu.
-;;     The default is "Open Recent".
-;;
-;;  o `recentf-menu-path'
-;;     Path where to add the recentf menu.
-;;     If nil add it at top-level (see also `easy-menu-change').
-;;     The default is to add a recentf sub-menu in the "Files" top menu.
-;;
-;;  o `recentf-menu-before'
-;;     Name of the menu before which the recentf menu will be added.
-;;     If nil add it add at end of menu (see also `easy-menu-change').
-;;     The default is to add the recentf menu before the "Open File..." item. 
-;;
-;;  o `recentf-menu-action'
-;;     Command to invoke with an entry of the recentf list.
-;;     The default is `recentf-find-file' that uses `find-file' to edit an
-;;     existing file. If the file does not exists or is not readable, it is
-;;     not edited and its name is removed from `recentf-list'.
-;;     You can use `find-file' instead to open non existing files and keep
-;;     them is the list of recently opened files.
-;;
-;;  o `recentf-menu-filter'
-;;     Function used to filter the menu items.
-;;     If its value is nil (default) the list will not change.
-;;     You can use the following predefined functions:
-;;
-;;     - `recentf-sort-ascending' to sort the menu items in ascending order.
-;;     - `recentf-sort-descending' to sort the menu items in descending order.
-;;
-;;     The given function will receive one argument, the list of filenames to be
-;;     displayed in the menu and must return a new list of filenames.
-;;
-;;  o  `recentf-menu-append-commands-p'
-;;     If not-nil (default) command items are appended to the menu.
-;;
-;;  o  `recentf-keep-non-readable-files-p'
-;;     If nil (default) non readable files are not kept in `recentf-list'.
-;;
-;;  o `recentf-load-hook'
-;;     Hook run when package has been loaded.
-
-;;; Support:
-;;
-;;  Any comments, suggestions, bug reports or upgrade requests are welcome.
-;;  Please send them to David Ponce at david.ponce@wanadoo.fr.
-;;
-;;  This elisp package was developed with NTEmacs 20.4.1 on MS Windows
-;;  NT 4 WKS SP5 and also tested with Emacs 20.3.1 on Sun Solaris 2.5.1.
-;;  Please, let me know if it works with other OS and versions of Emacs.
+;;; Commentary:
 
 ;;; Code:
-(require 'easymenu)
 
-(defconst recentf-version "$Revision: 1.8 $"
-  "recentf version number.")
+(require 'easymenu)
 
 (defconst recentf-save-file-header
   ";;; Automatically generated by `recentf' on %s.\n"
-  "Header to be written into the `recentf-save-file'."
-  )
+  "Header to be written into the `recentf-save-file'.")
 
 (defvar recentf-list nil
-  "List of recently opened files."
-  )
+  "List of recently opened files.")
 
 (defvar recentf-update-menu-p t
-  "Non-nil if the recentf menu must be updated."
-  )
+  "Non-nil if the recentf menu must be updated.")
 
 (defvar recentf-initialized-p nil
-  "Non-nil if recentf already initialized."
-  )
+  "Non-nil if recentf already initialized.")
 
-;; WORKAROUND:
-;; In some Emacs/XEmacs version the `custom-set-default' function is missing.
-(if (not (fboundp 'custom-set-default))
-    (defun custom-set-default (variable value)
-      (set-default variable value))
-  )
-
+;; IMPORTANT: This function must be defined before the following defcustoms
+;; because it is used in their :set clause. To avoid byte-compiler warnings
+;; the `symbol-value' function is used to access the `recentf-menu-path'
+;; and `recentf-menu-title' values.
 (defun recentf-menu-customization-changed (sym val)
   "Function called when menu customization has changed.
 It removes the recentf menu and forces its complete redrawing."
   (when recentf-initialized-p
-    (easy-menu-remove-item nil recentf-menu-path recentf-menu-title)
+    (easy-menu-remove-item nil 
+                           (symbol-value 'recentf-menu-path)
+                           (symbol-value 'recentf-menu-title))
     (setq recentf-update-menu-p t))
-  (custom-set-default sym val)
-  )
+  (custom-set-default sym val))
 
 (defgroup recentf nil
   "Maintain a menu of recently opened files."
-  :group 'files
-  )
+  :group 'files)
 
 (defcustom recentf-max-saved-items 20
-  "*Maximum of items saved to `recentf-save-file'."
+  "*Maximum number of items saved to `recentf-save-file'."
   :group 'recentf
-  :type 'integer
-  )
+  :type 'integer)
 
 (defcustom recentf-save-file (expand-file-name "~/.recentf")
   "*File to save `recentf-list' into."
   :group 'recentf
-  :type 'file
-  )
+  :type 'file)
 
 (defcustom recentf-exclude nil
   "*List of regexps for filenames excluded from `recentf-list'."
   :group 'recentf
-  :type '(repeat regexp)
-  )
+  :type '(repeat regexp))
 
 (defcustom recentf-menu-title "Open Recent"
   "*Name of the recentf menu."
   :group 'recentf
   :type 'string
-  :set 'recentf-menu-customization-changed
-  )
+  :set 'recentf-menu-customization-changed)
 
 (defcustom recentf-menu-path '("files")
   "*Path where to add the recentf menu.
@@ -193,123 +87,124 @@ If nil add it at top-level (see also `easy-menu-change')."
   :group 'recentf
   :type '(choice (const :tag "Top Level" nil)
                  (sexp :tag "Menu Path"))
-  :set 'recentf-menu-customization-changed
-  )
+  :set 'recentf-menu-customization-changed)
 
 (defcustom recentf-menu-before "open-file"
   "*Name of the menu before which the recentf menu will be added.
-If nil add it add at end of menu (see also `easy-menu-change')."
+If nil add it at end of menu (see also `easy-menu-change')."
   :group 'recentf
   :type '(choice (string :tag "Name")
                  (const :tag "Last" nil))
-  :set 'recentf-menu-customization-changed
-  )
+  :set 'recentf-menu-customization-changed)
 
 (defcustom recentf-menu-action 'recentf-find-file
-  "*Function to invoke with an filename item of the recentf menu.
-The default action `recentf-find-file' calls `find-file' to edit an existing file.
-If the file does not exists or is not readable, it is not edited and its name is
-removed from `recentf-list'. You can use `find-file' instead to open non existing
-files and keep them is the list of recently opened files."
+  "*Function to invoke with a filename item of the recentf menu.
+The default action `recentf-find-file' calls `find-file' to edit an
+existing file.  If the file does not exist or is not readable, it is
+not edited and its name is removed from `recentf-list'. You can use
+`find-file' instead to open non-existing files and keep them is the
+list of recently opened files."
   :group 'recentf
   :type 'function
-  :set 'recentf-menu-customization-changed
-  )
+  :set 'recentf-menu-customization-changed)
 
 (defcustom recentf-max-menu-items 10
-  "*Maximum of items in the recentf menu."
+  "*Maximum number of items in the recentf menu."
   :group 'recentf
   :type 'integer
-  :set 'recentf-menu-customization-changed
-  )
+  :set 'recentf-menu-customization-changed)
 
 (defcustom recentf-menu-filter nil
-  "*Function used to filter the menu items.
-If its value is nil (default) the list will not change.
-You can use the following predefined functions:
+  "*Function used to filter files displayed in the recentf menu.
+Nil means no filter.  The following functions are predefined:
 
-- `recentf-sort-ascending' to sort the menu items in ascending order.
-- `recentf-sort-descending' to sort the menu items in descending order.
+- - `recentf-sort-ascending' to sort menu items in ascending order.
+- - `recentf-sort-descending' to sort menu items in descending order.
 
-The given function will receive one argument, the list of filenames to be
+The filter function is called with one argument, the list of filenames to be
 displayed in the menu and must return a new list of filenames."
   :group 'recentf
   :type 'function
-  :set 'recentf-menu-customization-changed
-  )
+  :set 'recentf-menu-customization-changed)
 
 (defcustom recentf-menu-append-commands-p t
   "*If not-nil command items are appended to the menu."
   :group 'recentf
   :type 'boolean
-  :set 'recentf-menu-customization-changed
-  )
+  :set 'recentf-menu-customization-changed)
 
 (defcustom recentf-keep-non-readable-files-p nil
-  "*If nil (default) non readable files are not kept in `recentf-list'."
+  "*If nil (default), non-readable files are not kept in `recentf-list'."
   :group 'recentf
   :type 'boolean
   :set  '(lambda (sym val)
            (if val
                (remove-hook 'kill-buffer-hook 'recentf-remove-file-hook)
              (add-hook 'kill-buffer-hook 'recentf-remove-file-hook))
-           (custom-set-default sym val))
-  )
+           (custom-set-default sym val)))
+
+(defcustom recentf-mode nil
+  "Toggle recentf mode.
+When recentf mode is enabled, it maintains a menu for visiting files that
+were operated on recently.
+Setting this variable directly does not take effect;
+use either \\[customize] or the function `recentf-mode'."
+  :set (lambda (symbol value)
+         (recentf-mode (or value 0)))
+  :initialize 'custom-initialize-default
+  :type 'boolean
+  :group 'recentf
+  :require 'recentf)
 
 (defcustom recentf-load-hook nil
-   "*Hook run when package has been loaded."
+   "*Normal hook run at end of loading the `recentf' package."
   :group 'recentf
-  :type 'hook
-  )
+  :type 'hook)
 
 ;;;###autoload
-(defun recentf-customize ()
-  "Customization of the group recentf."
-  (interactive)
-  (customize-group "recentf")
-  )
+(defun recentf-mode (&optional arg)
+  "Toggle recentf mode.
+With prefix ARG, turn recentf mode on if and only if ARG is positive.
+Returns the new status of recentf mode (non-nil means on).
 
-(defun recentf-version-number ()
-  "Return recentf version number."
-  (string-match "[0123456789.]+" recentf-version)
-  (match-string 0 recentf-version)
-  )
-
-;;;###autoload
-(defun recentf-display-version ()
-  "Display recentf version."
-  (interactive)
-  (message "Using 'recentf' version %s." (recentf-version-number))
-  )
-
-;;;###autoload
-(defun recentf-initialize ()
-  "Initialize recentf."
-  (interactive)
-  (unless recentf-initialized-p
-    (setq recentf-initialized-p t)
-    (if (file-readable-p recentf-save-file)
-        (load-file recentf-save-file))
-    (setq recentf-update-menu-p t)
-    (add-hook 'find-file-hooks       'recentf-add-file-hook)
-    (add-hook 'write-file-hooks      'recentf-add-file-hook)
-;;    (add-hook 'activate-menubar-hook 'recentf-update-menu-hook)
-    (add-hook 'menu-bar-update-hook  'recentf-update-menu-hook)
-    (add-hook 'kill-emacs-hook       'recentf-save-list)
-    )
-  )
+When recentf mode is enabled, it maintains a menu for visiting files that
+were operated on recently."
+  (interactive "P")
+  (when window-system
+    (let ((on-p (if arg
+                    (> (prefix-numeric-value arg) 0)
+                  (not recentf-mode))))
+      (if on-p
+          (unless recentf-initialized-p
+            (setq recentf-initialized-p t)
+            (if (file-readable-p recentf-save-file)
+                (load-file recentf-save-file))
+            (setq recentf-update-menu-p t)
+            (add-hook 'find-file-hooks       'recentf-add-file-hook)
+            (add-hook 'write-file-hooks      'recentf-add-file-hook)
+            ;;    (add-hook 'activate-menubar-hook 'recentf-update-menu-hook)
+            (add-hook 'menu-bar-update-hook  'recentf-update-menu-hook)
+            (add-hook 'kill-emacs-hook       'recentf-save-list))
+        (when recentf-initialized-p
+          (setq recentf-initialized-p nil)
+          (recentf-save-list)
+          (easy-menu-remove-item nil recentf-menu-path recentf-menu-title)
+          (remove-hook 'find-file-hooks       'recentf-add-file-hook)
+          (remove-hook 'write-file-hooks      'recentf-add-file-hook)
+          ;;    (remove-hook 'activate-menubar-hook 'recentf-update-menu-hook)
+          (remove-hook 'menu-bar-update-hook  'recentf-update-menu-hook)
+          (remove-hook 'kill-emacs-hook       'recentf-save-list)))
+      (setq recentf-mode on-p))))
 
 (defun recentf-add-file-hook ()
   "Insert the name of the file just opened or written into `recentf-list'."
   (and buffer-file-name (recentf-add-file buffer-file-name))
-  nil
-  )
+  nil)
 
 (defun recentf-remove-file-hook ()
   "When a buffer is killed remove a non readable file from `recentf-list'."
   (and buffer-file-name (recentf-remove-if-non-readable buffer-file-name))
-  nil
-  )
+  nil)
 
 (defun recentf-update-menu-hook ()
   "Update the recentf menu from the current `recentf-list'."
@@ -321,9 +216,7 @@ displayed in the menu and must return a new list of filenames."
                             (recentf-make-menu-items)
                             recentf-menu-before)
           (setq recentf-update-menu-p nil))
-      (error nil))
-    )
-  )
+      (error nil))))
 
 ;;;###autoload
 (defun recentf-save-list ()
@@ -341,8 +234,7 @@ displayed in the menu and must return a new list of filenames."
       (if (file-writable-p recentf-save-file)
           (write-region (point-min) (point-max) recentf-save-file))
       (kill-buffer (current-buffer))))
-  nil
-  )
+  nil)
 
 ;;;###autoload
 (defun recentf-cleanup ()
@@ -351,45 +243,39 @@ displayed in the menu and must return a new list of filenames."
   (setq recentf-list (delq nil (mapcar '(lambda (f)
                                           (and (file-readable-p f) f))
                                        recentf-list)))
-  (setq recentf-update-menu-p t)
-  )
+  (setq recentf-update-menu-p t))
 
 (defvar recentf-menu-items-for-commands
   (list ["Cleanup list" recentf-cleanup t]
         ["Save list now" recentf-save-list t]
-        (vector (format "Recentf %s Options..." (recentf-version-number))
-                'recentf-customize t))
-  "List of menu items for recentf commands."
-  )
+        (vector (format "Recentf Options...")
+                '(customize-group "recentf") t))
+  "List of menu items for recentf commands.")
 
 (defun recentf-make-menu-items ()
   "Make menu items from `recentf-list'."
-  (let ((file-items (mapcar '(lambda (entry)
-                               (vector entry (list recentf-menu-action entry) t))
-                            (funcall (or recentf-menu-filter 'identity)
-                                     (recentf-elements recentf-max-menu-items)))))
+  (let ((file-items
+	 (mapcar '(lambda (entry)
+		    (vector entry (list recentf-menu-action entry) t))
+		 (funcall (or recentf-menu-filter 'identity)
+			  (recentf-elements recentf-max-menu-items)))))
     (append (or file-items (list ["No files" t nil]))
             (and recentf-menu-append-commands-p
                  (cons ["---" nil nil]
-                       recentf-menu-items-for-commands))))
-  )
+                       recentf-menu-items-for-commands)))))
 
 (defun recentf-add-file (filename)
   "Add or move FILENAME at the beginning of `recentf-list'.
 Does nothing if FILENAME matches one of the `recentf-exclude' regexps."
   (when (recentf-include-p filename)
     (setq recentf-list (cons filename (delete filename recentf-list)))
-    (setq recentf-update-menu-p t)
-    )
-  )
+    (setq recentf-update-menu-p t)))
 
 (defun recentf-remove-if-non-readable (filename)
-  "Remove FILENAME from `recentf-list' if non readable."
+  "Remove FILENAME from `recentf-list' if not readable."
   (unless (file-readable-p filename)
     (setq recentf-list (delete filename recentf-list))
-    (setq recentf-update-menu-p t)
-    )
-  )
+    (setq recentf-update-menu-p t)))
 
 (defun recentf-find-file (filename)
   "Edit file FILENAME using `find-file'.
@@ -399,16 +285,14 @@ If FILENAME is not readable it is removed from `recentf-list'."
     (progn
       (message "File `%s' not found." filename)
       (setq recentf-list (delete filename recentf-list))
-      (setq recentf-update-menu-p t)))
-  )
+      (setq recentf-update-menu-p t))))
 
 (defun recentf-include-p (filename)
   "Return t if FILENAME matches none of the `recentf-exclude' regexps."
   (let ((rl recentf-exclude))
     (while (and rl (not (string-match (car rl) filename)))
       (setq rl (cdr rl)))
-    (null rl))
-  )
+    (null rl)))
 
 (defun recentf-elements (n)
   "Return a list of the first N elements of `recentf-list'."
@@ -417,95 +301,19 @@ If FILENAME is not readable it is removed from `recentf-list'."
       (setq lh (cons (car l) lh))
       (setq n (1- n))
       (setq l (cdr l)))
-    (nreverse lh))
-  )
+    (nreverse lh)))
 
 (defun recentf-sort-ascending (l)
-  "Sort the given list L in ascending order."
-  (sort l '(lambda (e1 e2) (string-lessp e1 e2)))
-  )
+  "Sort the list of strings L in ascending order."
+  (sort l '(lambda (e1 e2) (string-lessp e1 e2))))
 
 (defun recentf-sort-descending (l)
-  "Sort the given list L in descending order."
-  (sort l '(lambda (e1 e2) (string-lessp e2 e1)))
-  )
+  "Sort the list of strings L in descending order."
+  (sort l '(lambda (e1 e2) (string-lessp e2 e1))))
 
 (provide 'recentf)
-(recentf-initialize)
+
 (run-hooks 'recentf-load-hook)
 
-;;; Change History:
-
-;;
-;; $Log: recentf.el,v $
-;; Revision 1.8  1999/09/30 21:37:03  ebat311
-;; New features:
-;;   - Command items can be appended to the menu depending of
-;;     a new customizable option `recentf-menu-append-commands-p'.
-;;
-;;   - Non readable files are not kept in `recentf-list' depending
-;;     of a new customizable option `recentf-keep-non-readable-files-p'.
-;;
-;;   - New command `recentf-cleanup' to remove all non-readable
-;;     files from `recentf-list'.
-;;
-;; Fixes:
-;;   - In some Emacs/XEmacs version the `custom-set-default' function
-;;     is missing. A workaround is included.
-;;
-;;   - When the `recentf-list' is empty a disabled "No files" item
-;;     is displayed on the menu.
-;;
-;; Revision 1.7  1999-08-24 09:50:54+02  ebat311
-;; FIXED:
-;;
-;;   When vm-mail is called, emacs started beeping and was hanging.
-;;   So `recentf-update-menu-hook' is changed to use `menu-bar-update-hook'
-;;   instead of `activate-menubar-hook'.
-;;
-;;   `recentf-update-menu-hook' also causes an error when called while
-;;   vm-mode is the major-mode, since under vm the layout
-;;   of the menus is changed and there is no Files menu in the menubar.
-;;   This caused menu-bar-update-hook to be set to nil.
-;;   Possible errors are now catched during the menu update.
-;;
-;;   Thanks to "Diego Calvanese" <calvanese@dis.uniroma1.it>
-;;   who has reported and fixed thess bugs.
-;;
-;; Revision 1.6  1999-08-24 09:18:57+02  ebat311
-;; NEW FEATURE:
-;;   The `recentf-menu-filter' customizable variable can be set to a function
-;;   used to filter the menu items. If its value is nil (default) the list will not change.
-;;   Two predefined functions are provided:
-;;      - `recentf-sort-ascending' to sort the menu items in ascending order.
-;;      - `recentf-sort-descending' to sort the menu items in descending order.
-;;
-;; Revision 1.5  1999-07-27 09:08:40+02  ebat311
-;; FIXED:
-;;   Typo error. The `recentf-menu-customization-changed' function
-;;   was incorrectly named `recentf-menu-cutomization-changed'.
-;;   Thanks to "Remo Badii" <badii@psicl0.psi.ch> who has reported this bug.
-;;
-;; Revision 1.4  1999-07-23 11:19:05+02  ebat311
-;; As recommended by "Richard Stallman" <rms@gnu.org>, replaced
-;; the `remove' function by `delete' to avoid recentf depending on cl.
-;;
-;; Revision 1.3  1999-07-21 12:10:46+02  ebat311
-;; FIXED:
-;;   User customization of the recentf menu was not correctly handled.
-;;   Thanks to "Steve Kemp" <stevek@epc.co.uk> who has reported this bug.
-;;
-;; Revision 1.2  1999-07-20 23:39:36+02  ebat311
-;; New default function `recentf-find-file' to invoke with an filename item of
-;; the recentf menu. It calls `find-file' to edit an existing file and removes the
-;; name of a non existing file from the list of recently opened files.
-;;
-;; Custom variable `recentf-menu-command' renamed to `recentf-menu-action'
-;; because its value is not necessarily a command.
-;;
-;; Revision 1.1  1999-07-20 16:44:07+02  ebat311
-;; Initial revision
-;;
-;;
-
 ;;; recentf.el ends here.
+
