@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 25 February 2003
 ;; Keywords: convenience
-;; Revision: $Id: tabbar.el,v 1.6 2003/03/10 13:38:48 ponce Exp $
+;; Revision: $Id: tabbar.el,v 1.7 2003/03/10 16:55:40 ponce Exp $
 
 (defconst tabbar-version "1.0")
 
@@ -503,8 +503,7 @@ string shown when the mouse is on the button."
                              'help-echo help))
     (set disabled (propertize (if image-di " " (cadr value))
                               'display image-di
-                              'face 'tabbar-button-face
-                              'help-echo help))
+                              'face 'tabbar-button-face))
     (custom-set-default variable value)
     ))
 
