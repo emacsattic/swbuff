@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 25 February 2003
 ;; Keywords: convenience
-;; Revision: $Id: tabbar.el,v 1.19 2003/05/22 08:06:09 ponced Exp $
+;; Revision: $Id: tabbar.el,v 1.20 2003/06/05 08:15:49 ponced Exp $
 
 (defconst tabbar-version "1.3")
 
@@ -1266,6 +1266,7 @@ Return the the first group where the current buffer is."
 ;;
 (defvar tabbar-buffer-group-mode nil
   "Display tabs for group of buffers, when non-nil.")
+(make-variable-buffer-local 'tabbar-buffer-group-mode)
 
 (defun tabbar-buffer-tabs ()
   "Return the buffers to display on the tab bar, in a tab set."
