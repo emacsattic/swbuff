@@ -399,8 +399,9 @@ START-EVENT is the mouse click event."
       (progn
         ;; When `ruler-mode' is on save previous header line format
         ;; and install the ruler header line format.
-        (setq ruler-mode-header-line-format-old header-line-format
-              header-line-format ruler-mode-header-line-format)
+        (when (local-variable-p 'header-line-format)
+          (setq ruler-mode-header-line-format-old header-line-format))
+        (setq header-line-format ruler-mode-header-line-format)
         ;; The %c construct in the mode line format forces a refresh
         ;; of the mode and header lines when the current column
         ;; changes!  Enabling `column-number-mode' locally ensures
@@ -408,16 +409,17 @@ START-EVENT is the mouse click event."
         (set (make-local-variable 'column-number-mode) t))
     ;; When `ruler-mode' is off restore previous header line format if
     ;; the current one is the ruler header line format.
-    (if (eq header-line-format ruler-mode-header-line-format)
-        (setq header-line-format ruler-mode-header-line-format-old))
+    (when (eq header-line-format ruler-mode-header-line-format)
+      (kill-local-variable 'header-line-format)
+      (when ruler-mode-header-line-format-old
+        (setq header-line-format ruler-mode-header-line-format-old)))
     ;; Restore `column-number-mode' to its global value.
-    (set (make-local-variable 'column-number-mode)
-         (default-value 'column-number-mode))))
+    (kill-local-variable 'column-number-mode)))
 
 ;; Add ruler-mode to the minor mode menu in the mode line
 (define-key mode-line-mode-menu [ruler-mode]
   `(menu-item "Ruler" ruler-mode
-	      :button (:toggle . ruler-mode)))
+              :button (:toggle . ruler-mode)))
 
 (defconst ruler-mode-ruler-help-echo
   "\
