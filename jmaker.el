@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: July 22 1998
 ;; Keywords: tools
-;; Revision: $Id: jmaker.el,v 1.26 2003/04/25 11:29:15 ponced Exp $
+;; Revision: $Id: jmaker.el,v 1.27 2003/05/04 11:19:33 ponced Exp $
 
 (defconst jmaker-version "2.3")
 
@@ -96,8 +96,8 @@
     "\"JAVAC_FLAGS = \" (jmaker-java-compiler-options) 'n"
     "'n"
     "\"#### Targets settings\" 'n"
-    "\"CLASS_FILES   = \\\" 'n (jmaker-make-get-file-targets) 'n"
-    "\"SUBDIRS       = \\\" 'n (jmaker-make-get-subdir-targets) 'n"
+    "\"CLASS_FILES   = \\\\\" 'n (jmaker-make-get-file-targets) 'n"
+    "\"SUBDIRS       = \\\\\" 'n (jmaker-make-get-subdir-targets) 'n"
     "\"SUBDIRS_CLEAN = $(patsubst %,%.clean,$(SUBDIRS))\" 'n"
     "\"SUBDIRS_MAKE  = $(patsubst %,%.make,$(SUBDIRS))\" 'n"
     "'n"
@@ -156,11 +156,8 @@ that inserts a Java Makefile at point in current buffer."
           (defalias 'jmaker-insert-makefile
             (tempo-define-template
              "jmaker-insert-makefile"
-             (if (stringp val)
-                 (car (read-from-string (format "(%s)" val)))
-               val)
-             nil
-             "Insert a Java Makefile at point in current buffer."))
+             (read (format "(%s)" (mapconcat 'identity val " ")))
+            "Insert a Java Makefile at point in current buffer."))
           (set-default sym val))
   )
 
@@ -261,10 +258,10 @@ variable `jmaker-java-compiler' by default."
 That is args of the current JDE's compiler or value of the variable
 `jmaker-java-compiler-options' by default."
   (if jmaker-make-use-jde-settings
-      (let ((compiler (jde-compile-get-the-compiler)))
-        (concat (let ((jde-quote-classpath nil)
-                      (cp (jde-compile-classpath-arg compiler))                         )
-                  (format "%s %S " (car cp) (cadr cp)))
+      (let* ((compiler (jde-compile-get-the-compiler))
+             (jde-classpath-separator ";")
+             (cp (jde-compile-classpath-arg compiler)))
+        (concat (format "%s %S " (car cp) (cadr cp))
                 (mapconcat
                  #'identity
                  (nthcdr 2 (jde-compile-get-args compiler))
@@ -419,13 +416,6 @@ argument CALLBACK is a function that will be called with the argument
 ROOT, after Makefile have been generated."
   (with-current-buffer (get-buffer-create "*jmaker*")
     (switch-to-buffer (current-buffer))
-    (kill-all-local-variables)
-    
-    ;; Save the callback function and its argument.
-    (make-local-variable 'jmaker-generall-dialog-callback-fun)
-    (make-local-variable 'jmaker-generall-dialog-callback-arg)
-    (setq jmaker-generall-dialog-callback-fun callback)
-    (setq jmaker-generall-dialog-callback-arg root)
     
     ;; Cleanup buffer
     (kill-all-local-variables)
@@ -435,6 +425,12 @@ ROOT, after Makefile have been generated."
       ;; Delete all the overlays.
       (mapc 'jmaker-delete-overlay (car ol))
       (mapc 'jmaker-delete-overlay (cdr ol)))
+    
+    ;; Save the callback function and its argument.
+    (make-local-variable 'jmaker-generall-dialog-callback-fun)
+    (make-local-variable 'jmaker-generall-dialog-callback-arg)
+    (setq jmaker-generall-dialog-callback-fun callback)
+    (setq jmaker-generall-dialog-callback-arg root)
     
     ;; Pre-select directories where to generate a Makefile.
     (jmaker-generall-dialog-setup-selected root)
