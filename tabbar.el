@@ -1,12 +1,12 @@
 ;;; tabbar.el --- Display a tab bar in the header line
 
-;; Copyright (C) 2003, 2004 David Ponce
+;; Copyright (C) 2003, 2004, 2005 David Ponce
 
 ;; Author: David Ponce <david@dponce.com>
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 25 February 2003
 ;; Keywords: convenience
-;; Revision: $Id: tabbar.el,v 1.46 2005/02/24 11:20:00 ponced Exp $
+;; Revision: $Id: tabbar.el,v 1.47 2005/03/14 09:23:27 ponced Exp $
 
 (defconst tabbar-version "1.4")
 
@@ -1470,7 +1470,12 @@ Return only one group for each buffer."
       )
      (t
       (list
-       (if (and (stringp mode-name) (string-match "[^ ]" mode-name))
+       ;; Return `mode-name' if not blank, `major-mode' otherwise.
+       (if (and (stringp mode-name)
+                ;; Take care of preserving the match-data because this
+                ;; function is called when updating the header line.
+                (save-match-data
+                  (string-match "[^ ]" mode-name)))
            mode-name
          (symbol-name major-mode)))
       )
