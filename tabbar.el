@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 25 February 2003
 ;; Keywords: convenience
-;; Revision: $Id: tabbar.el,v 1.29 2004/02/14 11:24:29 ponced Exp $
+;; Revision: $Id: tabbar.el,v 1.30 2004/02/14 16:50:33 ponced Exp $
 
 (defconst tabbar-version "1.4")
 
@@ -1006,6 +1006,17 @@ Call `tabbar-tab-label-function' to obtain a label for TAB."
                               'tabbar-unselected-face))
           tabbar-separator-value)))
 
+(defsubst tabbar-background-color ()
+  "Return the background color of the tab bar."
+  (or tabbar-background-color
+      (let* ((face 'tabbar-default-face)
+             (color (face-background face)))
+        (while (null color)
+          (or (facep (setq face (face-attribute face :inherit)))
+              (setq face 'default))
+          (setq color (face-background face)))
+        color)))
+
 (defun tabbar-line-format (tabset)
   "Return the `header-line-format' value to display TABSET."
   ;; If a cached value of the `header-line-format' exists use it.
@@ -1020,10 +1031,7 @@ Call `tabbar-tab-label-function' to obtain a label for TAB."
                         (string-width tabbar-scroll-right-button-enabled)
                         (string-width tabbar-separator-value)))
              (seloffset width)
-             (padcolor (or tabbar-background-color
-                           (face-background 'tabbar-default-face t)
-                           (face-background 'default)
-                           ))
+             (padcolor  (tabbar-background-color))
              tab elt elts sizes maxscroll)
         (when tabbar-show-selected
           (while (not (memq sel tabs))
