@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 16 Feb 2001
 ;; Keywords: extensions
-;; Revision: $Id: tree-widget.el,v 1.9 2003/09/29 13:40:42 ponced Exp $
+;; Revision: $Id: tree-widget.el,v 1.10 2003/09/29 21:30:05 ponced Exp $
 
 (defconst tree-widget-version "2.0")
 
@@ -193,14 +193,16 @@ no-handle    an invisible handle
 (eval-when-compile ;; GNU Emacs/XEmacs compatibility stuff
   (cond
    ;; XEmacs
-   ((fboundp 'make-glyph)
+   ((featurep 'xemacs)
     (defsubst tree-widget-use-image-p ()
       "Return non-nil if image support is currently enabled."
       (and tree-widget-image-enable
            widget-glyph-enable
            (console-on-window-system-p)))
-    (defalias 'tree-widget-image-type-available-p
-      'valid-image-instantiator-format-p)
+    (defsubst tree-widget-image-type-available-p (type)
+      "Return non-nil if image type TYPE is available.
+Image types are symbols like `xbm' or `jpeg'."
+      (valid-image-instantiator-format-p type))
     (defsubst tree-widget-create-image (type file)
       "Create an image of type TYPE from FILE.
 Give the image the specified `tree-widget-image-properties-xemacs'
@@ -219,9 +221,11 @@ See also the option `widget-image-file-name-suffixes'."
       "Return non-nil if image support is currently enabled."
       (and tree-widget-image-enable
            widget-image-enable
-           image-types (display-graphic-p)))
-    (defalias 'tree-widget-image-type-available-p
-      'image-type-available-p)
+           (display-images-p)))
+    (defsubst tree-widget-image-type-available-p (type)
+      "Return non-nil if image type TYPE is available.
+Image types are symbols like `xbm' or `jpeg'."
+      (image-type-available-p type))
     (defsubst tree-widget-create-image (type file)
       "Create an image of type TYPE from FILE.
 Give the image the specified `tree-widget-image-properties-emacs'
