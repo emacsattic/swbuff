@@ -1,14 +1,14 @@
 ;;; tree-widget.el --- Tree widget
 
-;; Copyright (C) 2001, 2003 by David Ponce
+;; Copyright (C) 2001, 2003, 2004 by David Ponce
 
 ;; Author: David Ponce <david@dponce.com>
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 16 Feb 2001
 ;; Keywords: extensions
-;; Revision: $Id: tree-widget.el,v 1.16 2003/11/24 15:20:20 ponced Exp $
+;; Revision: $Id: tree-widget.el,v 1.17 2004/04/23 13:21:43 ponced Exp $
 
-(defconst tree-widget-version "2.0")
+(defconst tree-widget-version "2.1")
 
 ;; This file is not part of Emacs
 
@@ -246,14 +246,34 @@ use.  By default it is the global theme defined by the option
   (setq tree-widget--image-cache nil
         tree-widget--theme (or name tree-widget-theme "default")))
 
-(defsubst tree-widget-themes-directory ()
-  "Return the directory where to search for image themes.
-Return nil if not found."
-  (let ((dir (if tree-widget-themes-directory
-                 (expand-file-name tree-widget-themes-directory)
-               (expand-file-name "../tree-widget-themes"
-                                 (locate-library "tree-widget")))))
-    (and (file-directory-p dir) dir)))
+(defun tree-widget-themes-directory ()
+  "Locate the directory where to search for image themes.
+Its name is defined in variable `tree-widget-themes-directory', and
+defaults to \"tree-widget-themes\".
+If it is an absolute name, return it if that directory is readable and
+exists, otherwise return nil.
+If it is a relative name, try to locate that sub-directory in
+`load-path', then in `data-directory', and return the absolute name of
+the first one found which is readable.  Return nil if none found."
+  (let ((dir (or tree-widget-themes-directory "tree-widget-themes"))
+        path try-dir found)
+    (if (file-name-absolute-p dir)
+        (and (file-directory-p dir)
+             (file-readable-p dir)
+             (expand-file-name dir))
+      (setq path load-path)
+      (while (and (not found) path)
+        (setq try-dir (expand-file-name dir (car path))
+              path (cdr path))
+        (and (file-directory-p try-dir)
+             (file-readable-p try-dir)
+             (setq found try-dir)))
+      (unless found
+        (setq try-dir (expand-file-name dir data-directory))
+        (and (file-directory-p try-dir)
+             (file-readable-p try-dir)
+             (setq found try-dir)))
+      found)))
 
 (defsubst tree-widget-set-image-properties (props)
   "Set image properties of current theme to PROPS."
