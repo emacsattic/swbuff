@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 16 Feb 2001
 ;; Keywords: extensions
-;; Revision: $Id: tree-widget.el,v 1.2 2004/04/30 13:33:29 ponced Exp $
+;; Revision: $Id: tree-widget.el,v 1.3 2004/04/30 13:40:14 ponced Exp $
 
 (defconst tree-widget-version "2.1")
 
@@ -136,8 +136,7 @@
   :type  'boolean
   :group 'tree-widget)
 
-;; Use "tree-widget-themes" as default for compatibility.
-(defcustom tree-widget-themes-directory "tree-widget-themes"
+(defcustom tree-widget-themes-directory nil
   "*Name of the directory where to lookup for image themes.
 Default to the directory where is located the tree-widget library.
 If a relative name is specified, try to locate that sub-directory in
