@@ -1,3 +1,24 @@
+2004-04-30  David Ponce  <david@dponce.com>
+
+	* tree-widget/tree-widget.el
+
+	(tree-widget-themes-directory): Doc fix.  Change default value
+	for backward compatibility.
+	(tree-widget-themes-directory): By default, use the directory
+	where is located the tree-widget library.
+
+2004-04-30  David Ponce  <david@dponce.com>
+
+	* tree-widget.el
+	* tree-widget-examples.el
+	* dir-tree.el
+	
+	Moved into the tree-widget directory.
+
+	* tree-widget-themes
+
+	Move themes folders into the tree-widget directory.
+
 2004-04-27  David Ponce  <david@dponce.com>
 
 	* tree-widget.el
