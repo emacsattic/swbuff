@@ -6,9 +6,9 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: July 22 1998
 ;; Keywords: tools
-;; Revision: $Id: jmaker.el,v 1.28 2003/07/27 07:47:22 ponced Exp $
+;; Revision: $Id: jmaker.el,v 1.29 2003/07/27 07:57:06 ponced Exp $
 
-(defconst jmaker-version "2.3")
+(defconst jmaker-version "2.4")
 
 ;; This file is not part of GNU Emacs
 
