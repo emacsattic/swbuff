@@ -1,261 +1,69 @@
-;; @(#) swbuff.el -- Quick switch between Emacs buffers.
-;; @(#) $Id: swbuff.el,v 1.10 2000/04/18 14:05:26 david_ponce Exp $
+;; swbuff.el --- Quick switch between Emacs buffers.
+;; $Id: swbuff.el,v 1.11 2000/04/19 14:00:03 david_ponce Exp $
 
-(defconst swbuff-version "2.0 (beta1) $Date: 2000/04/18 14:05:26 $"
-  "swbuff version information.")
+;; Copyright (C) 1998, 2000 by David Ponce
+
+;; Author: David Ponce <david@dponce.com>
+;; Maintainer: David Ponce <david@dponce.com>
+;; Created: 12 Nov 1998
+;; Version: 2.0 (beta1)
+;; Keywords: extensions convenience
 
 ;; This file is not part of Emacs
 
-;; Copyright (C) 1998 by David Ponce
-;; Author:       David Ponce <david@dponce.com>
-;; Maintainer:   David Ponce <david@dponce.com>
-;; Created:      November 12 1998
+;; This program is free software; you can redistribute it and/or
+;; modify it under the terms of the GNU General Public License as
+;; published by the Free Software Foundation; either version 2, or (at
+;; your option) any later version.
 
-;; LCD Archive Entry:
-;; swbuff|David Ponce|david.ponce@wanadoo.fr|
-;; Quick switch between Emacs buffers|
-;; $Date: 2000/04/18 14:05:26 $|2.0 (beta1)|~/misc/swbuff.el|
-
-;; COPYRIGHT NOTICE
-;;
-;; This program is free software; you can redistribute it and/or modify
-;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 2, or (at your option)
-;; any later version.
-
-;; This program is distributed in the hope that it will be useful,
-;; but WITHOUT ANY WARRANTY; without even the implied warranty of
-;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-;; GNU General Public License for more details.
+;; This program is distributed in the hope that it will be useful, but
+;; WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+;; General Public License for more details.
 
 ;; You should have received a copy of the GNU General Public License
-;; along with this program; see the file COPYING.  If not, write to the
-;; Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+;; along with this program; see the file COPYING.  If not, write to
+;; the Free Software Foundation, Inc., 59 Temple Place - Suite 330,
 ;; Boston, MA 02111-1307, USA.
 
-;;; Description:
-;;
-;; This package provides commands to quick switch between Emacs buffers.
+;;; Commentary:
 
-;;; Installation:
-;;
-;; Put this file on your Emacs-Lisp load path and add following into your
-;; ~/.emacs startup file
+;; This package provides the commands `swbuff-switch-to-next-buffer'
+;; and `swbuff-switch-to-previous-buffer' to respectively switch to
+;; the next or previous buffer in the buffer list.
+
+;; The `swbuff-exclude-buffer-regexps' defines a list of regular
+;; expressions for excluded buffers. The default setting excludes buffers
+;; whose name begin with a blank character. To exclude all the internal
+;; buffers (that is *scratch*, *Message*, etc...) you could use the
+;; following regexps '("^ .*" "^\\*.*\\*").
+
+;; Switching buffers pops-up a one-line status window at the bottom of
+;; the selected window. The status window shows the list of switchable
+;; buffers where the switched one is hilighted using
+;; `swbuff-current-buffer-face'. It is automatically discarded after
+;; any command is executed or after the delay specified by
+;; `swbuff-clear-delay'.
+
+;; Installation
+
+;; Put this file on your Emacs-Lisp load path and add following into
+;; your ~/.emacs startup file
 ;;
 ;;   (require 'swbuff)
 
-;;; Usage:
+;; Support
 ;;
-;; M-x `swbuff-switch-to-next-buffer' or `C-f6'
-;; Switches to the next buffer in the buffer list.
-;;
-;; M-x `swbuff-switch-to-previous-buffer' or `C-S-f6'
-;; Switches to the buffer at the end of the buffer-list.
+;; This program is available at <http://www.dponce.com/>. Any
+;; comments, suggestions, bug reports or upgrade requests are welcome.
+;; Please send them to David Ponce <david@dponce.com>.
 
-;;; Customization:
-;;
-;; M-x `swbuff-customize' to customize all the swbuff options.
-;;
-;; The following variables could be set:
-;;
-;; o `swbuff-load-hook'
-;;    hook run when package has been loaded. The provided hook
-;;    `swbuff-default-load-hook' defines the default key mapping.
-;;
-;; o `swbuff-clear-delay'
-;;    Time in seconds to delay before discarding the status window.
-;;
-;; o `swbuff-current-buffer-face'
-;;    Face used to display the current buffer name in the status window.
-;;
-;; o `swbuff-exclude-buffer-regexps'
-;;    List of regular expressions for excluded buffers.
-;;    The default setting excludes buffers whose name begin with a blank character.
-;;    To exclude all the internal buffers (that is *scratch*, *Message*, etc...)
-;;    you could use the following regexps '("^ .*" "^\*.*\*").
+;;; Change Log:
 
-;;; Support:
-;;
-;; Latest version of swbuff can be downloaded from: <http://www.dponce.com/>
-;;
-;; Any comments, suggestions, bug reports or upgrade requests are welcome.
-;; Please send them to David Ponce at <david@dponce.com>
-;;
-;; I currently develop and test jmaker with NTEmacs 20.6.1 and
-;; Cygwin B20.1 tools (bash, make) under MS Windows NT 4 WKS SP5.
-
-;;; Code:
-
-(defconst swbuff-status-buffer-name "*swbuff*"
-  "Name of the working buffer used to display the buffer list.")
-
-(defgroup swbuff nil
-  "Quick switch between Emacs buffers."
-  :group 'tools
-  :prefix "swbuff-")
-
-(defcustom swbuff-clear-delay 3
-  "*Time in seconds to delay before discarding the status window."
-  :group 'swbuff
-  :type '(number :tag "seconds")) 
-
-(defface swbuff-current-buffer-face
-  '((((class grayscale) (background light)) (:foreground "red" :bold t))
-    (((class grayscale) (background dark)) (:foreground "red" :bold t))
-    (((class color) (background light)) (:foreground "red" :bold t))
-    (((class color) (background dark)) (:foreground "red" :bold t))
-    (t (:bold t)))
-  "*Face used to display the switched buffer name in the status window."
-  :group 'swbuff)
-
-(defcustom swbuff-exclude-buffer-regexps '("^ ")
-  "*List of regular expressions for excluded buffers.
-The default setting excludes buffers whose name begin with a blank character.
-To exclude all the internal buffers (that is *scratch*, *Message*, etc...) you could
-use the following regexps (\"^ \" \"^\\*.*\\*\")."
-  :group 'swbuff
-  :type '(repeat (regexp :format "%v")))
-
-(defcustom swbuff-load-hook '(swbuff-default-load-hook)
-  "*Hook run when package has been loaded.
-See also `swbuff-default-load-hook'."
-  :group 'swbuff
-  :type 'hook)
-
-(defun swbuff-customize ()
-  "Show the swbuff customization options panel."
-  (interactive)
-  (customize-group "swbuff"))
-
-(defun swbuff-include-p (name)
-  "Return non-nil if NAME matches none of the `swbuff-exclude-buffer-regexps'."
-  (let ((rl (cons (regexp-quote swbuff-status-buffer-name)
-                  swbuff-exclude-buffer-regexps)))
-    (while (and rl (not (string-match (car rl) name)))
-      (setq rl (cdr rl)))
-    (null rl)))
-
-(defun swbuff-buffer-list ()
-  "Return the list of switchable buffers.
-That is without the ones whose name matches `swbuff-exclude-buffer-regexps'."
-  (let ((sw-buf-list (apply 'nconc
-                            (mapcar '(lambda (buf)
-                                       (and (swbuff-include-p (buffer-name buf))
-                                            (list buf)))
-                                    (buffer-list)))))
-    (unless (memq (current-buffer) sw-buf-list)
-      (setq sw-buf-list (cons (current-buffer) sw-buf-list)))
-    sw-buf-list))
-
-(defvar swbuff-buffer-list-string-holder nil
-  "Hold the current displayed buffer list.")
-
-(defun swbuff-buffer-list-string ()
-  "Convert `swbuff-buffer-list' to a string of buffer names."
-  (or swbuff-buffer-list-string-holder
-      (setq swbuff-buffer-list-string-holder
-            (mapconcat 'buffer-name
-                       (swbuff-buffer-list)
-                       " "))))
-
-(defun swbuff-make-visible (window position)
-  "Adjust horizontal scrolling of WINDOW to ensure that POSITION is visible."
-  (save-selected-window
-    (select-window window)
-    (setq truncate-lines t)
-    (let ((wdth (window-width))
-          (hscr (window-hscroll))
-          (xtra 3))                     ; truncated glyphs + an extra space
-      (if (>= position (+ wdth hscr))
-          (set-window-hscroll window (- (+ position xtra) wdth))
-        (if (< position hscr)
-            (set-window-hscroll window (- position xtra)))))))
-
-(defun swbuff-show-status-window ()
-  "Show the status window. Contains the list of switchable buffers where
-the switched buffer name is highlighted using `swbuff-current-buffer-face'.
-If it is not found in the list the function print a message.
-The status window is automatically discarded after `swbuff-clear-delay'
-elapsed time or any command is executed."
-  (let* ((status-line (swbuff-buffer-list-string))
-         (name-regexp (concat "\\(^\\| \\)\\("
-                              (regexp-quote (buffer-name))
-                              "\\)\\($\\| \\)"))
-         (start        (and (string-match name-regexp status-line)
-                            (match-beginning 2)))
-         (end          (and start (match-end 2))))
-    (if start
-        (with-current-buffer (get-buffer-create swbuff-status-buffer-name)
-          (set-text-properties 0 (length status-line) nil status-line)
-          (set-text-properties start end '(face swbuff-current-buffer-face) status-line)
-          (erase-buffer)
-          (insert status-line)
-          (let* ((window-min-height 2)
-                 (w (or (get-buffer-window swbuff-status-buffer-name)
-                        (split-window-vertically -2))))
-            (set-window-buffer w (current-buffer))
-            (swbuff-make-visible w end)
-            (add-hook 'pre-command-hook 'swbuff-pre-command-hook)
-            (if (sit-for swbuff-clear-delay)
-                (swbuff-discard-status-window))))
-      (setq swbuff-buffer-list-string-holder nil)
-      (message "No buffers eligible for switching."))))
-
-(defun swbuff-discard-status-window ()
-  "Discard the status window."
-  (let ((w (get-buffer-window swbuff-status-buffer-name))
-        (b (get-buffer swbuff-status-buffer-name)))
-    (and w (delete-window w))
-    (and b (kill-buffer b))))
-
-(defun swbuff-pre-command-hook ()
-  "`pre-command-hook' used to track successive calls to switch commands."
-  (when (not (or (eq 'swbuff-switch-to-previous-buffer this-command)
-                 (eq 'swbuff-switch-to-next-buffer this-command)))
-    (swbuff-discard-status-window)
-    (setq swbuff-buffer-list-string-holder nil))
-  (remove-hook 'pre-command-hook 'swbuff-pre-command-hook))
-
-(defun swbuff-previous-buffer ()
-  "Display and activate the buffer at the end of the buffer list."
-  (let ((l (swbuff-buffer-list)))
-    (and l (switch-to-buffer (nth (1- (length l)) l)))))
-
-(defun swbuff-next-buffer ()
-  "Display and activate the next buffer in the buffer list."
-  (let ((l (nreverse (swbuff-buffer-list))))
-    (while (cdr l)
-      (switch-to-buffer (car l))
-      (setq l (cdr l)))))
-
-;;;###autoload
-(defun swbuff-switch-to-previous-buffer ()
-  "Switch to the previous buffer in the buffer list."
-  (interactive)
-  (swbuff-previous-buffer)
-  (swbuff-show-status-window))
-
-;;;###autoload
-(defun swbuff-switch-to-next-buffer ()
-  "Switch to the next buffer in the buffer list."
-  (interactive)
-  (swbuff-next-buffer)
-  (swbuff-show-status-window))
-
-(defun swbuff-default-load-hook ()
-  "Default hook run when package has been loaded. It maps the global keys
-`C-f6' and `C-S-f6' respectively to the `swbuff-switch-to-next-buffer'
-and `swbuff-switch-to-previous-buffer' commands."
-  (global-set-key [(control f6)]       'swbuff-switch-to-next-buffer)
-  (global-set-key [(control shift f6)] 'swbuff-switch-to-previous-buffer))
-
-(provide 'swbuff)
-(run-hooks 'swbuff-load-hook)
-
-;;; Change History:
-
-;;
 ;; $Log: swbuff.el,v $
+;; Revision 1.11  2000/04/19 14:00:03  david_ponce
+;; Updated to use standard Emacs conventions for comments.
+;;
 ;; Revision 1.10  2000/04/18 14:05:26  david_ponce
 ;; New major version.
 ;;  * swbuff now uses its own status window to display the buffer list.
@@ -315,6 +123,180 @@ and `swbuff-switch-to-previous-buffer' commands."
 ;; Revision 1.1  1998/11/27 09:12:12  ebat311
 ;; Initial revision
 ;;
-;;
 
-;;; swbuff.el ends here.
+;;; Code:
+
+(defconst swbuff-version "2.0 (beta1) $Date: 2000/04/19 14:00:03 $"
+  "swbuff version information.")
+
+(defconst swbuff-status-buffer-name "*swbuff*"
+  "Name of the working buffer used to display the buffer list.")
+
+(defgroup swbuff nil
+  "Quick switch between Emacs buffers."
+  :group 'extensions
+  :group 'convenience
+  :prefix "swbuff-")
+
+(defcustom swbuff-clear-delay 3
+  "*Time in seconds to delay before discarding the status window."
+  :group 'swbuff
+  :type '(number :tag "seconds")) 
+
+(defface swbuff-current-buffer-face
+  '((((class grayscale) (background light)) (:foreground "red" :bold t))
+    (((class grayscale) (background dark)) (:foreground "red" :bold t))
+    (((class color) (background light)) (:foreground "red" :bold t))
+    (((class color) (background dark)) (:foreground "red" :bold t))
+    (t (:bold t)))
+  "*Face used to display the switched buffer name in the status window."
+  :group 'swbuff)
+
+(defcustom swbuff-exclude-buffer-regexps '("^ ")
+  "*List of regular expressions for excluded buffers.
+The default setting excludes buffers whose name begin with a blank character.
+To exclude all the internal buffers (that is *scratch*, *Message*, etc...) you could
+use the following regexps (\"^ \" \"^\\*.*\\*\")."
+  :group 'swbuff
+  :type '(repeat (regexp :format "%v")))
+
+(defcustom swbuff-load-hook '(swbuff-default-load-hook)
+  "*Hook run when package has been loaded.
+See also `swbuff-default-load-hook'."
+  :group 'swbuff
+  :type 'hook)
+
+(defun swbuff-include-p (name)
+  "Return non-nil if NAME matches none of the `swbuff-exclude-buffer-regexps'."
+  (let ((rl (cons (regexp-quote swbuff-status-buffer-name)
+                  swbuff-exclude-buffer-regexps)))
+    (while (and rl (not (string-match (car rl) name)))
+      (setq rl (cdr rl)))
+    (null rl)))
+
+(defun swbuff-buffer-list ()
+  "Return the list of switchable buffers.
+That is without the ones whose name matches `swbuff-exclude-buffer-regexps'."
+  (let ((sw-buf-list (apply 'nconc
+                            (mapcar '(lambda (buf)
+                                       (and (swbuff-include-p (buffer-name buf))
+                                            (list buf)))
+                                    (buffer-list)))))
+    (unless (memq (current-buffer) sw-buf-list)
+      (setq sw-buf-list (cons (current-buffer) sw-buf-list)))
+    sw-buf-list))
+
+(defvar swbuff-buffer-list-string-holder nil
+  "Hold the current displayed buffer list.")
+
+(defun swbuff-buffer-list-string ()
+  "Convert `swbuff-buffer-list' to a string of buffer names."
+  (or swbuff-buffer-list-string-holder
+      (setq swbuff-buffer-list-string-holder
+            (mapconcat 'buffer-name
+                       (swbuff-buffer-list)
+                       " "))))
+
+(defun swbuff-make-visible (window position)
+  "Adjust horizontal scrolling of WINDOW to ensure that POSITION is visible."
+  (save-selected-window
+    (select-window window)
+    (setq truncate-lines t)
+    (let ((wdth (window-width))
+          (hscr (window-hscroll))
+          (xtra 3))                     ; truncated glyphs + an extra space
+      (if (>= position (+ wdth hscr))
+          (set-window-hscroll window (- (+ position xtra) wdth))
+        (if (< position hscr)
+            (set-window-hscroll window (- position xtra)))))))
+
+(defun swbuff-show-status-window ()
+  "Pop-up a one-line status window at the bottom of the selected
+window. The status window shows the list of switchable buffers where
+the switched one is hilighted using `swbuff-current-buffer-face'. It
+is automatically discarded after any command is executed or after the
+delay specified by `swbuff-clear-delay'."
+  (let* ((status-line (swbuff-buffer-list-string))
+         (name-regexp (concat "\\(^\\| \\)\\("
+                              (regexp-quote (buffer-name))
+                              "\\)\\($\\| \\)"))
+         (start        (and (string-match name-regexp status-line)
+                            (match-beginning 2)))
+         (end          (and start (match-end 2))))
+    (if start
+        (with-current-buffer (get-buffer-create swbuff-status-buffer-name)
+          (set-text-properties 0 (length status-line) nil status-line)
+          (set-text-properties start end '(face swbuff-current-buffer-face) status-line)
+          (erase-buffer)
+          (insert status-line)
+          (let* ((window-min-height 2)
+                 (w (or (get-buffer-window swbuff-status-buffer-name)
+                        (split-window-vertically -2))))
+            (set-window-buffer w (current-buffer))
+            (swbuff-make-visible w end)
+            (add-hook 'pre-command-hook 'swbuff-pre-command-hook)
+            (if (sit-for swbuff-clear-delay)
+                (swbuff-discard-status-window))))
+      (setq swbuff-buffer-list-string-holder nil)
+      (message "No buffers eligible for switching."))))
+
+(defun swbuff-discard-status-window ()
+  "Discard the status window."
+  (let ((w (get-buffer-window swbuff-status-buffer-name))
+        (b (get-buffer swbuff-status-buffer-name)))
+    (and w (delete-window w))
+    (and b (kill-buffer b))))
+
+(defun swbuff-pre-command-hook ()
+  "`pre-command-hook' used to track successive calls to switch commands."
+  (when (not (or (eq 'swbuff-switch-to-previous-buffer this-command)
+                 (eq 'swbuff-switch-to-next-buffer this-command)))
+    (swbuff-discard-status-window)
+    (setq swbuff-buffer-list-string-holder nil))
+  (remove-hook 'pre-command-hook 'swbuff-pre-command-hook))
+
+(defun swbuff-previous-buffer ()
+  "Display and activate the buffer at the end of the buffer list."
+  (let ((l (swbuff-buffer-list)))
+    (and l (switch-to-buffer (nth (1- (length l)) l)))))
+
+(defun swbuff-next-buffer ()
+  "Display and activate the next buffer in the buffer list."
+  (let ((l (nreverse (swbuff-buffer-list))))
+    (while (cdr l)
+      (switch-to-buffer (car l))
+      (setq l (cdr l)))))
+
+;;;###autoload
+(defun swbuff-customize ()
+  "Show the swbuff customization options panel."
+  (interactive)
+  (customize-group "swbuff"))
+
+;;;###autoload
+(defun swbuff-switch-to-previous-buffer ()
+  "\\[swbuff-switch-to-previous-buffer] switch to the previous buffer
+in the buffer list."
+  (interactive)
+  (swbuff-previous-buffer)
+  (swbuff-show-status-window))
+
+;;;###autoload
+(defun swbuff-switch-to-next-buffer ()
+  "\\[swbuff-switch-to-next-buffer] switch to the next buffer in the
+buffer list."
+  (interactive)
+  (swbuff-next-buffer)
+  (swbuff-show-status-window))
+
+(defun swbuff-default-load-hook ()
+  "Default hook run when package has been loaded.  Map the global keys
+`C-f6' and `C-S-f6' respectively to the `swbuff-switch-to-next-buffer'
+and `swbuff-switch-to-previous-buffer' commands."
+  (global-set-key [(control f6)]       'swbuff-switch-to-next-buffer)
+  (global-set-key [(control shift f6)] 'swbuff-switch-to-previous-buffer))
+
+(provide 'swbuff)
+(run-hooks 'swbuff-load-hook)
+
+;;; swbuff.el ends here
