@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 25 February 2003
 ;; Keywords: convenience
-;; Revision: $Id: tabbar.el,v 1.27 2004/01/20 14:30:27 ponced Exp $
+;; Revision: $Id: tabbar.el,v 1.28 2004/01/26 07:55:08 ponced Exp $
 
 (defconst tabbar-version "1.4")
 
@@ -854,60 +854,70 @@ See the variable `tabbar-button-widget' for details."
 ;;
 (defface tabbar-default-face
   '(
-    (t
-     (:inherit variable-pitch
-               :height 0.8
-               :foreground "gray60"
-               :background "gray72"
-               )
+    ;;(((class color grayscale) (background light))
+    ;; :inherit variable-pitch
+    ;; :height 0.8
+    ;; :foreground "gray50"
+    ;; :background "grey75"
+    ;; )
+    (((class color grayscale) (background dark))
+     :inherit variable-pitch
+     :height 0.8
+     :foreground "grey75"
+     :background "gray50"
      )
-    )
+    (((class mono) (background light))
+     :inherit variable-pitch
+     :height 0.8
+     :foreground "black"
+     :background "white"
+     )
+    (((class mono) (background dark))
+     :inherit variable-pitch
+     :height 0.8
+     :foreground "white"
+     :background "black"
+     )
+    (t
+     :inherit variable-pitch
+     :height 0.8
+     :foreground "gray50"
+     :background "gray75"
+     ))
   "Default face used in the tab bar."
   :group 'tabbar)
 
 (defface tabbar-unselected-face
-  '(
-    (t
-     (:inherit tabbar-default-face
-               :box (:line-width 2 :color "white" :style pressed-button)
-               )
-     )
-    )
+  '((t
+     :inherit tabbar-default-face
+     :box (:line-width 1 :color "white" :style released-button)
+     ))
   "Face used for uselected tabs."
   :group 'tabbar)
 
 (defface tabbar-selected-face
-  '(
-    (t
-     (:inherit tabbar-default-face
-               :box (:line-width 2 :color "white" :style released-button)
-               :foreground "blue"
-               )
-     )
-    )
+  '((t
+     :inherit tabbar-default-face
+     :box (:line-width 1 :color "white" :style pressed-button)
+     :foreground "blue"
+     ))
   "Face used for the selected tab."
   :group 'tabbar)
 
 (defface tabbar-separator-face
-  '(
-    (t
-     (:inherit tabbar-default-face
-               :height 0.2
-               )
-     )
-    )
+  '((t
+     :inherit tabbar-default-face
+     :height 0.1
+     ))
   "Face used for the select mode button."
   :group 'tabbar)
 
 (defface tabbar-button-face
-  '(
-    (t
-     (:inherit tabbar-default-face
-               :box (:line-width 2 :color "white" :style released-button)
-               :foreground "dark red"
-               )
-     )
-    )
+  '((t
+     :inherit tabbar-default-face
+     :box (:line-width 1 :color "white" :style released-button)
+     :foreground "dark red"
+     ))
   "Face used for the select mode button."
   :group 'tabbar)
 
