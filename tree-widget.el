@@ -5,9 +5,9 @@
 ;; Author: David Ponce <david@dponce.com>
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 16 Feb 2001
-;; Version: 1.0.5
+;; Version: 1.1
 ;; Keywords: extensions
-;; VC: $Id: tree-widget.el,v 1.5 2001/05/11 23:11:18 ponce Exp $
+;; VC: $Id: tree-widget.el,v 1.6 2001/11/27 21:36:06 ponce Exp $
 
 ;; This file is not part of Emacs
 
@@ -94,10 +94,9 @@
 ;;     :format "%p%t\n"
 ;;     :format-handler #'tree-widget-format-handler)
 ;;
-;; Basic examples of `tree-widget' usage are provided in this file
-;; (see commands `tree-widget-example-1' and `tree-widget-example-2').
-;; A more sophisticated example is provided in the dir-tree.el
-;; source.
+;; Basic examples of `tree-widget' usage are provided in the file
+;; tree-widget-examples.el.  A more sophisticated example is provided
+;; in the dir-tree.el source.
 ;;
 ;; Installation
 
@@ -115,6 +114,17 @@
 ;;; History:
 ;; 
 ;; $Log: tree-widget.el,v $
+;; Revision 1.6  2001/11/27 21:36:06  ponce
+;; Version 1.1
+;;
+;; (tree-widget-after-toggle-functions): New variable.  Hooks run after
+;; toggling a `tree-widget' folding.
+;; (tree-widget-toggle-folding): Run above hooks.  Updated doc string.
+;;
+;; Examples moved into tree-widget-examples.el.
+;;
+;; Added pagination.  Minor comment changes.
+;;
 ;; Revision 1.5  2001/05/11 23:11:18  ponce
 ;; Updated version to 1.0.5.
 ;;
@@ -141,12 +151,11 @@
 ;; Revision 1.1  2001/02/19 22:51:23  ponce
 ;; Initial revision.
 ;;
-
+
 ;;; Code:
-
 (require 'wid-edit)
 
-;;; Customization.
+;;; Customization
 
 (defgroup tree-widget nil
   "Customization support for the Tree Widget Library."
@@ -156,6 +165,8 @@
   "Widget type used for tree node handle."
   :type  'symbol
   :group 'tree-widget)
+
+;;; Support functions
 
 (defun tree-widget-get-super (widget property)
   "Return WIDGET super class PROPERTY value."
@@ -251,9 +262,16 @@ in NODE if non-nil else in WIDGET :node property value."
            ;; Save the node child properties specified in :keep.
            (tree-widget-keep node node-child)))))
 
+(defvar tree-widget-after-toggle-functions nil
+  "Hooks run after toggling a `tree-widget' folding.
+Each function will receive the `tree-widget' as its unique argument.
+This variable should be local to each buffer used to display
+widgets.")
+
 (defun tree-widget-toggle-folding (widget &rest ignore)
-  "Toggle tree WIDGET folding.
-IGNORE other arguments."
+  "Toggle a `tree-widget' folding.
+WIDGET is a `tree-widget-node-handle-widget' and its parent the
+`tree-widget' itself.  IGNORE other arguments."
   (let ((parent (widget-get widget :parent))
         (open   (widget-value widget)))
      (if open
@@ -261,7 +279,10 @@ IGNORE other arguments."
          ;; open can recover them.
          (tree-widget-children-value-save parent))
     (widget-put parent :open (not open))
-    (widget-value-set parent (not open))))
+    (widget-value-set parent (not open))
+    (run-hook-with-args 'tree-widget-after-toggle-functions parent)))
+
+;;; Widgets
 
 (defvar tree-widget-button-keymap
   (let (parent-keymap mouse-button1 keymap)
@@ -274,7 +295,6 @@ IGNORE other arguments."
     (define-key keymap mouse-button1 #'widget-button-click)
     keymap)
   "Keymap used inside node handle buttons.")
-
 
 (define-widget 'tree-widget-node-handle 'toggle
   "Tree node handle widget."
@@ -309,6 +329,8 @@ IGNORE other arguments."
   :guide            " | "
   :leaf-handle      " |--- "
   :last-leaf-handle " `--- ")
+
+;;; Widget support functions
 
 (defun tree-widget-format-handler (widget escape)
   "Convenient %p format handler to insert a leaf node prefix.
@@ -427,10 +449,8 @@ WIDGET is a tree leaf node and ESCAPE a format character."
     
     (widget-put widget :children (nreverse children))
     (widget-put widget :buttons  buttons)))
-
-;;;;
-;;;; Utilities
-;;;;
+
+;;; Utilities
 
 (defun tree-widget-map (widget fun)
   "For each WIDGET displayed child call function FUN.
@@ -454,105 +474,6 @@ where:
               (tree-widget-map child fun)
             ;; Another non tree node.
             (funcall fun child nil widget))))))
-
-;;;;
-;;;; Samples
-;;;;
-
-;;; Compatibility
-
-(cond ((featurep 'xemacs)
-
-       (defalias 'tree-widget-sample-overlay-lists
-         (lambda () (list (extent-list))))
-       (defalias 'tree-widget-sample-delete-overlay 'delete-extent))
-
-      (t
-       
-       (defalias 'tree-widget-sample-overlay-lists 'overlay-lists)
-       (defalias 'tree-widget-sample-delete-overlay 'delete-overlay)))
-
-(defun tree-widget-example-1 ()
-  "A simple usage of the `tree-widget'."
-  (interactive)
-  (switch-to-buffer "*`tree-widget' example 1*")
-  (kill-all-local-variables)
-  (let ((inhibit-read-only t))
-    (erase-buffer))
-  (let ((all (tree-widget-sample-overlay-lists)))
-    (mapcar #'tree-widget-sample-delete-overlay (car all))
-    (mapcar #'tree-widget-sample-delete-overlay (cdr all)))
-
-  (widget-insert (format "%s. \n\n" (buffer-name)))
-
-  (widget-create
-   ;; Open this level.
-   'tree-widget :open t
-   ;; Use a push button for this node.
-   :node '(push-button
-           :tag "Root"
-           :format "%[%t%]\n"
-           :notify
-           (lambda (&rest ignore)
-             (message "This is the Root node")))
-   ;; Add subtrees (their nodes defaut to items).
-   '(tree-widget :tag "Child-1")
-   '(tree-widget :tag "Child-2"
-                 (tree-widget :tag "Child-2.1")
-                 (tree-widget :tag "Child-2.2"
-                              (tree-widget :tag "Child-2.2.1")
-                              (tree-widget :tag "Child-2.2.2")))
-   '(tree-widget :tag "Child-3"
-                 (tree-widget :tag "Child-3.1")
-                 (tree-widget :tag "Child-3.2")))
-  
-  (use-local-map widget-keymap)
-  (widget-setup))
-
-(defun tree-widget-example-2-dynargs (widget)
-  "Return the children definitions of WIDGET.
-Reuse the cached :args property value if exists."
-  (or (widget-get widget :args)
-      '((tree-widget :tag "Child-2.1")
-        (tree-widget :tag "Child-2.2"
-                     (tree-widget :tag "Child-2.2.1")
-                     (tree-widget :tag "Child-2.2.2")))))
-  
-(defun tree-widget-example-2 ()
-  "A simple usage of the `tree-widget' with dynamic expansion."
-  (interactive)
-  (switch-to-buffer "*`tree-widget' example 2*")
-  (kill-all-local-variables)
-  (let ((inhibit-read-only t))
-    (erase-buffer))
-  (let ((all (tree-widget-sample-overlay-lists)))
-    (mapcar #'tree-widget-sample-delete-overlay (car all))
-    (mapcar #'tree-widget-sample-delete-overlay (cdr all)))
-
-  (widget-insert (format "%s. \n\n" (buffer-name)))
-
-  (widget-create
-   ;; Open this level.
-   'tree-widget :open t
-   ;; Use a push button for this node.
-   :node '(push-button
-           :tag "Root"
-           :format "%[%t%]\n"
-           :notify
-           (lambda (&rest ignore)
-             (message "This is the Root node")))
-   ;; Add subtrees (their nodes defaut to items).
-   '(tree-widget :tag "Child-1")
-   ;; Dynamically retrieve children of this node.
-   '(tree-widget :tag "Child-2"
-                 :dynargs tree-widget-example-2-dynargs
-                 :has-children t)
-   '(tree-widget :tag "Child-3"
-                 (tree-widget :tag "Child-3.1")
-                 (tree-widget :tag "Child-3.2")))
-  
-  (use-local-map widget-keymap)
-  (widget-setup))
 
 (provide 'tree-widget)
 
