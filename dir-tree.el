@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 16 Feb 2001
 ;; Keywords: extensions
-;; Revision: $Id: dir-tree.el,v 1.1 2003/04/25 11:24:15 ponced Exp $
+;; Revision: $Id: dir-tree.el,v 1.2 2003/09/29 10:25:56 ponced Exp $
 
 (defconst dir-tree-version "1.1")
 
@@ -28,7 +28,7 @@
 ;; Boston, MA 02111-1307, USA.
 
 ;;; Commentary:
-;; 
+;;
 ;; This library is a sophisticated example of usage of the
 ;; `tree-widget' library.
 ;;
@@ -45,7 +45,7 @@
 ;;
 
 ;;; History:
-;; 
+;;
 
 ;;; Code:
 (require 'tree-widget)
@@ -68,7 +68,7 @@
 ;;
 (define-widget 'dir-tree-dir-widget 'tree-widget
   "Directory Tree widget."
-  :dynargs        #'dir-tree-expand-dir
+  :dynargs        'dir-tree-expand-dir
   :has-children   t)
 
 (define-widget 'dir-tree-file-widget 'push-button
@@ -77,12 +77,9 @@
   ;; When unfolding the parent directory tree keep :doc value which
   ;; could be changed by `dir-tree-toggle-selection'
   :keep           '(:doc)
-  ;; Must use the `tree-widget-format-handler' to insert the leaf node
-  ;; prefix using the %p escape character in :format.
-  :format         "%p%[%t%]%d"
-  :format-handler #'tree-widget-format-handler
+  :format         "%[%t%]%d"
   :button-face    'default
-  :notify         #'dir-tree-toggle-selection)
+  :notify         'dir-tree-toggle-selection)
 
 ;;; Callbacks
 ;;
@@ -111,7 +108,6 @@ IGNORE other arguments."
 (defun dir-tree-widget (e)
   "Return a widget to display file or directory E."
   (if (file-directory-p e)
-      
       `(dir-tree-dir-widget
         :node (push-button
                :tag ,(file-name-as-directory (file-name-nondirectory e))
@@ -144,8 +140,7 @@ Reuse :args cache if exists."
       (let ((dir (widget-get tree :path))
             args)
         (message "Reading directory '%s'..." dir)
-        (setq args (mapcar #'dir-tree-widget
-                           (dir-tree-list dir)))
+        (setq args (mapcar 'dir-tree-widget (dir-tree-list dir)))
         (message "Reading directory '%s'...done" dir)
         args)))
 
@@ -154,23 +149,19 @@ Reuse :args cache if exists."
 (defun dir-tree (root)
   "Display a tree of entries in ROOT directory."
   (interactive "DRoot: ")
-  
   (switch-to-buffer (format "* %s directory tree*" root))
-
   (kill-all-local-variables)
   (let ((inhibit-read-only t))
     (erase-buffer))
   (let ((all (dir-tree-overlay-lists)))
-    (mapcar #'dir-tree-delete-overlay (car all))
-    (mapcar #'dir-tree-delete-overlay (cdr all)))
-
+    (mapcar 'dir-tree-delete-overlay (car all))
+    (mapcar 'dir-tree-delete-overlay (cdr all)))
   (widget-insert (format "%s directory tree. \n\n" root))
-
   (let ((default-directory root))
     (widget-create (dir-tree-widget root)))
-
   (use-local-map widget-keymap)
-  (widget-setup))
+  (widget-setup)
+  (goto-char (point-min)))
 
 (provide 'dir-tree)
 
