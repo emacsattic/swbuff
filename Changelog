@@ -1,3 +1,13 @@
+2003-11-21  David Ponce  <david@dponce.com>
+
+	* tabbar.el
+
+	(tabbar-selected-tab-always-visible): New option.
+	(tabbar-select-tab): Use it.
+	(tabbar-buffer-tab-label): Automatically shorten label depending
+	on the tab bar width and on the number of tabs to display.
+	(tabbar-buffer-help-on-tab): Give more informations.
+	
 2003-10-15  David Ponce  <david@dponce.com>
 
 	* tabbar.el
