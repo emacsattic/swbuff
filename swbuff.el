@@ -5,9 +5,9 @@
 ;; Author: David Ponce <david@dponce.com>
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 12 Nov 1998
-;; Version: 3.0
+;; Version: 3.1
 ;; Keywords: extensions convenience
-;; VC: $Id: swbuff.el,v 1.17 2001/09/19 11:13:00 ponce Exp $
+;; VC: $Id: swbuff.el,v 1.18 2002/01/09 11:45:23 ponce Exp $
 
 ;; This file is not part of Emacs
 
@@ -61,6 +61,9 @@
 ;;; Change Log:
 
 ;; $Log: swbuff.el,v $
+;; Revision 1.18  2002/01/09 11:45:23  ponce
+;; Version 3.1.
+;;
 ;; Revision 1.17  2001/09/19 11:13:00  ponce
 ;; (swbuff-window-lines): Use `swbuff-count-lines' instead of
 ;; `count-lines'.
@@ -186,7 +189,7 @@
 ;;; Code:
 (require 'timer)
 
-(defconst swbuff-version "3.0 $Date: 2001/09/19 11:13:00 $"
+(defconst swbuff-version "3.0 $Date: 2002/01/09 11:45:23 $"
   "swbuff version information.")
 
 (defconst swbuff-status-buffer-name "*swbuff*"
