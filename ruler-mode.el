@@ -5,10 +5,10 @@
 ;; Author: David Ponce <david@dponce.com>
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 24 Mar 2001
-;; Version: 1.1
+;; Version: 1.1.1
 ;; Keywords: environment
 
-;; This file is not part of Emacs
+;; This file is part of GNU Emacs.
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
