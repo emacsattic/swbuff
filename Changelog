@@ -1,9 +1,11 @@
 2005-03-14  David Ponce  <david@dponce.com>
 
 	* tabbar.el
-
+	
+	(tabbar-header-line-format):
+	(tabbar-old-local-hlf): Move definition.
 	(tabbar-mode-on-p): New function.
-	(tabbar-local-mode): Use it.
+	(tabbar-local-mode): Use it. Move before `tabbar-mode' definition.
 	(tabbar-mode): Use it. Turn off local mode before global mode.
 	(tabbar-buffer-groups): Preserve match data.
 
