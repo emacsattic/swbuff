@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 25 February 2003
 ;; Keywords: convenience
-;; Revision: $Id: tabbar.el,v 1.8 2003/03/11 14:31:59 ponce Exp $
+;; Revision: $Id: tabbar.el,v 1.9 2003/03/11 16:08:15 ponce Exp $
 
 (defconst tabbar-version "1.0")
 
@@ -55,7 +55,7 @@
 ;; a reference to its tab set container.  A tab value can be any Lisp
 ;; object, even if the most common value is probably a string.  Each
 ;; tab object is guaranteed to be unique.
-
+;;
 ;; A tab set is displayed on the tab bar through a "view" defined by
 ;; the index of the leftmost tab shown.  Thus, it is possible to
 ;; scroll the tab bar horizontally, by changing the start index of the
@@ -232,17 +232,8 @@ The function is called with no arguments."
   :group 'tabbar
   :type 'function)
 
-;;; Tab and tab sets
+;;; Tab and tab set
 ;;
-;; A tab set is a collection of tabs identified by an unique name.  In
-;; each tab set, at any time, one and only one tab is designated as
-;; selected within the tab set.  A tab set is displayed on the tab bar
-;; through a "view" defined by the index of the leftmost tab shown.
-;;
-;; A tab can be any Lisp object.  The most common value is probably a
-;; string.  Each tab is guaranteed to be unique across all defined tab
-;; sets.  So, having a tab, it is possible to find the tab set it
-;; belongs to.
 (defconst tabbar-tabsets-tabset-name "tabbar-tabsets-tabset"
   "Name of the special tab set of existing tab sets.")
 
@@ -432,13 +423,17 @@ current cached copy."
 
 ;;; Buttons and separators
 ;;
-(defconst tabbar-widget
-  '(cons (string " ")
+(defconst tabbar-separator-widget
+  '(cons (string)
          (repeat :tag "Image"
                  :extra-offset 2
                  (restricted-sexp :tag "Spec"
                                   :match-alternatives (listp))))
-  "Widget for editing a tab bar button or separator.")
+  "Widget for editing a tab bar separator.
+A separator is specified as a pair (STRING . IMAGE) where STRING is a
+string value, and IMAGE a list of image specifications.
+If IMAGE is non-nil, try to use that image, else use STRING.
+The value (\"\") hide separators.")
 
 (defun tabbar-setup-separator (variable value)
   "Set VARIABLE with specification of tab separator in VALUE.
@@ -459,13 +454,9 @@ line, to display a separator on the tab bar."
 
 (defcustom tabbar-separator (list " ")
   "Separator used between tabs.
-A separator is a string and a list of image specifications.
-If image specifications are non-nil, try to use an image as separator.
-Otherwise, use the given string.
-To suppress the separator, use a zero length string and nil as image
-specifications."
+See the variable `tabbar-separator-widget' for details."
   :group 'tabbar
-  :type tabbar-widget
+  :type tabbar-separator-widget
   :set 'tabbar-setup-separator)
 
 (defconst tabbar-button-widget
@@ -483,7 +474,13 @@ specifications."
                   (restricted-sexp :tag "Spec"
                                    :match-alternatives (listp))))
     )
-  "Widget for editing a tab bar button.")
+  "Widget for editing a tab bar button.
+A button is specified as a pair (ENABLED-BUTTON . DISABLED-BUTTON),
+where ENABLED-BUTTON and DISABLED-BUTTON specify the value used when
+the button is respectively enabled and disabled.  Each button value is
+a pair (STRING . IMAGE) where STRING is a string value, and IMAGE a
+list of image specifications.
+If IMAGE is non-nil, try to use that image, else use STRING.")
 
 (defun tabbar-setup-button (variable value)
   "Set VARIABLE with the button specification in VALUE.
@@ -586,7 +583,8 @@ P2
 (defcustom tabbar-home-button
   (cons (cons "[o]" tabbar-home-button-enabled-image)
         (cons "[x]" tabbar-home-button-disabled-image))
-  "The home button."
+  "The home button.
+See the variable `tabbar-button-widget' for details."
   :group 'tabbar
   :type tabbar-button-widget
   :set 'tabbar-setup-button)
@@ -646,7 +644,8 @@ P2
 (defcustom tabbar-scroll-left-button
   (cons (cons " <" tabbar-scroll-left-button-enabled-image)
         (cons " =" tabbar-scroll-left-button-disabled-image))
-  "The scroll left button."
+  "The scroll left button.
+See the variable `tabbar-button-widget' for details."
   :group 'tabbar
   :type tabbar-button-widget
   :set 'tabbar-setup-button)
@@ -706,7 +705,8 @@ P2
 (defcustom tabbar-scroll-right-button
   (cons (cons " >" tabbar-scroll-right-button-enabled-image)
         (cons " =" tabbar-scroll-right-button-disabled-image))
-  "The scroll right button."
+  "The scroll right button.
+See the variable `tabbar-button-widget' for details."
   :group 'tabbar
   :type tabbar-button-widget
   :set 'tabbar-setup-button)
@@ -717,7 +717,6 @@ P2
   '(
     (t
      (:inherit variable-pitch
-               ;;:family "Verdana"
                :height 0.8
                :foreground "gray60"
                :background "gray72"
