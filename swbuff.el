@@ -1,5 +1,5 @@
 ;; swbuff.el --- Quick switch between Emacs buffers.
-;; $Id: swbuff.el,v 1.11 2000/04/19 14:00:03 david_ponce Exp $
+;; $Id: swbuff.el,v 1.12 2000/04/20 16:00:24 david_ponce Exp $
 
 ;; Copyright (C) 1998, 2000 by David Ponce
 
@@ -38,12 +38,12 @@
 ;; buffers (that is *scratch*, *Message*, etc...) you could use the
 ;; following regexps '("^ .*" "^\\*.*\\*").
 
-;; Switching buffers pops-up a one-line status window at the bottom of
-;; the selected window. The status window shows the list of switchable
+;; Switching buffers pops-up a status window at the bottom of the
+;; selected window. The status window shows the list of switchable
 ;; buffers where the switched one is hilighted using
-;; `swbuff-current-buffer-face'. It is automatically discarded after
-;; any command is executed or after the delay specified by
-;; `swbuff-clear-delay'.
+;; `swbuff-current-buffer-face'. This window is automatically
+;; discarded after any command is executed or after the delay
+;; specified by `swbuff-clear-delay'.
 
 ;; Installation
 
@@ -61,6 +61,11 @@
 ;;; Change Log:
 
 ;; $Log: swbuff.el,v $
+;; Revision 1.12  2000/04/20 16:00:24  david_ponce
+;; Added a new customizable variable `swbuff-status-window-layout' to
+;; control the method used to ensure the switched buffer is always
+;; visible when the buffer list is larger than the status window width.
+;;
 ;; Revision 1.11  2000/04/19 14:00:03  david_ponce
 ;; Updated to use standard Emacs conventions for comments.
 ;;
@@ -126,7 +131,7 @@
 
 ;;; Code:
 
-(defconst swbuff-version "2.0 (beta1) $Date: 2000/04/19 14:00:03 $"
+(defconst swbuff-version "2.0 (beta1) $Date: 2000/04/20 16:00:24 $"
   "swbuff version information.")
 
 (defconst swbuff-status-buffer-name "*swbuff*"
@@ -137,6 +142,22 @@
   :group 'extensions
   :group 'convenience
   :prefix "swbuff-")
+
+(defcustom swbuff-status-window-layout nil
+  "*Method used to ensure the switched buffer is always visible.
+This occurs when the buffer list is larger than the status window
+width. The possible choices are:
+
+- - 'Default' If there is only one window in the frame (ignoring the
+              minibuffer one and the status window itself) the status
+              window height is adjusted.
+              Otherwise horizontal scrolling is used.
+- - 'Scroll'  Horizontal scrolling is always used.
+- - 'Adjust'  Only adjust the window height."
+  :group 'swbuff
+  :type '(choice (const :tag "Default" nil)
+                 (const :tag "Scroll"  scroll)
+                 (const :tag "Adjust"  adjust)))
 
 (defcustom swbuff-clear-delay 3
   "*Time in seconds to delay before discarding the status window."
@@ -197,24 +218,80 @@ That is without the ones whose name matches `swbuff-exclude-buffer-regexps'."
                        (swbuff-buffer-list)
                        " "))))
 
-(defun swbuff-make-visible (window position)
+(defconst swbuff-extra-space 3
+  "Extra space left in a line of the status window.
+The default value correspond to the truncated glyphs + one space.")
+
+(defun swbuff-scroll-window (window position)
   "Adjust horizontal scrolling of WINDOW to ensure that POSITION is visible."
   (save-selected-window
     (select-window window)
     (setq truncate-lines t)
     (let ((wdth (window-width))
-          (hscr (window-hscroll))
-          (xtra 3))                     ; truncated glyphs + an extra space
+          (hscr (window-hscroll)))
       (if (>= position (+ wdth hscr))
-          (set-window-hscroll window (- (+ position xtra) wdth))
+          (set-window-hscroll window (- (+ position swbuff-extra-space) wdth))
         (if (< position hscr)
-            (set-window-hscroll window (- position xtra)))))))
+            (set-window-hscroll window (- position swbuff-extra-space)))))))
 
+(defun swbuff-window-lines ()
+  "Return the number of lines of the selected window. This number may
+be greater than the number of actual lines in the buffer if any wrap
+on the display due to their length."
+  (let ((start (point-min))
+        (end   (point-max)))
+    (if (= start end)
+        0
+      (save-excursion
+        (save-restriction
+          (widen)
+          (narrow-to-region start end)
+          (goto-char start)
+          (vertical-motion (buffer-size)))))))
+
+(defun swbuff-adjust-window (window)
+  "Adjust WINDOW height to fit its buffer contents.
+The text in the window's buffer is filled to the window width."
+  (save-selected-window
+    (select-window window)
+    (let ((fill-column (window-width))
+          (start       (point-min))
+          (end         (point-max)))
+      (set-right-margin start end swbuff-extra-space)
+      (fill-region start end))
+    (let ((height (window-height))
+          (lines (+ 2 (swbuff-window-lines))))
+      (if (> lines height)
+          (enlarge-window (- lines height))))))
+
+(defun swbuff-one-window-p (window)
+  "Return non-nil if there is only one window in this frame ignoring
+WINDOW and the minibuffer window."
+  (let ((count 0))
+    (walk-windows '(lambda (w)
+                     (if (not (eq w window))
+                         (setq count (1+ count)))))
+    (= count 1)))
+
+(defun swbuff-layout-status-window (window position)
+  "Ensure the switched buffer is always visible when the buffer list
+is larger than the status window width.
+WINDOW is the status window. POSITION is the rightmost position in the
+WINDOW's buffer of the switched buffer name."
+  (cond ((eq swbuff-status-window-layout 'scroll)
+         (swbuff-scroll-window window position))
+        ((eq swbuff-status-window-layout 'adjust)
+         (swbuff-adjust-window window))
+        ((swbuff-one-window-p window)
+         (swbuff-adjust-window window))
+        (t
+         (swbuff-scroll-window window position))))
+              
 (defun swbuff-show-status-window ()
-  "Pop-up a one-line status window at the bottom of the selected
-window. The status window shows the list of switchable buffers where
-the switched one is hilighted using `swbuff-current-buffer-face'. It
-is automatically discarded after any command is executed or after the
+  "Pop-up a status window at the bottom of the selected window. The
+status window shows the list of switchable buffers where the switched
+one is hilighted using `swbuff-current-buffer-face'. It is
+automatically discarded after any command is executed or after the
 delay specified by `swbuff-clear-delay'."
   (let* ((status-line (swbuff-buffer-list-string))
          (name-regexp (concat "\\(^\\| \\)\\("
@@ -233,7 +310,7 @@ delay specified by `swbuff-clear-delay'."
                  (w (or (get-buffer-window swbuff-status-buffer-name)
                         (split-window-vertically -2))))
             (set-window-buffer w (current-buffer))
-            (swbuff-make-visible w end)
+            (swbuff-layout-status-window w end)
             (add-hook 'pre-command-hook 'swbuff-pre-command-hook)
             (if (sit-for swbuff-clear-delay)
                 (swbuff-discard-status-window))))
