@@ -1,40 +1,32 @@
-;; @(#) jjar.el -- Java Archive builder
-;; @(#) $Id: jjar.el,v 1.7 2000/04/12 14:31:01 david_ponce Exp $
+;; jjar.el --- Java Archive builder
 
-(defconst jjar-version "1.7 (beta1) $Date: 2000/04/12 14:31:01 $"
-  "jjar version information.")
+;; Copyright (C) 1999, 2000 by David Ponce
 
+;; Author: David Ponce david@dponce.com
+;; Maintainer: David Ponce david@dponce.com
+;; Created: June 14 1999
+;; Version: 1.7 (beta2)
+;; Keywords: tools
+;; VC: $Id: jjar.el,v 1.8 2000/08/11 14:44:43 david_ponce Exp $
 ;; This file is not part of Emacs
 
-;; Copyright (C) 1999 by David Ponce
-;; Author:       David Ponce david@dponce.com
-;; Maintainer:   David Ponce david@dponce.com
-;; Created:      June 14 1999
+;; This program is free software; you can redistribute it and/or
+;; modify it under the terms of the GNU General Public License as
+;; published by the Free Software Foundation; either version 2, or (at
+;; your option) any later version.
 
-;; LCD Archive Entry:
-;; jjar|David Ponce|david@dponce.com|
-;; Java Archive builder|
-;; $Date: 2000/04/12 14:31:01 $|1.7 (beta1)|~/misc/jjar.el|
-
-;; COPYRIGHT NOTICE
-;;
-;; This program is free software; you can redistribute it and/or modify
-;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 2, or (at your option)
-;; any later version.
-
-;; This program is distributed in the hope that it will be useful,
-;; but WITHOUT ANY WARRANTY; without even the implied warranty of
-;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-;; GNU General Public License for more details.
+;; This program is distributed in the hope that it will be useful, but
+;; WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+;; General Public License for more details.
 
 ;; You should have received a copy of the GNU General Public License
-;; along with this program; see the file COPYING.  If not, write to the
-;; Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+;; along with this program; see the file COPYING.  If not, write to
+;; the Free Software Foundation, Inc., 59 Temple Place - Suite 330,
 ;; Boston, MA 02111-1307, USA.
 
-;;; Description:
-;;
+;;; Commentary:
+
 ;; This library provides commands to create or update (since JDK 1.2) a
 ;; Java ARrchive files (.jar). The files to be archived are searched in
 ;; a given directory tree in this way:
@@ -45,52 +37,79 @@
 ;;     ones to archive.
 ;; 3 - The jar command is built and run in compile-mode.
 
-;;; Installation:
+;; Installation:
 ;;
-;; Put this file on your Emacs-Lisp load path and add following into your
-;; ~/.emacs startup file
-;;
-;;   (require 'jjar)
-;;
-;; or
-;;
+;; Put this file on your Emacs load-path. Then, into your Emacs
+;; startup file, add:
+;;   (require 'jjar) 
+;; or:
 ;;   (autoload 'jjar-customize "jjar" "Customize jjar options."      t nil)
 ;;   (autoload 'jjar-create    "jjar" "Create a new jar file."       t nil)
 ;;   (autoload 'jjar-update    "jjar" "Update an existing jar file." t nil)
 
-;;; Usage:
+;; Usage:
 ;;
-;; M-x `jjar-create'
+;; M-x `jjar-create' to create a new jar file.
 ;;
-;; To create a new jar file.
-;;
-;; M-x `jjar-update'
-;;
-;; To update an existing jar file (since JDK 1.2).
-
-;;; Customization:
+;; M-x `jjar-update' to update an existing jar file (since JDK 1.2).
 ;;
 ;; M-x `jjar-customize' to customize all the jjar options.
 ;;
-;; You should at least customize the `jjar-jar-command' variable to setup
-;; the path of the jar command in your installation.
+;; You should at least customize the `jjar-jar-command' variable to
+;; setup the path to the jar command in your installation.
   
-;;; Support:
+;; Support
 ;;
-;; Latest version of jjar can be downloaded from: <http://www.dponce.com/>
-;;
-;; Any comments, suggestions, bug reports or upgrade requests are welcome.
+;; This program is available at <http://www.dponce.com/>. Any
+;; comments, suggestions, bug reports or upgrade requests are welcome.
 ;; Please send them to David Ponce at <david@dponce.com>
+
+;;; Change Log:
+
+;; $Log: jjar.el,v $
+;; Revision 1.8  2000/08/11 14:44:43  david_ponce
+;; Improved dialog handling.
+;; Comments follow standard Emacs conventions.
 ;;
-;; I currently develop and test jjar with NTEmacs 20.6.1 under MS Windows
-;; NT 4 WKS SP5.
+;; Revision 1.7  2000/04/12 14:31:01  david_ponce
+;; New improved file selection scheme.
+;; The jar command path default value is now platform independant.
+;; Code cleanup.
+;; Documentation rewrite.
+;;
+;; Revision 1.6  2000/03/10 15:28:20  ebat311
+;; No more require cl.
+;; New directory selection scheme.
+;;
+;; Revision 1.5  1999-07-21 16:45:35+02  ebat311
+;; FIXED:
+;;   bad :type 'string of customizable variable `jjar-jar-nocompress-option'.
+;;   Thanks to "Phillip Lord" <plord@hgmp.mrc.ac.uk> who has reported
+;;   this bug.
+;;
+;; Revision 1.4  1999-07-06 17:38:42+02  ebat311
+;; Added comments for autoload installation.
+;;
+;; Revision 1.3  1999-07-06 17:31:27+02  ebat311
+;; Major rewrite!
+;; Allow update of an existing jar file (JDK 1.2).
+;; Improved comments and dialog behavior.
+;;
+;; Revision 1.2  1999-07-06 12:39:20+02  ebat311
+;; FIXED:
+;;   - missing selection of files in the classpath-root directory.
+;;   - comments.
+;;
+;; Revision 1.1  1999-07-05 23:30:12+02  ebat311
+;; Initial revision
+;;
 
 ;;; Code:
-
 (require 'compile)
-(require 'widget)
-(eval-when-compile
-  (require 'wid-edit))
+(require 'wid-edit)
+
+(defconst jjar-version "1.7 (beta2) $Date: 2000/08/11 14:44:43 $"
+  "jjar version information.")
 
 (defgroup jjar nil
   "Java Archive builder."
@@ -155,24 +174,25 @@ Called by `jjar-files-dialog' to initialize `jjar-files'."
   "Return a list file expressions corresponding to files in DIR that match
 one of `jjar-wildcards' expressions."
   (delq nil
-        (mapcar '(lambda (wildcard)
+        (mapcar (function
+                 (lambda (wildcard)
                    (and (directory-files dir nil (wildcard-to-regexp wildcard))
                         (concat (file-name-as-directory
                                  (file-relative-name dir jjar-base-directory))
-                                wildcard)))
+                                wildcard))))
                 jjar-wildcards)))
 
 (defun jjar-get-matching-files-in-tree (dir)
   "Auxiliary function used by `jjar-get-matching-files'.
 DIR is a subdirectory in `jjar-base-directory' tree."
   (apply 'nconc
-         (mapcar
-          '(lambda (entry)
-             (and (not (string= (substring entry -1) "."))
-                  (file-directory-p entry)
-                  (nconc (jjar-get-matching-files-in-dir  entry)
-                         (jjar-get-matching-files-in-tree entry))))
-          (directory-files dir t))))
+         (mapcar (function
+                  (lambda (entry)
+                    (and (not (string= (substring entry -1) "."))
+                         (file-directory-p entry)
+                         (nconc (jjar-get-matching-files-in-dir  entry)
+                                (jjar-get-matching-files-in-tree entry)))))
+                 (directory-files dir t))))
 
 (defun jjar-make-jar-command ()
   "Build and return the jar command.
@@ -219,6 +239,37 @@ See `jjar-make-jar-command'."
         (compile-internal compile-command "No more errors")
         ))))
 
+;;;
+;;; Dialogs stuff
+;;;
+
+(defun jjar-cancel-dialog (&rest ignore)
+  "Cancel the current dialog."
+  (interactive)
+  (kill-buffer (current-buffer))
+  (message "Dialog canceled."))
+
+(defvar jjar-dialog-mode-map nil
+  "`jjar-dialog-mode' keymap.")
+
+(if jjar-dialog-mode-map
+    ()
+  (setq jjar-dialog-mode-map (make-sparse-keymap))
+  (define-key jjar-dialog-mode-map "q" 'jjar-cancel-dialog)
+  (define-key jjar-dialog-mode-map [down-mouse-1] 'widget-button-click)
+  (set-keymap-parent jjar-dialog-mode-map widget-keymap))
+
+(defun jjar-dialog-mode ()
+  "Major mode used in jjar dialogs.
+
+These are the special commands of jjar-dialog-mode mode:
+    q            -- to cancel the dialog.
+    down-mouse-1 -- to click on button."
+  (interactive)
+  (setq major-mode 'jjar-dialog-mode)
+  (setq mode-name "jjar-dialog")
+  (use-local-map jjar-dialog-mode-map))
+
 (defun jjar-wildcards-dialog (wildcards)
   "Show the dialog used to customize the shell wildcard expressions used to locate
 the files to archive.
@@ -264,12 +315,11 @@ WILDCARDS is a list of wildcard expressions used to initialize the dialog."
     ;; Insert the cancel button
     (widget-insert " ")
     (widget-create 'push-button
-                   :notify (lambda (&rest ignore)
-                             (kill-buffer (current-buffer))
-                             (error "Command canceled."))
+                   :notify 'jjar-cancel-dialog
                    "Cancel")
-    (use-local-map widget-keymap)
-    (widget-setup)))
+    (jjar-dialog-mode)
+    (widget-setup)
+    (goto-char (point-min))))
 
 (defun jjar-files-dialog-toggle-selection (widget &rest ignore)
   "Checkbox widget action used by `jjar-files-dialog' to select or
@@ -287,62 +337,65 @@ unselect a directory."
 
 (defun jjar-files-dialog ()
   "Show the dialog used to select the file expressions given to the jar command."
-    (with-current-buffer (get-buffer-create "*jjar-files-dialog*")
-      (switch-to-buffer (current-buffer))
-      (kill-all-local-variables)
-      (let ((inhibit-read-only t))
-        (erase-buffer))
-      (let ((all (overlay-lists)))
-        ;; Delete all the overlays.
-        (mapcar 'delete-overlay (car all))
-        (mapcar 'delete-overlay (cdr all)))
+  (with-current-buffer (get-buffer-create "*jjar-files-dialog*")
+    (switch-to-buffer (current-buffer))
+    (kill-all-local-variables)
+    (let ((inhibit-read-only t))
+      (erase-buffer))
+    (let ((all (overlay-lists)))
+      ;; Delete all the overlays.
+      (mapcar 'delete-overlay (car all))
+      (mapcar 'delete-overlay (cdr all)))
 
-      ;; Initialize the list of files
-      (setq jjar-files (jjar-get-matching-files))
+    ;; Initialize the list of files
+    (setq jjar-files (jjar-get-matching-files))
 
-      ;; Insert the dialog header
-      (widget-insert (format "Select the files in '%s' to archive.\n\n"
-                             jjar-base-directory))
+    ;; Insert the dialog header
+    (widget-insert (format "Select the files in '%s' to archive.\n\n"
+                           jjar-base-directory))
       
-      ;; Insert the list of sub-directories as checkboxes
-      (mapcar '(lambda (dir)
-                 (widget-create 'checkbox
-                                :value (memq dir jjar-files)
-                                :format "\n %[%v%]  %t"
-                                :tag dir
-                                :notify 'jjar-files-dialog-toggle-selection))
-              jjar-files)
+    ;; Insert the list of sub-directories as checkboxes
+    (mapcar (function
+             (lambda (dir)
+               (widget-create 'checkbox
+                              :value (memq dir jjar-files)
+                              :format "\n %[%v%]  %t"
+                              :tag dir
+                              :notify 'jjar-files-dialog-toggle-selection)))
+            jjar-files)
 
-      ;; Insert the Back button
-      (widget-insert "\n\n")
-      (widget-create 'push-button
-                     :notify (lambda (&rest ignore)
+    ;; Insert the Back button
+    (widget-insert "\n\n")
+    (widget-create 'push-button
+                   :notify (lambda (&rest ignore)
+                             (kill-buffer (current-buffer))
+                             (jjar-wildcards-dialog jjar-wildcards))
+                   "Back")
+      
+    ;; Insert the Next button
+    (widget-insert " ")
+    (widget-create 'push-button
+                   :notify (lambda (&rest ignore)
+                             (if (not jjar-files)
+                                 (message "No file selected.")  
                                (kill-buffer (current-buffer))
-                               (jjar-wildcards-dialog jjar-wildcards))
-                     "Back")
-      
-      ;; Insert the Next button
-      (widget-insert " ")
-      (widget-create 'push-button
-                     :notify (lambda (&rest ignore)
-                               (if (not jjar-files)
-                                   (message "No file selected.")  
-                                 (kill-buffer (current-buffer))
-                                 ;;(message "Files: %S" jjar-files)
-                                 (jjar-execute)
-                                 ))
-                     "Next")
+                               ;;(message "Files: %S" jjar-files)
+                               (jjar-execute)
+                               ))
+                   "Next")
 
-      ;; Insert the Cancel button
-      (widget-insert " ")
-      (widget-create 'push-button
-                     :notify (lambda (&rest ignore)
-                               (kill-buffer (current-buffer))
-                               (error "Command canceled."))
-                     "Cancel")
-      
-      (use-local-map widget-keymap)
-      (widget-setup)))
+    ;; Insert the Cancel button
+    (widget-insert " ")
+    (widget-create 'push-button
+                   :notify 'jjar-cancel-dialog
+                   "Cancel")
+    (jjar-dialog-mode)
+    (widget-setup)
+    (goto-char (point-min))))
+
+;;;
+;;; Commands
+;;;
 
 ;;;###autoload
 (defun jjar-customize ()
@@ -352,8 +405,9 @@ unselect a directory."
 
 ;;;###autoload
 (defun jjar-create (base)
-  "Create a new jar file. BASE is the directory from which the jar command
-is issued, that is where the files to be archived are searched."
+  "Create a new jar file. BASE is the directory from which the jar
+command is issued, that is where the files to be archived are
+searched."
   (interactive "DBase-directory: ")
   (setq jjar-build-option "-c")
   (setq jjar-base-directory (file-name-as-directory (expand-file-name base)))
@@ -364,9 +418,9 @@ is issued, that is where the files to be archived are searched."
 
 ;;;###autoload
 (defun jjar-update (base file)
-  "Update an existing jar file. BASE is the directory from which the jar command
-is issued, that is where the files to be archived are searched. FILE is the name
-of the jar file to update."
+  "Update an existing jar file. BASE is the directory from which the
+jar command is issued, that is where the files to be archived are
+searched. FILE is the name of the jar file to update."
   (interactive "DBase-directory: \nfJAR-file: ")
   (setq jjar-build-option "-u")
   (setq jjar-base-directory (file-name-as-directory (expand-file-name base)))
@@ -376,42 +430,4 @@ of the jar file to update."
 (provide 'jjar)
 (run-hooks 'jjar-load-hook)
 
-;;; Change History:
-
-;;
-;; $Log: jjar.el,v $
-;; Revision 1.7  2000/04/12 14:31:01  david_ponce
-;; New improved file selection scheme.
-;; The jar command path default value is now platform independant.
-;; Code cleanup.
-;; Documentation rewrite.
-;;
-;; Revision 1.6  2000/03/10 15:28:20  ebat311
-;; No more require cl.
-;; New directory selection scheme.
-;;
-;; Revision 1.5  1999-07-21 16:45:35+02  ebat311
-;; FIXED:
-;;   bad :type 'string of customizable variable `jjar-jar-nocompress-option'.
-;;   Thanks to "Phillip Lord" <plord@hgmp.mrc.ac.uk> who has reported
-;;   this bug.
-;;
-;; Revision 1.4  1999-07-06 17:38:42+02  ebat311
-;; Added comments for autoload installation.
-;;
-;; Revision 1.3  1999-07-06 17:31:27+02  ebat311
-;; Major rewrite!
-;; Allow update of an existing jar file (JDK 1.2).
-;; Improved comments and dialog behavior.
-;;
-;; Revision 1.2  1999-07-06 12:39:20+02  ebat311
-;; FIXED:
-;;   - missing selection of files in the classpath-root directory.
-;;   - comments.
-;;
-;; Revision 1.1  1999-07-05 23:30:12+02  ebat311
-;; Initial revision
-;;
-;;
-
-;;; jjar.el ends here.
+;;; jjar.el ends here
