@@ -1,12 +1,12 @@
 ;;; tabbar.el --- Display a tab bar in the header line
 
-;; Copyright (C) 2003 David Ponce
+;; Copyright (C) 2003, 2004 David Ponce
 
 ;; Author: David Ponce <david@dponce.com>
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 25 February 2003
 ;; Keywords: convenience
-;; Revision: $Id: tabbar.el,v 1.34 2004/03/31 09:22:10 ponced Exp $
+;; Revision: $Id: tabbar.el,v 1.35 2004/03/31 14:01:28 ponced Exp $
 
 (defconst tabbar-version "1.4")
 
@@ -314,7 +314,7 @@ room."
      ((<= sw width)
       str)
      ;; There isn't enough room for the ellipsis, STR is just
-     ;; trunctated to fit in WIDTH.
+     ;; truncated to fit in WIDTH.
      ((<= width ew)
       (while (< w width)
         (setq w (+ w (char-width (aref str i)))
@@ -592,7 +592,7 @@ current cached copy."
      :inherit tabbar-default-face
      :box (:line-width 1 :color "white" :style released-button)
      ))
-  "Face used for uselected tabs."
+  "Face used for unselected tabs."
   :group 'tabbar)
 
 (defface tabbar-selected-face
@@ -639,7 +639,7 @@ If nil, use the `tabbar-default-face' background color."
           (setq color (face-background face)))
         color)))
 
-;;; Buttons and separators
+;;; Buttons and separator look and feel
 ;;
 (defconst tabbar-button-widget
   '(cons
@@ -666,19 +666,6 @@ If IMAGE is non-nil, try to use that image, else use STRING.
 If only the ENABLED-BUTTON image is provided, a DISABLED-BUTTON image
 is derived from it.")
 
-(defun tabbar-make-button-keymap (callback)
-  "Return a button keymap that call CALLBACK on mouse events.
-CALLBACK is passed the received mouse event."
-  (let ((keymap (make-sparse-keymap)))
-    ;; Pass mouse-1, mouse-2 and mouse-3 events to CALLBACK.
-    (define-key keymap [header-line down-mouse-1] 'ignore)
-    (define-key keymap [header-line mouse-1] callback)
-    (define-key keymap [header-line down-mouse-2] 'ignore)
-    (define-key keymap [header-line mouse-2] callback)
-    (define-key keymap [header-line down-mouse-3] 'ignore)
-    (define-key keymap [header-line mouse-3] callback)
-    keymap))
-
 ;;; Home button
 ;;
 (defvar tabbar-home-button-enabled nil
@@ -686,25 +673,6 @@ CALLBACK is passed the received mouse event."
 
 (defvar tabbar-home-button-disabled nil
   "Text of the disabled home button.")
-
-(defconst tabbar-home-button-keymap
-  (tabbar-make-button-keymap 'tabbar-home-button-callback)
-  "Keymap of the home button.")
-
-(defun tabbar-home-button-callback (event)
-  "Handle a mouse EVENT on the home button.
-Call `tabbar-home-function'."
-  (interactive "@e")
-  (when (and tabbar-home-function (tabbar-click-p event))
-    (funcall tabbar-home-function event)
-    (tabbar-display-update)))
-
-(defun tabbar-home-button-help (window object position)
-  "Return a help string or nil for none, for the home button.
-Call `tabbar-home-help-function'.
-Arguments WINDOW, OBJECT and POSITION, are not used."
-  (when tabbar-home-help-function
-    (funcall tabbar-home-help-function)))
 
 (defconst tabbar-home-button-enabled-image
   '((:type pbm :data "\
@@ -753,25 +721,6 @@ See the variable `tabbar-button-widget' for details."
 (defvar tabbar-scroll-left-button-disabled nil
   "Text of the disabled scroll left button.")
 
-(defconst tabbar-scroll-left-button-keymap
-  (tabbar-make-button-keymap 'tabbar-scroll-left-button-callback)
-  "Keymap of the scroll left button.")
-
-(defun tabbar-scroll-left-button-callback (event)
-  "Handle a mouse EVENT on the scroll left button.
-Call `tabbar-scroll-left-function'."
-  (interactive "@e")
-  (when (and tabbar-scroll-left-function (tabbar-click-p event))
-    (funcall tabbar-scroll-left-function event)
-    (tabbar-display-update)))
-
-(defun tabbar-scroll-left-button-help (window object position)
-  "Return a help string or nil for none, for the scroll left button.
-Call `tabbar-scroll-left-help-function'.
-Arguments WINDOW, OBJECT and POSITION, are not used."
-  (when tabbar-scroll-left-help-function
-    (funcall tabbar-scroll-left-help-function)))
-
 (defconst tabbar-scroll-left-button-enabled-image
   '((:type pbm :data "\
 P2
@@ -817,25 +766,6 @@ See the variable `tabbar-button-widget' for details."
 (defvar tabbar-scroll-right-button-disabled nil
   "Text of the disabled scroll right button.")
 
-(defconst tabbar-scroll-right-button-keymap
-  (tabbar-make-button-keymap 'tabbar-scroll-right-button-callback)
-  "Keymap of the scroll right button.")
-
-(defun tabbar-scroll-right-button-callback (event)
-  "Handle a mouse EVENT on the scroll right button.
-Call `tabbar-scroll-right-function'."
-  (interactive "@e")
-  (when (and tabbar-scroll-right-function (tabbar-click-p event))
-    (funcall tabbar-scroll-right-function event)
-    (tabbar-display-update)))
-
-(defun tabbar-scroll-right-button-help (window object position)
-  "Return a help string or nil for none, for the scroll right button.
-Call `tabbar-scroll-right-help-function'.
-Arguments WINDOW, OBJECT and POSITION, are not used."
-  (when tabbar-scroll-right-help-function
-    (funcall tabbar-scroll-right-help-function)))
-
 (defconst tabbar-scroll-right-button-enabled-image
   '((:type pbm :data "\
 P2
@@ -873,7 +803,7 @@ See the variable `tabbar-button-widget' for details."
           ;; Schedule refresh of button value.
           (setq tabbar-scroll-right-button-enabled nil)))
 
-;;; Separator between tabs
+;;; Separator
 ;;
 (defconst tabbar-separator-widget
   '(cons (string)
@@ -900,7 +830,7 @@ See the variable `tabbar-separator-widget' for details."
           ;; Schedule refresh of separator value.
           (setq tabbar-separator-value nil)))
 
-;;; Setup buttons and separators
+;;; Images
 ;;
 (defcustom tabbar-use-images t
   "*non-nil means to try to use images in tab bar.
@@ -937,89 +867,21 @@ an extra margin around the image."
   (when (natnump margin)
     (setcdr image (plist-put (cdr image) :margin margin)))
   image)
-
-(defun tabbar-setup-button (variable)
-  "Setup button in VARIABLE with its specification.
-Initialize `VARIABLE-enable' and `VARIABLE-disable' with the template
-elements to use in the header line, to respectively display an enabled
-and a disabled button on the tab bar.
-The variable `VARIABLE-keymap' must be set with the keymap used for the
-enabled button.
-The function `VARIABLE-help' must be defined to return the `help-echo'
-string shown when the mouse is on the button."
-  (let* ((enabled  (intern (format "%s-enabled" variable)))
-         (disabled (intern (format "%s-disabled" variable)))
-         (keymap   (intern (format "%s-keymap" variable)))
-         (help     (intern (format "%s-help" variable)))
-         (value    (symbol-value variable))
-         (on       (tabbar-find-image (cdar value)))
-         (off      (and on (tabbar-find-image (cddr value))))
-         (face     'tabbar-button-face))
-    (when on
-      (tabbar-normalize-image on 1)
-      (if off
-          (tabbar-normalize-image off 1)
-        ;; If there is no disabled buttom image, derive one from the
-        ;; button enabled image.
-        (setq off (copy-sequence on))
-        (tabbar-disable-image off))
-      (setq face nil))
-    (set enabled (propertize (or (caar value) " ")
-                             'display on
-                             'face face
-                             'local-map (symbol-value keymap)
-                             'help-echo help))
-    (set disabled (propertize (or (cadr value) " ")
-                              'display off
-                              'face face))
-    ))
-
-(defun tabbar-setup-separator (variable)
-  "Setup separator in VARIABLE with its specification.
-Initialize `VARIABLE-value' with the template element to use in header
-line, to display a separator on the tab bar."
-  (let* ((value    (symbol-value variable))
-         (text (intern (format "%s-value" variable)))
-         (image (tabbar-find-image (cdr value))))
-    (and image (tabbar-normalize-image image))
-    (set text (propertize (or (car value) " ")
-                          'face 'tabbar-separator-face
-                          'display image))
-    ))
-
-;;; Default scroll buttons callback functions
+
+;;; Button keymaps and callbacks
 ;;
-(defun tabbar-scroll-left (event)
-  "On mouse EVENT, scroll current tab set on left."
-  (when (eq (event-basic-type event) 'mouse-1)
-    (tabbar-scroll (tabbar-current-tabset) -1)
-    ))
-
-(defun tabbar-scroll-left-help ()
-  "Return the help string shown when mouse is onto the scroll left button."
-  "mouse-1: scroll tabs left.")
-
-(defun tabbar-scroll-right (event)
-  "On mouse EVENT, scroll current tab set on right."
-  (when (eq (event-basic-type event) 'mouse-1)
-    (tabbar-scroll (tabbar-current-tabset) 1)
-    ))
-
-(defun tabbar-scroll-right-help ()
-  "Return the help string shown when mouse is onto the scroll right button."
-  "mouse-1: scroll tabs right.")
-
-;;; Tab callbacks
-;;
-(defun tabbar-help-on-tab (window object position)
-  "Return a help string or nil for none, for the tab under the mouse.
-WINDOW is the window in which the help was found (unused).
-OBJECT is the tab label under the mouse.
-POSITION is the position in that label (unused). 
-Call `tabbar-help-on-tab-function' with the associated tab."
-  (when tabbar-help-on-tab-function
-    (let ((tab (get-text-property 0 'tabbar-tab object)))
-      (funcall tabbar-help-on-tab-function tab))))
+(defun tabbar-make-button-keymap (callback)
+  "Return a button keymap that call CALLBACK on mouse events.
+CALLBACK is passed the received mouse event."
+  (let ((keymap (make-sparse-keymap)))
+    ;; Pass mouse-1, mouse-2 and mouse-3 events to CALLBACK.
+    (define-key keymap [header-line down-mouse-1] 'ignore)
+    (define-key keymap [header-line mouse-1] callback)
+    (define-key keymap [header-line down-mouse-2] 'ignore)
+    (define-key keymap [header-line mouse-2] callback)
+    (define-key keymap [header-line down-mouse-3] 'ignore)
+    (define-key keymap [header-line mouse-3] callback)
+    keymap))
 
 (defsubst tabbar-make-mouse-event (&optional type)
   "Return a mouse click event.
@@ -1031,6 +893,103 @@ The default is `mouse-1'."
     (list (or (memq type '(mouse-2 mouse-3)) 'mouse-1)
           (or (event-start nil) ;; Emacs 21.4
               (list (selected-window) (point) '(0 . 0) 0)))))
+
+;;; Home button
+;;
+(defconst tabbar-home-button-keymap
+  (tabbar-make-button-keymap 'tabbar-home-button-callback)
+  "Keymap of the home button.")
+
+(defun tabbar-home-button-callback (event)
+  "Handle a mouse EVENT on the home button.
+Call `tabbar-home-function'."
+  (interactive "@e")
+  (when (and tabbar-home-function (tabbar-click-p event))
+    (funcall tabbar-home-function event)
+    (tabbar-display-update)))
+
+(defun tabbar-home-button-help (window object position)
+  "Return a help string or nil for none, for the home button.
+Call `tabbar-home-help-function'.
+Arguments WINDOW, OBJECT and POSITION, are not used."
+  (when tabbar-home-help-function
+    (funcall tabbar-home-help-function)))
+
+;;; Scroll left button
+;;
+(defconst tabbar-scroll-left-button-keymap
+  (tabbar-make-button-keymap 'tabbar-scroll-left-button-callback)
+  "Keymap of the scroll left button.")
+
+(defun tabbar-scroll-left-button-callback (event)
+  "Handle a mouse EVENT on the scroll left button.
+Call `tabbar-scroll-left-function'."
+  (interactive "@e")
+  (when (and tabbar-scroll-left-function (tabbar-click-p event))
+    (funcall tabbar-scroll-left-function event)
+    (tabbar-display-update)))
+
+(defun tabbar-scroll-left-button-help (window object position)
+  "Return a help string or nil for none, for the scroll left button.
+Call `tabbar-scroll-left-help-function'.
+Arguments WINDOW, OBJECT and POSITION, are not used."
+  (when tabbar-scroll-left-help-function
+    (funcall tabbar-scroll-left-help-function)))
+
+(defun tabbar-scroll-left (event)
+  "On mouse EVENT, scroll current tab set on left."
+  (when (eq (event-basic-type event) 'mouse-1)
+    (tabbar-scroll (tabbar-current-tabset) -1)))
+
+(defun tabbar-scroll-left-help ()
+  "Help string shown when mouse is over the scroll left button."
+  "mouse-1: scroll tabs left.")
+
+;;; Scroll right button
+;;
+(defconst tabbar-scroll-right-button-keymap
+  (tabbar-make-button-keymap 'tabbar-scroll-right-button-callback)
+  "Keymap of the scroll right button.")
+
+(defun tabbar-scroll-right-button-callback (event)
+  "Handle a mouse EVENT on the scroll right button.
+Call `tabbar-scroll-right-function'."
+  (interactive "@e")
+  (when (and tabbar-scroll-right-function (tabbar-click-p event))
+    (funcall tabbar-scroll-right-function event)
+    (tabbar-display-update)))
+
+(defun tabbar-scroll-right-button-help (window object position)
+  "Return a help string or nil for none, for the scroll right button.
+Call `tabbar-scroll-right-help-function'.
+Arguments WINDOW, OBJECT and POSITION, are not used."
+  (when tabbar-scroll-right-help-function
+    (funcall tabbar-scroll-right-help-function)))
+
+(defun tabbar-scroll-right (event)
+  "On mouse EVENT, scroll current tab set on right."
+  (when (eq (event-basic-type event) 'mouse-1)
+    (tabbar-scroll (tabbar-current-tabset) 1)))
+
+(defun tabbar-scroll-right-help ()
+  "Help string shown when mouse is over the scroll right button."
+  "mouse-1: scroll tabs right.")
+
+;;; Tabs
+;;
+(defconst tabbar-default-tab-keymap
+  (tabbar-make-button-keymap 'tabbar-select-tab-callback)
+  "Default keymap of a tab.")
+
+(defun tabbar-help-on-tab (window object position)
+  "Return a help string or nil for none, for the tab under the mouse.
+WINDOW is the window in which the help was found (unused).
+OBJECT is the tab label under the mouse.
+POSITION is the position in that label (unused).
+Call `tabbar-help-on-tab-function' with the associated tab."
+  (when tabbar-help-on-tab-function
+    (let ((tab (get-text-property 0 'tabbar-tab object)))
+      (funcall tabbar-help-on-tab-function tab))))
 
 (defsubst tabbar-click-on-tab (tab &optional type)
   "Handle a mouse click event on tab TAB.
@@ -1053,38 +1012,66 @@ Pass mouse click events on a tab to `tabbar-click-on-tab'."
          0 'tabbar-tab (car (posn-object (event-start event))))
         event)))
 
-(defvar tabbar-select-tab-keymap
-  (let ((km (make-sparse-keymap)))
-    (define-key km [header-line down-mouse-1] 'ignore)
-    (define-key km [header-line down-mouse-2] 'ignore)
-    (define-key km [header-line down-mouse-3] 'ignore)
-    (define-key km [header-line mouse-1] 'tabbar-select-tab-callback)
-    (define-key km [header-line mouse-2] 'tabbar-select-tab-callback)
-    (define-key km [header-line mouse-3] 'tabbar-select-tab-callback)
-    km)
-  "Tab keymap.")
-
-;;; Tab bar contruction
-;;
 (defun tabbar-make-tab-keymap (tab)
-  "Return a command to handle TAB selection.
-Return a keymap to handle mouse click events on TAB."
+  "Return a keymap to handle mouse click events on TAB."
   (if (fboundp 'posn-object)
-      tabbar-select-tab-keymap
-    (let* ((event (make-symbol "event"))
-           (km    (make-sparse-keymap))
-           (cmd   `(lambda (,event)
-                     (interactive "@e")
-                     (and (tabbar-click-p ,event)
-                          (tabbar-click-on-tab ',tab ,event)))))
-      (set-keymap-parent km tabbar-select-tab-keymap)
-      (define-key km [header-line mouse-1] cmd)
-      (define-key km [header-line mouse-2] cmd)
-      (define-key km [header-line mouse-3] cmd)
-      km)))
+      tabbar-default-tab-keymap
+    (let ((event (make-symbol "event")))
+      (tabbar-make-button-keymap
+       `(lambda (,event)
+          (interactive "@e")
+          (and (tabbar-click-p ,event)
+               (tabbar-click-on-tab ',tab ,event)))))))
+
+;;; Tab bar construction
+;;
+(defun tabbar-line-button (name)
+  "Return an `header-line-format' template element for button NAME.
+The enabled/disabled button elements are cached in variables
+`tabbar-NAME-button-<enabled/disabled>'.
+The variable `tabbar-NAME-button-keymap' must be set with a keymap to
+use when the button is enabled.
+The function `tabbar-NAME-button-help' must be defined to return the
+help-echo string associated to the button."
+  (let* ((button   (intern (format "tabbar-%s-button" name)))
+         (enabled  (intern (format "%s-enabled"  button)))
+         (disabled (intern (format "%s-disabled" button)))
+         (keymap   (intern (format "%s-keymap"   button)))
+         (help     (intern (format "%s-help"     button)))
+         (value    (symbol-value button))
+         (on       (tabbar-find-image (cdar value)))
+         (off      (and on (tabbar-find-image (cddr value))))
+         (face     'tabbar-button-face))
+    (when on
+      (tabbar-normalize-image on 1)
+      (if off
+          (tabbar-normalize-image off 1)
+        ;; If there is no disabled button image, derive one from the
+        ;; button enabled image.
+        (setq off (copy-sequence on))
+        (tabbar-disable-image off))
+      (setq face nil))
+    (set enabled (propertize (or (caar value) " ")
+                             'display on
+                             'face face
+                             'local-map (symbol-value keymap)
+                             'help-echo help))
+    (set disabled (propertize (or (cadr value) " ")
+                              'display off
+                              'face face))))
 
-(defsubst tabbar-line-element (tab)
-  "Return an `header-line-format' template element from TAB.
+(defun tabbar-line-separator ()
+  "Return an `header-line-format' template element for a separator.
+The separator element is cached in variable `tabbar-separator-value'."
+  (let ((image (tabbar-find-image (cdr tabbar-separator))))
+    (and image (tabbar-normalize-image image))
+    (setq tabbar-separator-value
+          (propertize (or (car tabbar-separator) " ")
+                      'face 'tabbar-separator-face
+                      'display image))))
+
+(defsubst tabbar-line-tab (tab)
+  "Return an `header-line-format' template element for TAB.
 Call `tabbar-tab-label-function' to obtain a label for TAB."
   (list (propertize
          (if tabbar-tab-label-function
@@ -1112,13 +1099,13 @@ Call `tabbar-tab-label-function' to obtain a label for TAB."
              offset tab elt elts sizes maxscroll)
         ;; On demand, refresh buttons and separator L&F.
         (or tabbar-separator-value
-            (tabbar-setup-separator 'tabbar-separator))
+            (tabbar-line-separator))
         (or tabbar-home-button-enabled
-            (tabbar-setup-button 'tabbar-home-button))
+            (tabbar-line-button 'home))
         (or tabbar-scroll-left-button-enabled
-            (tabbar-setup-button 'tabbar-scroll-left-button))
+            (tabbar-line-button 'scroll-left))
         (or tabbar-scroll-right-button-enabled
-            (tabbar-setup-button 'tabbar-scroll-right-button))
+            (tabbar-line-button 'scroll-right))
         (setq offset (+ (string-width tabbar-home-button-enabled)
                         (string-width tabbar-scroll-left-button-enabled)
                         (string-width tabbar-scroll-right-button-enabled)
@@ -1130,7 +1117,7 @@ Call `tabbar-tab-label-function' to obtain a label for TAB."
         (while tabs
           (setq tab    (car tabs)
                 tabs   (cdr tabs)
-                elt    (tabbar-line-element tab)
+                elt    (tabbar-line-tab tab)
                 elts   (cons elt elts)
                 sizes  (cons (apply '+ (mapcar 'string-width elt)) sizes)
                 offset (+ offset (car sizes)))
