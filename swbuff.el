@@ -1,5 +1,5 @@
 ;; @(#) swbuff.el -- Quick switch between Emacs buffers.
-;; @(#) $Id: swbuff.el,v 1.6 1999/05/07 11:48:31 ebat311 Exp $
+;; @(#) $Id: swbuff.el,v 1.7 1999/05/17 09:28:45 ebat311 Exp $
 
 ;; This file is not part of Emacs
 
@@ -11,7 +11,7 @@
 ;; LCD Archive Entry:
 ;; swbuff|David Ponce|david.ponce@wanadoo.fr|
 ;; Quick switch between Emacs buffers|
-;; $Date: 1999/05/07 11:48:31 $|$Revision: 1.6 $|~/misc/|
+;; $Date: 1999/05/17 09:28:45 $|$Revision: 1.7 $|~/misc/|
 
 ;; COPYRIGHT NOTICE
 ;;
@@ -84,7 +84,7 @@
 ;;; Code:
 (require 'cl)
 
-(defconst swbuff-version "$Revision: 1.6 $"
+(defconst swbuff-version "$Revision: 1.7 $"
   "swbuff version number."
   )
 
@@ -174,29 +174,36 @@ the current buffer is highlighted with the `swbuff-current-buffer-face' face.
 If there are no buffers, then the message is \"No buffers eligible for switching.\""
   (let* ((display-text (swbuff-buffer-list-string))
          (display-size (length display-text))
-         (cur-buf-name (regexp-quote (buffer-name (current-buffer))))
+         (cur-buf-name (concat "\\(^\\| \\)\\("
+                               (regexp-quote (buffer-name (current-buffer)))
+                               "\\)\\($\\| \\)"))
          (start        (string-match cur-buf-name display-text))
-         (end          (match-end 0))
+         (start        (match-beginning 2))
+         (end          (match-end 2))
          (mini-window (minibuffer-window))
          (mini-buffer (window-buffer mini-window)))
-    (if start
-        (progn
-          (set-text-properties 0 display-size nil display-text)
-          (set-text-properties start end '(face swbuff-current-buffer-face) display-text)))
-    (if (minibuffer-window-active-p mini-window)
-        (abort-recursive-edit))
-    (message nil)
-    (with-current-buffer mini-buffer
-      (erase-buffer)
-      (insert (if (< 0 display-size)
-                  display-text
-                "No buffers eligible for switching."))
-      (setq swbuff-mini-buffer mini-buffer)
-      (add-hook 'pre-command-hook 'swbuff-pre-command-hook)
-      (if (sit-for swbuff-clear-delay)
-          (swbuff-undisplay-buffer-list))
-      )
-    )
+    (if (and start (> display-size 0))
+        (if (>= end (* (window-width mini-window) (window-height mini-window)))
+            (progn
+              (with-current-buffer mini-buffer
+                (erase-buffer))
+              (setq swbuff-buffer-list-string-holder nil)
+              (swbuff-display-buffer-list))
+          (progn
+            (set-text-properties 0 display-size nil display-text)
+            (set-text-properties start end '(face swbuff-current-buffer-face) display-text)
+            (if (minibuffer-window-active-p mini-window)
+                (abort-recursive-edit))
+            (message nil)
+            (with-current-buffer mini-buffer
+              (erase-buffer)
+              (insert display-text)
+              (setq swbuff-mini-buffer mini-buffer)
+              (add-hook 'pre-command-hook 'swbuff-pre-command-hook)
+              (if (sit-for swbuff-clear-delay)
+                  (swbuff-undisplay-buffer-list))
+              )))
+      (message "No buffers eligible for switching.")))
   )
 
 (defvar swbuff-mini-buffer nil
@@ -206,7 +213,8 @@ If there are no buffers, then the message is \"No buffers eligible for switching
 (defun swbuff-undisplay-buffer-list ()
   "Clears the minibuffer in which the last display occurs."
   (when swbuff-mini-buffer
-    (with-current-buffer swbuff-mini-buffer (erase-buffer))
+    (with-current-buffer swbuff-mini-buffer
+      (erase-buffer))
     (setq swbuff-mini-buffer nil)
     )
   )
@@ -272,7 +280,16 @@ and `swbuff-switch-to-previous-buffer' commands."
 
 ;;
 ;; $Log: swbuff.el,v $
-;; Revision 1.6  1999/05/07 11:48:31  ebat311
+;; Revision 1.7  1999/05/17 09:28:45  ebat311
+;; Improved buffer list display:
+;;   - The current highlighted buffer name is always visible.
+;;     Previously, when the buffer list exceeded the size
+;;     of the mini-buffer window the highlighted buffer name
+;;     could be outside the displayed area.
+;;   - New buffer name regexp handling to avoid bad highlighting
+;;     of buffers which have a common part in their names.
+;;
+;; Revision 1.6  1999-05-07 13:48:31+02  ebat311
 ;; Removed a message displayed for debugging purpose.
 ;;
 ;; Revision 1.5  1999-05-07 13:45:33+02  ebat311
