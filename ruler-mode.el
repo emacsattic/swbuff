@@ -91,16 +91,6 @@
 
 ;; Installation
 ;;
-;; Put this file on your Emacs-Lisp load path and add following into
-;; your ~/.emacs startup file
-;;
-;;   (require 'ruler-mode)
-;;
-;; Or use the `autoload' feature:
-;;
-;;   (autoload 'ruler-mode "ruler-mode"
-;;     "Display a ruler in the header line." t)
-;;
 ;; To automatically display the ruler in specific major modes use:
 ;;
 ;;    (add-hook '<major-mode>-hook 'ruler-mode)
@@ -400,6 +390,7 @@ START-EVENT is the mouse click event."
   '(:eval (ruler-mode-ruler))
   "`header-line-format' used in ruler mode.")
 
+;;;###autoload
 (define-minor-mode ruler-mode
   "Display a ruler in the header line if ARG > 0."
   nil nil
