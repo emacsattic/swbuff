@@ -1,5 +1,5 @@
 ;; @(#) jsee.el -- Javadoc viewer
-;; @(#) $Id: jsee.el,v 1.1 1998/12/08 09:43:55 ebat311 Exp $
+;; @(#) $Id: jsee.el,v 1.2 1999/03/01 13:56:25 ebat311 Exp $
 
 ;; This file is not part of Emacs
 
@@ -11,7 +11,7 @@
 ;; LCD Archive Entry:
 ;; <el>|David Ponce|david.ponce@wanadoo.fr|
 ;; <docum>|
-;; <date>|$Revision: 1.1 $|~/misc/|
+;; <date>|$Revision: 1.2 $|~/misc/|
 
 ;; COPYRIGHT NOTICE
 ;;
@@ -130,7 +130,7 @@
 (require 'jde)
 (require 'browse-url)
 
-(defconst jsee-version "$Revision: 1.1 $"
+(defconst jsee-version "$Revision: 1.2 $"
   "jsee version number.")
 
 ;; I USE A SUBGROUP OF `jde' AND PREFIXED ALL VARIABLES WITH `jde-jsee-'
@@ -329,12 +329,15 @@ conventions. See `jsee-get-javadoc-url' for details."
   "Builds the URL of the generated HTML file to browse according to the JDK
 javadoc conventions. For example, javadoc -d /tmp/apidoc MyProgram.java,
 produces an HTML file /tmp/apidoc/my.package.MyProgram.html."
-  (concat (jsee-get-javadoc--d-directory)
-          (jsee-get-package-name)
-          "."
-          (file-name-sans-extension (file-name-nondirectory buffer-file-name))
-          ".html"
-          )
+  (let ((package-name(jsee-get-package-name)))
+    (if package-name
+        (setq package-name (concat package-name "."))
+      (setq package-name ""))
+    (concat (jsee-get-javadoc--d-directory)
+            package-name
+            (file-name-sans-extension (file-name-nondirectory buffer-file-name))
+            ".html"
+            ))
   )
 
 
@@ -342,12 +345,17 @@ produces an HTML file /tmp/apidoc/my.package.MyProgram.html."
   "Builds the URL of the generated HTML file to browse according to the JDK 1.2
 javadoc conventions. For example, javadoc -d /tmp/apidoc MyProgram.java,
 produces an HTML file /tmp/apidoc/my/package/MyProgram.html."
-  (let ((sep (char-to-string directory-sep-char)))
+  (let ((sep (char-to-string directory-sep-char))
+        (package-name(jsee-get-package-name)))
+    (if package-name
+        (setq package-name
+              (concat (mapconcat 'identity
+                                 (split-string package-name "\\.")
+                                 sep)
+                      sep))
+      (setq package-name ""))
     (concat (jsee-get-javadoc--d-directory)
-            (mapconcat 'identity
-                       (split-string (jsee-get-package-name) "\\.")
-                       sep)
-            sep
+            package-name
             (file-name-sans-extension (file-name-nondirectory buffer-file-name))
             ".html"
             ))
@@ -420,6 +428,13 @@ in the current buffer and browses the resulting HTML file."
 
 ;;
 ;; $Log: jsee.el,v $
+;; Revision 1.2  1999/03/01 13:56:25  ebat311
+;; FIXED - when a java file doesn't have a package name the
+;; `jsee-get-javadoc-url' and `jsee-get-javadoc1.2-url' functions
+;; built invalid URL.
+;; Thanks to Leif Jonsson <albedo@hem2.passagen.se> who
+;; has reported this bug and suggested the correction.
+;;
 ;; Revision 1.1  1998/12/08 09:43:55  ebat311
 ;; Initial revision
 ;;
