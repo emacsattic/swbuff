@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 25 February 2003
 ;; Keywords: convenience
-;; Revision: $Id: tabbar.el,v 1.12 2003/04/17 09:18:16 ponce Exp $
+;; Revision: $Id: tabbar.el,v 1.13 2003/04/17 10:07:57 ponce Exp $
 
 (defconst tabbar-version "1.2")
 
@@ -939,7 +939,8 @@ set's view to build a list of template elements for
 Optional argument TYPE is a mouse event type.  That is one of the
 symbols `mouse-1', `mouse-2' or `mouse-3'.  The default is `mouse-1'."
   (list (or (memq type '(mouse-2 mouse-3)) 'mouse-1)
-        (event-start nil)))
+        (or (event-start nil) ;; Emacs 21.4
+            (list (selected-window) (point) '(0 . 0) 0))))
 
 (defmacro tabbar-click-on-tab (tab &optional type)
   "Simulate a mouse click event on tab TAB.
