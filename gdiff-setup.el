@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: March 15 2000
 ;; Keywords: tools
-;; Revision: $Id: gdiff-setup.el,v 1.2 2003/04/25 11:26:19 ponced Exp $
+;; Revision: $Id: gdiff-setup.el,v 1.3 2003/08/05 10:44:12 ponced Exp $
 
 ;; This file is not part of Emacs
 
@@ -47,10 +47,10 @@
           (set-buffer (find-file-noselect (dired-get-filename)))
         (while vc-parent-buffer
           (pop-to-buffer vc-parent-buffer))
-        (if (not (buffer-file-name))
+        (if (not buffer-file-name)
             (error "Buffer %s is not associated with a file" (buffer-name))
-          (if (not (vc-backend (buffer-file-name)))
-              (error "File %s is not under version control" (buffer-file-name))))))
+          (if (not (vc-backend buffer-file-name))
+              (error "File %s is not under version control" buffer-file-name)))))
     
     )
 
@@ -60,11 +60,15 @@
   "Use a GUI diff tool from Emacs."
   :group 'tools)
 
-(defcustom gdiff-program "winmerge.exe"
+(defcustom gdiff-program nil
   "*Path to the external GUI diff tool."
   :group 'gdiff
-;;  :type '(file :must-match))
   :type 'file)
+
+(defcustom gdiff-program-options nil
+  "*Options to pass to the external GUI diff tool."
+  :group 'gdiff
+  :type '(repeat string))
 
 (defcustom gdiff-load-hook nil
   "*Hook run when package has been loaded."
