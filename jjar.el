@@ -1,5 +1,5 @@
 ;; @(#) jjar.el -- Java Archive builder
-;; @(#) $Id: jjar.el,v 1.3 1999/07/06 15:31:27 ebat311 Exp $
+;; @(#) $Id: jjar.el,v 1.4 1999/07/06 15:38:42 ebat311 Exp $
 
 ;; This file is not part of Emacs
 
@@ -11,7 +11,7 @@
 ;; LCD Archive Entry:
 ;; jjar|David Ponce|david.ponce@wanadoo.fr|
 ;; Java Archive builder|
-;; $Date: 1999/07/06 15:31:27 $|$Revision: 1.3 $|~/misc/jjar.el|
+;; $Date: 1999/07/06 15:38:42 $|$Revision: 1.4 $|~/misc/jjar.el|
 
 ;; COPYRIGHT NOTICE
 ;;
@@ -43,6 +43,9 @@
 ;;  ~/.emacs startup file
 ;;
 ;;      (require 'jjar)
+;;  or 
+;;      (autoload 'jjar-create "jjar" "Create a new jar file." t nil)
+;;      (autoload 'jjar-update "jjar" "Update an existing jar file." t nil)
 
 ;;; Usage:
 ;;
@@ -92,7 +95,7 @@
 (eval-when-compile
   (require 'wid-edit))
 
-(defconst jjar-version "$Revision: 1.3 $"
+(defconst jjar-version "$Revision: 1.4 $"
   "jjar version number."
   )
 
@@ -451,7 +454,10 @@ DIR that match one of `jjar-selected-wildcards' wildcard expressions."
 
 ;;
 ;; $Log: jjar.el,v $
-;; Revision 1.3  1999/07/06 15:31:27  ebat311
+;; Revision 1.4  1999/07/06 15:38:42  ebat311
+;; Added comments for autoload installation.
+;;
+;; Revision 1.3  1999-07-06 17:31:27+02  ebat311
 ;; Major rewrite!
 ;; Allow update of an existing jar file (JDK 1.2).
 ;; Improved comments and dialog behavior.
