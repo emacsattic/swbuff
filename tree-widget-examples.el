@@ -1,13 +1,14 @@
 ;;; tree-widget-examples.el --- basic examples using the tree-widget
 
-;; Copyright (C) 2001 by David Ponce
+;; Copyright (C) 2001, 2003 by David Ponce
 
 ;; Author: David Ponce <david@dponce.com>
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 27 Nov 2001
-;; Version: 1.0
 ;; Keywords: extensions
-;; VC: $Id: tree-widget-examples.el,v 1.1 2001/11/27 21:37:17 ponce Exp $
+;; Revision: $Id: tree-widget-examples.el,v 1.2 2003/04/25 11:31:58 ponced Exp $
+
+(defconst tree-widget-examples-version "1.1")
 
 ;; This file is not part of Emacs
 
@@ -29,25 +30,16 @@
 ;;; Commentary:
 ;;
 ;; This library gives simple examples of use of the `tree-widget'.
-
-;; Support
 ;;
-;; This program is available at <http://www.dponce.com/>. Any
-;; comments, suggestions, bug reports or upgrade requests are welcome.
-;; Please send them to David Ponce <david@dponce.com>.
 
 ;;; History:
 ;; 
-;; $Log: tree-widget-examples.el,v $
-;; Revision 1.1  2001/11/27 21:37:17  ponce
-;; Initial revision.
-;;
 
 ;;; Code:
-
 (require 'tree-widget)
 
 ;;; Compatibility
+;;
 (cond
  ((featurep 'xemacs)
   (defalias 'tree-widget-example-overlay-lists
@@ -60,7 +52,9 @@
   (defalias 'tree-widget-example-delete-overlay
     'delete-overlay))
  )
-
+
+;;; The examples
+;;
 (defun tree-widget-example-close (&rest ignore)
   "Close the current dialog.
 IGNORE arguments."
