@@ -7,7 +7,7 @@
 ;; Created: 16 Feb 2001
 ;; Version: 1.0
 ;; Keywords: extensions
-;; VC: $Id: tree-widget.el,v 1.2 2001/03/16 14:15:09 ponce Exp $
+;; VC: $Id: tree-widget.el,v 1.3 2001/03/16 14:23:15 ponce Exp $
 
 ;; This file is not part of Emacs
 
@@ -115,6 +115,10 @@
 ;;; History:
 ;; 
 ;; $Log: tree-widget.el,v $
+;; Revision 1.3  2001/03/16 14:23:15  ponce
+;; (tree-widget-example-1): removed unused free variable
+;; `tree-widget-sample'.
+;;
 ;; Revision 1.2  2001/03/16 14:15:09  ponce
 ;; (tree-widget-children-value-save): use `tree-widget-node' to get the
 ;; :node value of widgets.  Check node and node-child values before
@@ -470,27 +474,26 @@ where:
 
   (widget-insert (format "%s. \n\n" (buffer-name)))
 
-  (setq tree-widget-sample
-        (widget-create
-         ;; Open this level.
-         'tree-widget :open t
-         ;; Use a push button for this node.
-         :node '(push-button
-                 :tag "Root"
-                 :format "%[%t%]\n"
-                 :notify
-                 (lambda (&rest ignore)
-                   (message "This is the Root node")))
-         ;; Add subtrees (their nodes defaut to items).
-         '(tree-widget :tag "Child-1")
-         '(tree-widget :tag "Child-2"
-                       (tree-widget :tag "Child-2.1")
-                       (tree-widget :tag "Child-2.2"
-                                    (tree-widget :tag "Child-2.2.1")
-                                    (tree-widget :tag "Child-2.2.2")))
-         '(tree-widget :tag "Child-3"
-                       (tree-widget :tag "Child-3.1")
-                       (tree-widget :tag "Child-3.2"))))
+  (widget-create
+   ;; Open this level.
+   'tree-widget :open t
+   ;; Use a push button for this node.
+   :node '(push-button
+           :tag "Root"
+           :format "%[%t%]\n"
+           :notify
+           (lambda (&rest ignore)
+             (message "This is the Root node")))
+   ;; Add subtrees (their nodes defaut to items).
+   '(tree-widget :tag "Child-1")
+   '(tree-widget :tag "Child-2"
+                 (tree-widget :tag "Child-2.1")
+                 (tree-widget :tag "Child-2.2"
+                              (tree-widget :tag "Child-2.2.1")
+                              (tree-widget :tag "Child-2.2.2")))
+   '(tree-widget :tag "Child-3"
+                 (tree-widget :tag "Child-3.1")
+                 (tree-widget :tag "Child-3.2")))
   
   (use-local-map widget-keymap)
   (widget-setup))
