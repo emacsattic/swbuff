@@ -5,9 +5,9 @@
 ;; Author: David Ponce <david@dponce.com>
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 12 Nov 1998
-;; Version: 2.0
+;; Version: 2.1
 ;; Keywords: extensions convenience
-;; VC: $Id: swbuff.el,v 1.13 2000/04/21 10:32:08 david_ponce Exp $
+;; VC: $Id: swbuff.el,v 1.14 2000/05/12 15:23:59 david_ponce Exp $
 
 ;; This file is not part of Emacs
 
@@ -61,6 +61,21 @@
 ;;; Change Log:
 
 ;; $Log: swbuff.el,v $
+;; Revision 1.14  2000/05/12 15:23:59  david_ponce
+;; Version 2.1.
+;;
+;; New options to customize the buffer list display (suggested by
+;; "Shan-leung Maverick WOO" <sw77@cornell.edu>):
+;;
+;; - `swbuff-separator' defines a string used to separate buffer names.
+;; - `swbuff-header' and `swbuff-trailer' define strings to enclose
+;;   the buffer names list.
+;; - `swbuff-separator-face' defines the face used to display the above
+;;   separators.
+;;
+;; The default `swbuff-current-buffer-face' is now underlined.
+;; Minor code improvements.
+;;
 ;; Revision 1.13  2000/04/21 10:32:08  david_ponce
 ;; Version 2.0 released.
 ;;
@@ -134,7 +149,7 @@
 
 ;;; Code:
 
-(defconst swbuff-version "2.0 $Date: 2000/04/21 10:32:08 $"
+(defconst swbuff-version "2.1 $Date: 2000/05/12 15:23:59 $"
   "swbuff version information.")
 
 (defconst swbuff-status-buffer-name "*swbuff*"
@@ -167,13 +182,37 @@ width. The possible choices are:
   :group 'swbuff
   :type '(number :tag "seconds")) 
 
+(defcustom swbuff-separator ", "
+  "*String used to separate buffer names in the status line."
+  :group 'swbuff
+  :type 'string)
+
+(defcustom swbuff-header ""
+  "*Status line header string."
+  :group 'swbuff
+  :type 'string)
+
+(defcustom swbuff-trailer ""
+  "*Status line trailer string."
+  :group 'swbuff
+  :type 'string)
+
 (defface swbuff-current-buffer-face
-  '((((class grayscale) (background light)) (:foreground "red" :bold t))
-    (((class grayscale) (background dark)) (:foreground "red" :bold t))
-    (((class color) (background light)) (:foreground "red" :bold t))
-    (((class color) (background dark)) (:foreground "red" :bold t))
-    (t (:bold t)))
+  '((((class grayscale) (background light)) (:foreground "red" :bold t :underline t))
+    (((class grayscale) (background dark)) (:foreground "red" :bold t :underline t))
+    (((class color) (background light)) (:foreground "red" :bold t :underline t))
+    (((class color) (background dark)) (:foreground "red" :bold t :underline t))
+    (t (:bold t :underline t)))
   "*Face used to display the switched buffer name in the status window."
+  :group 'swbuff)
+
+(defface swbuff-separator-face
+  '((((class grayscale) (background light)) (:foreground "blue"))
+    (((class grayscale) (background dark)) (:foreground "blue"))
+    (((class color) (background light)) (:foreground "blue"))
+    (((class color) (background dark)) (:foreground "blue"))
+    (t ()))
+  "*Face used to display separators in the status window."
   :group 'swbuff)
 
 (defcustom swbuff-exclude-buffer-regexps '("^ ")
@@ -201,25 +240,14 @@ See also `swbuff-default-load-hook'."
 (defun swbuff-buffer-list ()
   "Return the list of switchable buffers.
 That is without the ones whose name matches `swbuff-exclude-buffer-regexps'."
-  (let ((sw-buf-list (apply 'nconc
-                            (mapcar '(lambda (buf)
-                                       (and (swbuff-include-p (buffer-name buf))
-                                            (list buf)))
-                                    (buffer-list)))))
-    (unless (memq (current-buffer) sw-buf-list)
-      (setq sw-buf-list (cons (current-buffer) sw-buf-list)))
-    sw-buf-list))
-
-(defvar swbuff-buffer-list-string-holder nil
-  "Hold the current displayed buffer list.")
-
-(defun swbuff-buffer-list-string ()
-  "Convert `swbuff-buffer-list' to a string of buffer names."
-  (or swbuff-buffer-list-string-holder
-      (setq swbuff-buffer-list-string-holder
-            (mapconcat 'buffer-name
-                       (swbuff-buffer-list)
-                       " "))))
+  (let ((blist (delq nil
+                     (mapcar '(lambda (buf)
+                                (and (swbuff-include-p (buffer-name buf))
+                                     buf))
+                             (buffer-list)))))
+    (or (memq (current-buffer) blist)
+        (setq blist (cons (current-buffer) blist)))
+    blist))
 
 (defconst swbuff-extra-space 3
   "Extra space left in a line of the status window.
@@ -290,25 +318,61 @@ WINDOW's buffer of the switched buffer name."
         (t
          (swbuff-scroll-window window position))))
               
+(defvar swbuff-buffer-list-holder nil
+  "Hold the current displayed buffer list.")
+
+(defun swbuff-buffer-status-line ()
+  "Convert `swbuff-buffer-list-holder' to a status line displayed in the status window.
+Return a vector [START END LINE] where:
+- - START is the starting position of the current buffer name in LINE.
+- - END   is the ending position of the current buffer name in LINE.
+- - LINE  is the status line itself.
+"
+  (or swbuff-buffer-list-holder
+      (setq swbuff-buffer-list-holder (swbuff-buffer-list)))
+  (let ((blist swbuff-buffer-list-holder)
+        (bcurr (buffer-name))
+        (vline (make-vector 3 nil))
+        (separ (if (stringp swbuff-separator) swbuff-separator " "))
+        (line  (if (stringp swbuff-header) swbuff-header ""))
+        start end bname)
+    (setq end (length line))
+    (set-text-properties 0 end '(face swbuff-separator-face) line)
+    (while blist
+      (setq bname (buffer-name (car blist))
+            blist (cdr blist)
+            start end
+            line  (concat line bname)
+            end   (length line))
+      (and (string= bname bcurr)
+           (aset vline 0 start)
+           (aset vline 1 end)
+           (set-text-properties start end '(face swbuff-current-buffer-face) line))
+      (and blist
+           (setq start end
+                 line  (concat line separ)
+                 end   (length line))
+           (set-text-properties start end '(face swbuff-separator-face) line)))
+    (and (stringp swbuff-trailer)
+         (setq line (concat line swbuff-trailer))
+         (set-text-properties end (length line) '(face swbuff-separator-face) line))
+    (aset vline 2 line)
+    vline))
+
 (defun swbuff-show-status-window ()
   "Pop-up a status window at the bottom of the selected window. The
 status window shows the list of switchable buffers where the switched
 one is hilighted using `swbuff-current-buffer-face'. It is
 automatically discarded after any command is executed or after the
 delay specified by `swbuff-clear-delay'."
-  (let* ((status-line (swbuff-buffer-list-string))
-         (name-regexp (concat "\\(^\\| \\)\\("
-                              (regexp-quote (buffer-name))
-                              "\\)\\($\\| \\)"))
-         (start        (and (string-match name-regexp status-line)
-                            (match-beginning 2)))
-         (end          (and start (match-end 2))))
+  (let* ((vline (swbuff-buffer-status-line))
+         (start (aref vline 0))
+         (end   (aref vline 1))
+         (line  (aref vline 2)))
     (if start
         (with-current-buffer (get-buffer-create swbuff-status-buffer-name)
-          (set-text-properties 0 (length status-line) nil status-line)
-          (set-text-properties start end '(face swbuff-current-buffer-face) status-line)
           (erase-buffer)
-          (insert status-line)
+          (insert line)
           (let* ((window-min-height 2)
                  (w (or (get-buffer-window swbuff-status-buffer-name)
                         (split-window-vertically -2))))
@@ -317,7 +381,7 @@ delay specified by `swbuff-clear-delay'."
             (add-hook 'pre-command-hook 'swbuff-pre-command-hook)
             (if (sit-for swbuff-clear-delay)
                 (swbuff-discard-status-window))))
-      (setq swbuff-buffer-list-string-holder nil)
+      (setq swbuff-buffer-list-holder nil)
       (message "No buffers eligible for switching."))))
 
 (defun swbuff-discard-status-window ()
@@ -332,7 +396,7 @@ delay specified by `swbuff-clear-delay'."
   (when (not (or (eq 'swbuff-switch-to-previous-buffer this-command)
                  (eq 'swbuff-switch-to-next-buffer this-command)))
     (swbuff-discard-status-window)
-    (setq swbuff-buffer-list-string-holder nil))
+    (setq swbuff-buffer-list-holder nil))
   (remove-hook 'pre-command-hook 'swbuff-pre-command-hook))
 
 (defun swbuff-previous-buffer ()
