@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 16 Feb 2001
 ;; Keywords: extensions
-;; Revision: $Id: tree-widget.el,v 1.12 2003/10/01 16:56:31 ponced Exp $
+;; Revision: $Id: tree-widget.el,v 1.13 2003/10/03 11:47:50 ponced Exp $
 
 (defconst tree-widget-version "2.0")
 
@@ -203,7 +203,7 @@ properties.  Return the new image."
       (apply 'make-glyph
              `([,type :file ,file
                       ,@tree-widget-image-properties-xemacs])))
-    (defsubst tree-widget-image-conversion ()
+    (defsubst tree-widget-image-formats ()
       "Return the list of image formats, file name suffixes associations.
 See also the option `widget-image-file-name-suffixes'."
       widget-image-file-name-suffixes)
@@ -226,7 +226,7 @@ properties.  Return the new image."
       (apply 'create-image
              `(,file ,type nil
                      ,@tree-widget-image-properties-emacs)))
-    (defsubst tree-widget-image-conversion ()
+    (defsubst tree-widget-image-formats ()
       "Return the list of image formats, file name suffixes associations.
 See also the option `widget-image-conversion'."
       widget-image-conversion)
@@ -252,10 +252,9 @@ use.  By default it is the global theme defined by the option
   "Create the image with IMAGE-NAME found in current theme.
 IMAGE-NAME must be a file name sans extension located in the current
 theme directory (see the options `tree-widget-themes-directory' and
-`tree-widget-theme').  Use the first image file having a extension
-found in the list returned by the function
-`tree-widget-image-conversion'.
-Return the image or nil if not found, or image support is diabled."
+`tree-widget-theme').  Use the first image found having a supported
+format in those returned by the function `tree-widget-image-formats'.
+Return the image found or nil if not found."
   (cond
    ;; No image support
    ((not (tree-widget-use-image-p))
@@ -279,15 +278,16 @@ Return the image or nil if not found, or image support is diabled."
         (let* ((default-directory dir)
                (path (mapcar 'expand-file-name
                              (list tree-widget--theme "default")))
-               (types (tree-widget-image-conversion))
-               type file image)
-          (while (and types (not file))
-            (setq type (caar types)
-                  file (locate-library
-                        (concat image-name (cadr (car types))) t path)
-                  types (cdr types)))
-          (when (and file (tree-widget-image-type-available-p type))
-            (setq image (tree-widget-create-image type file))
+               (fmts (tree-widget-image-formats))
+               fmt file image)
+          (while (and fmts (not file))
+            (setq fmt  (car fmts)
+                  fmts (cdr fmts))
+            (when (tree-widget-image-type-available-p (car fmt))
+              (setq file (locate-library
+                          (concat image-name (nth 1 fmt)) t path))))
+          (when file
+            (setq image (tree-widget-create-image (car fmt) file))
             ;; Add the image into the cache.
             (push (cons image-name image) tree-widget--image-cache)
             image))))
