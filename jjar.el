@@ -7,7 +7,8 @@
 ;; Created: June 14 1999
 ;; Version: 1.7 (beta2)
 ;; Keywords: tools
-;; VC: $Id: jjar.el,v 1.8 2000/08/11 14:44:43 david_ponce Exp $
+;; VC: $Id: jjar.el,v 1.9 2000/08/16 10:53:37 david_ponce Exp $
+
 ;; This file is not part of Emacs
 
 ;; This program is free software; you can redistribute it and/or
@@ -67,6 +68,9 @@
 ;;; Change Log:
 
 ;; $Log: jjar.el,v $
+;; Revision 1.9  2000/08/16 10:53:37  david_ponce
+;; Minor comment update.
+;;
 ;; Revision 1.8  2000/08/11 14:44:43  david_ponce
 ;; Improved dialog handling.
 ;; Comments follow standard Emacs conventions.
@@ -108,7 +112,7 @@
 (require 'compile)
 (require 'wid-edit)
 
-(defconst jjar-version "1.7 (beta2) $Date: 2000/08/11 14:44:43 $"
+(defconst jjar-version "1.7 (beta2) $Date: 2000/08/16 10:53:37 $"
   "jjar version information.")
 
 (defgroup jjar nil
