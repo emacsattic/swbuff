@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 27 Nov 2001
 ;; Keywords: extensions
-;; Revision: $Id: tree-widget-examples.el,v 1.3 2003/09/29 10:26:27 ponced Exp $
+;; Revision: $Id: tree-widget-examples.el,v 1.4 2003/09/29 13:41:21 ponced Exp $
 
 (defconst tree-widget-examples-version "1.2")
 
@@ -61,9 +61,18 @@ IGNORE arguments."
   (interactive)
   (kill-buffer (current-buffer)))
 
-(defun tree-widget-example-1 ()
-  "A simple usage of the `tree-widget'."
-  (interactive)
+(defun tree-widget-example-1 (&optional theme)
+  "A simple usage of the `tree-widget'.
+Optional argument THEME is an image theme to use to draw the tree.  It
+default to the global theme defined in option `tree-widget-theme'.
+To be prompted for a theme, use
+ \\[universal-argument] \\[tree-widget-example-1]."
+  (interactive
+   (list (if current-prefix-arg
+             (completing-read "Theme name: "
+                              '(("default" . "default")
+                                ("folder"  . "folder")))
+           nil)))
   (switch-to-buffer "*`tree-widget' example 1*")
   (kill-all-local-variables)
   (let ((inhibit-read-only t))
@@ -71,6 +80,7 @@ IGNORE arguments."
   (let ((all (tree-widget-example-overlay-lists)))
     (mapcar #'tree-widget-example-delete-overlay (car all))
     (mapcar #'tree-widget-example-delete-overlay (cdr all)))
+  (tree-widget-set-theme theme)
   (widget-insert (format "%s. \n\n" (buffer-name)))
   (widget-create
    ;; Open this level.
