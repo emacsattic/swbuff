@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 25 February 2003
 ;; Keywords: convenience
-;; Revision: $Id: tabbar.el,v 1.25 2003/12/02 14:56:33 ponced Exp $
+;; Revision: $Id: tabbar.el,v 1.26 2003/12/17 09:07:43 ponced Exp $
 
 (defconst tabbar-version "1.4")
 
@@ -157,6 +157,12 @@
 ;;
 ;; The scroll buttons permit to scroll tabs when some of them are
 ;; outside the tab bar visible area.
+;;
+;; Known problems:
+;;
+;; Bug item #858306 at <http://sf.net/tracker/?group_id=79309>:
+;; tabbar-mode crashes GNU Emacs 21.3 on MS-Windows 98/95.
+;;
 
 ;;; History:
 ;;
