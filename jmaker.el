@@ -5,9 +5,9 @@
 ;; Author: David Ponce <david@dponce.com>
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: July 22 1998
-;; Version: 2.0
+;; Version: 2.1
 ;; Keywords: tools
-;; VC: $Id: jmaker.el,v 1.23 2001/10/26 22:12:00 ponce Exp $
+;; VC: $Id: jmaker.el,v 1.24 2002/01/09 12:00:54 ponce Exp $
 
 ;; This file is not part of Emacs
 
@@ -73,6 +73,9 @@
 ;;; Change Log:
 
 ;; $Log: jmaker.el,v $
+;; Revision 1.24  2002/01/09 12:00:54  ponce
+;; Version 2.1.
+;;
 ;; Revision 1.23  2001/10/26 22:12:00  ponce
 ;; Require 'jde-compile instead of 'jde.
 ;;
@@ -223,7 +226,7 @@
 (require 'compile)
 (require 'wid-edit)
 
-(defconst jmaker-version "2.0 $Date: 2001/10/26 22:12:00 $"
+(defconst jmaker-version "2.0 $Date: 2002/01/09 12:00:54 $"
   "jmaker version  information.")
 
 (defgroup jmaker nil
