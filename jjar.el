@@ -5,9 +5,9 @@
 ;; Author: David Ponce david@dponce.com
 ;; Maintainer: David Ponce david@dponce.com
 ;; Created: June 14 1999
-;; Version: 1.7 (beta2)
+;; Version: 1.7
 ;; Keywords: tools
-;; VC: $Id: jjar.el,v 1.10 2001/04/04 12:50:06 ponce Exp $
+;; VC: $Id: jjar.el,v 1.11 2001/04/19 09:57:32 ponce Exp $
 
 ;; This file is not part of Emacs
 
@@ -68,6 +68,9 @@
 ;;; Change Log:
 
 ;; $Log: jjar.el,v $
+;; Revision 1.11  2001/04/19 09:57:32  ponce
+;; Updated to version 1.7 final.
+;;
 ;; Revision 1.10  2001/04/04 12:50:06  ponce
 ;; Fixed a bug in `jjar-include-wildcards' defcustom.
 ;; Thanks to "Bernard Hurley" <Bernard.Hurley@valtech.co.uk> for the fix.
@@ -116,7 +119,7 @@
 (require 'compile)
 (require 'wid-edit)
 
-(defconst jjar-version "1.7 (beta2) $Date: 2001/04/04 12:50:06 $"
+(defconst jjar-version "1.7 $Date: 2001/04/19 09:57:32 $"
   "jjar version information.")
 
 (defgroup jjar nil
