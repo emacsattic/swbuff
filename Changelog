@@ -2,6 +2,12 @@
 
 	* tree-widget/tree-widget.el
 
+	(tree-widget-themes-directory): Reset default value to nil.
+
+2004-04-30  David Ponce  <david@dponce.com>
+
+	* tree-widget/tree-widget.el
+
 	(tree-widget-themes-directory): Doc fix.  Change default value
 	for backward compatibility.
 	(tree-widget-themes-directory): By default, use the directory
