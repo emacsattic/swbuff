@@ -7,7 +7,7 @@
 ;; Created: 3 Dec 1998
 ;; Version: 2.0
 ;; Keywords: jde
-;; VC: $Id: jsee.el,v 1.6 2000/08/11 14:59:51 david_ponce Exp $
+;; VC: $Id: jsee.el,v 1.7 2000/09/04 13:58:20 david_ponce Exp $
 
 ;; This file is not part of Emacs
 
@@ -54,6 +54,13 @@
 ;;; Change Log:
 
 ;; $Log: jsee.el,v $
+;; Revision 1.7  2000/09/04 13:58:20  david_ponce
+;; (jsee-browse-api-doc): Fixed XEmacs `local-variable-p' compatibility
+;; problem.
+;;
+;; Thanks to Aaron Brashears <aaron@myplay.com> who has reported this
+;; bug.
+;;
 ;; Revision 1.6  2000/08/11 14:59:51  david_ponce
 ;; Major rewrite:
 ;;
@@ -88,7 +95,7 @@
 ;;; Code:
 (require 'jde)
 
-(defconst jsee-version "2.0 $Date: 2000/08/11 14:59:51 $"
+(defconst jsee-version "2.0 $Date: 2000/09/04 13:58:20 $"
   "jsee version information.")
 
 ;;;
@@ -398,8 +405,9 @@ current Java file."
 in the current buffer and browse the resulting HTML file."
   (interactive)
   (if (eq major-mode 'jde-mode)
-      (if (local-variable-p 'semantic-toplevel-bovine-table)
-          (jsee-run-doc-generator)
+      (if (local-variable-p 'semantic-toplevel-bovine-table
+          (current-buffer))             ; XEmacs compatibility
+    (jsee-run-doc-generator)
         (error "This command needs a version of JDE with the semantic bovinator."))
     (error "This command must be run in 'jde-mode'.")))
 
