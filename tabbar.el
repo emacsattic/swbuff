@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 25 February 2003
 ;; Keywords: convenience
-;; Revision: $Id: tabbar.el,v 1.20 2003/06/05 08:15:49 ponced Exp $
+;; Revision: $Id: tabbar.el,v 1.21 2003/08/25 15:13:38 ponced Exp $
 
 (defconst tabbar-version "1.3")
 
@@ -49,7 +49,7 @@
 ;; - `tabbar-forward' select the next available tab.
 ;; - `tabbar-backward' select the previous available tab.
 ;;
-;; It is worth defining keys for them.  For example: 
+;; It is worth defining keys for them.  For example:
 ;;
 ;;   (global-set-key [(control shift tab)] 'tabbar-backward)
 ;;   (global-set-key [(control tab)]       'tabbar-forward)
@@ -384,13 +384,16 @@ Return the tab found, or nil if not found."
   "Return non-nil if TAB is the selected tab in TABSET."
   (eq tab (tabbar-selected-tab tabset)))
 
+(defvar tabbar-show-selected nil)
+
 (defsubst tabbar-select-tab (tab tabset)
   "Make TAB the selected tab in TABSET.
 Does nothing if TAB is not found in TABSET.
 Return TAB if selected, nil if not."
   (when (tabbar-member tab tabset)
-    (or (tabbar-selected-p tab tabset)
-        (tabbar-set-template tabset nil))
+    (unless (tabbar-selected-p tab tabset)
+      (tabbar-set-template tabset nil)
+      (setq tabbar-show-selected t))
     (put tabset 'select tab)))
 
 (defsubst tabbar-select-tab-value (object tabset)
@@ -886,7 +889,7 @@ That command calls `tabbar-help-on-tab-function' with TAB."
       `(lambda (,window ,object ,position)
          (when tabbar-help-on-tab-function
            (funcall tabbar-help-on-tab-function ,tab)))))
-
+  
   )
 
 (defun tabbar-line-element (tab)
@@ -914,6 +917,39 @@ Call `tabbar-tab-label-function' to obtain a label for TAB."
                               'tabbar-unselected-face))
           tabbar-separator-value)))
 
+(defun tabbar-line-template (tabset offset)
+  "Return `header-line-format' template elements from TABSET.
+Insert elements at OFFSET start position in the header line."
+  (let* ((sel       (tabbar-selected-tab tabset))
+         (tabs      (tabbar-view tabset))
+         (width     (- (nth 2 (window-edges)) (car (window-edges))))
+         (scroll    0)
+         (seloffset width)
+         tab elt elts sizes)
+    (when tabbar-show-selected
+      (while (not (memq sel tabs))
+        (tabbar-scroll tabset -1)
+        (setq tabs (tabbar-view tabset))))
+    (while tabs
+      (setq tab    (car tabs)
+            tabs   (cdr tabs)
+            elt    (tabbar-line-element tab)
+            elts   (cons elt elts)
+            sizes  (cons (apply '+ (mapcar 'string-width elt)) sizes)
+            offset (+ offset (car sizes)))
+      (and (eq tab sel) (setq seloffset offset)))
+    (setq elts  (nreverse elts))
+    (when (and tabbar-show-selected (> seloffset width))
+      (setq sizes (nreverse sizes))
+      (while (> seloffset width)
+        (setq seloffset (- seloffset (car sizes))
+              sizes     (cdr sizes)
+              elts      (cdr elts)
+              scroll    (1+ scroll)))
+      (tabbar-scroll tabset scroll))
+    (setq tabbar-show-selected nil)
+    (tabbar-set-template tabset elts)))
+
 (defun tabbar-line ()
   "Return the header line templates that represent the tab bar.
 Call `tabbar-current-tabset-function' to obtain the current tab set to
@@ -923,30 +959,31 @@ set's view to build a list of template elements for
   (if (run-hook-with-args-until-success 'tabbar-inhibit-functions)
       (setq header-line-format nil)
     (let ((tabset (tabbar-current-tabset t))
-          (padcolor (face-background 'tabbar-default-face)))
+          padcolor buttons)
       (when tabset
-        (list (format "%s%s%s"
-                      (if tabbar-home-function
-                          tabbar-home-button-enabled
-                        tabbar-home-button-disabled)
-                      (if (> (tabbar-start tabset) 0)
-                          tabbar-scroll-left-button-enabled
-                        tabbar-scroll-left-button-disabled)
-                      (if (< (tabbar-start tabset)
-                             (1- (length (tabbar-tabs tabset))))
-                          tabbar-scroll-right-button-enabled
-                        tabbar-scroll-right-button-disabled))
-              tabbar-separator-value
+        (setq padcolor (face-background 'tabbar-default-face)
+              buttons (format "%s%s%s"
+                              (if tabbar-home-function
+                                  tabbar-home-button-enabled
+                                tabbar-home-button-disabled)
+                              (if (> (tabbar-start tabset) 0)
+                                  tabbar-scroll-left-button-enabled
+                                tabbar-scroll-left-button-disabled)
+                              (if (< (tabbar-start tabset)
+                                     (1- (length (tabbar-tabs tabset))))
+                                  tabbar-scroll-right-button-enabled
+                                tabbar-scroll-right-button-disabled)))
+        (list buttons tabbar-separator-value
               (or
                ;; If a cached template exists, use it.
                (tabbar-template tabset)
                ;; Otherwise use a refeshed value.
-               (tabbar-set-template tabset
-                                    (mapcar 'tabbar-line-element
-                                            (tabbar-view tabset))))
+               (tabbar-line-template
+                tabset (+ (string-width buttons)
+                          (string-width tabbar-separator-value))))
               (propertize "%-" 'face (list :background padcolor
-                                           :foreground padcolor))))
-      )))
+                                           :foreground padcolor)))
+        ))))
 
 ;;; Cyclic navigation through tabs
 ;;
