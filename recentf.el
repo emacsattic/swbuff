@@ -61,6 +61,7 @@ It removes the recentf menu and forces its complete redrawing."
 
 (defgroup recentf nil
   "Maintain a menu of recently opened files."
+  :version "21.1"
   :group 'files)
 
 (defcustom recentf-max-saved-items 20
@@ -245,13 +246,30 @@ were operated on recently."
   nil)
 
 (defvar recentf-edit-selected-items nil
-  "Used by `recentf-edit' to hold the list of files to be deleted from `recentf-list'.")
+  "Used by `recentf-edit-list' to hold the list of files to be deleted
+from `recentf-list'.")
 
+(defun recentf-edit-list-action (widget &rest ignore)
+  "Checkbox widget action used by `recentf-edit-list' to select/unselect a file."
+  (let ((value (widget-get widget ':tag)))
+    ;; if value is already in the selected items
+    (if (memq value recentf-edit-selected-items)
+        ;; then remove it
+        (progn
+          (setq recentf-edit-selected-items
+                (delq value recentf-edit-selected-items))
+          (message "%s removed from selection." value))
+      ;; else add it
+      (progn
+        (setq recentf-edit-selected-items
+              (nconc (list value) recentf-edit-selected-items))
+        (message "%s added to selection." value)))))
+  
 ;;;###autoload
 (defun recentf-edit-list ()
   "Allow the user to edit the files that are kept in the recent list."
   (interactive)
-  (with-current-buffer (get-buffer-create "*Recent Files*")
+  (with-current-buffer (get-buffer-create (concat "*" recentf-menu-title " - Edit list*"))
     (switch-to-buffer (current-buffer))
     (kill-all-local-variables)
     (let ((inhibit-read-only t))
@@ -263,57 +281,36 @@ were operated on recently."
     (setq recentf-edit-selected-items nil)
     ;; Insert the dialog header
     (widget-insert "Select the files to be deleted from the 'recentf-list'.\n\n")
-    (widget-insert "Click Ok to update the list or Cancel to quit.\n" )
+    (widget-insert "Click on Ok to update the list or on Cancel to quit.\n" )
     ;; Insert the list of files as checkboxes
-    (let (i n)
-      (setq i 0)
-      (setq n (length recentf-list))
-      (while (< i n)
-        (let* ((item (nth i recentf-list))
-               (args (list  
-                      'checkbox
-                      :value nil        ; unselected checkbox
-                      :format "\n %[%v%]  %t"
-                      :tag item
-                      :notify (lambda (widget &rest ignore)
-                                (let ((value (widget-get widget ':tag)))
-                                  ;; if value is already in the selected items
-                                  (if (memq value recentf-edit-selected-items)
-                                      ;; then remove it
-                                      (progn
-                                        (setq recentf-edit-selected-items
-                                              (delq value recentf-edit-selected-items))
-                                        (message "You have deselected: %s" value))
-                                    ;; else add it
-                                    (progn
-                                      (setq recentf-edit-selected-items
-                                            (nconc (list value) recentf-edit-selected-items))
-                                      (message "You have selected: %s" value))))))))
-          (apply 'widget-create args)
-          (setq i (+ i 1)))))
-    ;; Insert the Ok button
+    (mapcar '(lambda (item)
+               (widget-create 'checkbox
+                              :value nil ; unselected checkbox
+                              :format "\n %[%v%]  %t"
+                              :tag item
+                              :notify 'recentf-edit-list-action))
+            recentf-list)
     (widget-insert "\n\n")
+    ;; Insert the Ok button
     (widget-create 'push-button
                    :notify (lambda (&rest ignore)
-                             (let ((dialog-buffer (current-buffer)))
-                               (if recentf-edit-selected-items
-                                   (progn (kill-buffer dialog-buffer)
-                                          (mapcar '(lambda (item)
-                                                     (setq recentf-list
-                                                           (delq item recentf-list)))
-                                                  recentf-edit-selected-items)
-                                          (message "%S file(s) removed from the list"
-                                                   (length recentf-edit-selected-items))
-                                          (setq recentf-update-menu-p t))
-                                 (message "No file selected."))))
+                             (if recentf-edit-selected-items
+                                 (progn (kill-buffer (current-buffer))
+                                        (mapcar '(lambda (item)
+                                                   (setq recentf-list
+                                                         (delq item recentf-list)))
+                                                recentf-edit-selected-items)
+                                        (message "%S file(s) removed from the list"
+                                                 (length recentf-edit-selected-items))
+                                        (setq recentf-update-menu-p t))
+                               (message "No file selected.")))
                    "Ok")
     (widget-insert " ")
     ;; Insert the Cancel button
     (widget-create 'push-button
                    :notify (lambda (&rest ignore)
-                             (let ((dialog-buffer (current-buffer)))
-                               (kill-buffer dialog-buffer)
-                               (message "Command canceled.")))
+                             (kill-buffer (current-buffer))
+                             (message "Command canceled."))
                    "Cancel")
     (use-local-map widget-keymap)
     (widget-setup)))
@@ -331,37 +328,50 @@ were operated on recently."
                       recentf-list)))
   (setq recentf-update-menu-p t))
 
-(defvar recentf-more-collection nil
-  "The set of permissible completions used by `recentf-open-more-files'.")
+(defun recentf-open-more-files-action (widget &rest ignore)
+  "Button widget action used by `recentf-open-more-files' to open a file."
+  (kill-buffer (current-buffer))
+  (funcall recentf-menu-action (widget-value widget)))
 
-(defvar recentf-more-history nil
-  "History list used by `recentf-open-more-files' completion.")
-
-(defun recentf-setup-more-completion ()
-  "Update the global variables `recentf-more-collection' and `recentf-more-history'
-used by the `recentf-open-more-files' completion. Return the value of
-`recentf-more-collection'."
-  (setq recentf-more-collection
-        (funcall (or recentf-menu-filter 'identity)
-                 (mapcar '(lambda (item)
-                            (cons item item))
-                         (nthcdr recentf-max-menu-items recentf-list))))
-  (setq recentf-more-history
-        (mapcar 'car recentf-more-collection))
-  recentf-more-collection)
-  
 ;;;###autoload
-(defun recentf-open-more-files (item)
-  "Open a file in `recentf-list' that is not displayed in the menu."
-  (interactive
-   (list
-    (completing-read (concat recentf-menu-title ": ")
-                     (recentf-setup-more-completion)
-                     nil nil nil
-                     'recentf-more-history)))
-  (let ((element (assoc item recentf-more-collection)))
-    (and element
-         (funcall recentf-menu-action (cdr element)))))
+(defun recentf-open-more-files ()
+  "Allow the user to open files that are not in the menu."
+  (interactive)
+  (with-current-buffer (get-buffer-create (concat "*" recentf-menu-title " - More*"))
+    (switch-to-buffer (current-buffer))
+    (kill-all-local-variables)
+    (let ((inhibit-read-only t))
+      (erase-buffer))
+    (let ((all (overlay-lists)))
+      ;; Delete all the overlays.
+      (mapcar 'delete-overlay (car all))
+      (mapcar 'delete-overlay (cdr all)))
+    ;; Insert the dialog header
+    (widget-insert "Click on a file to open it or on Cancel to quit.\n\n")
+    ;; Insert the list of files as buttons
+    (mapcar '(lambda (menu-element)
+               (let ((menu-item (car menu-element))
+                     (file-path (cdr menu-element)))
+                 (widget-create 'push-button
+                                :button-face 'default
+                                :tag menu-item
+                                :help-echo (concat "Open " file-path)
+                                :format "%[%t%]"
+                                :notify 'recentf-open-more-files-action
+                                file-path)
+                 (widget-insert "\n")))
+            (funcall (or recentf-menu-filter 'identity)
+                     (mapcar '(lambda (item) (cons item item))
+                             (nthcdr recentf-max-menu-items recentf-list))))
+    (widget-insert "\n")
+    ;; Insert the Cancel button
+    (widget-create 'push-button
+                   :notify (lambda (&rest ignore)
+                             (kill-buffer (current-buffer))
+                             (message "Command canceled."))
+                   "Cancel")
+    (use-local-map widget-keymap)
+    (widget-setup)))
 
 (defvar recentf-menu-items-for-commands
   (list ["Cleanup list" recentf-cleanup t]
