@@ -1,3 +1,18 @@
+2004-09-29  David Ponce  <david@dponce.com>
+
+	* tabbar.el
+
+	(tabbar-separator): Change default value.
+	(tabbar-line-buttons): In-lined.  Move initialization of buttons
+	and separator values.
+	(tabbar-line-format): Here.
+	(tabbar-buffer-toggle-group-mode)
+	(tabbar-buffer-toggle-group-mode-help): Remove.
+	(tabbar-buffer-click-on-home): New function.
+	(tabbar-home-function): Use it.
+	(tabbar-buffer-help-on-home): New function.
+	(tabbar-home-help-function): Use it.
+
 2004-09-26  David Ponce  <david@dponce.com>
 
 	* tabbar.el
