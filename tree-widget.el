@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 16 Feb 2001
 ;; Keywords: extensions
-;; Revision: $Id: tree-widget.el,v 1.17 2004/04/23 13:21:43 ponced Exp $
+;; Revision: $Id: tree-widget.el,v 1.18 2004/04/27 14:07:29 ponced Exp $
 
 (defconst tree-widget-version "2.1")
 
@@ -137,9 +137,15 @@
   :group 'tree-widget)
 
 (defcustom tree-widget-themes-directory nil
-  "*Directory where to lookup for image themes.
-If nil, use the \"tree-widget-themes\" subdirectory of the directory
-where the tree-widget library is located."
+  "*Name of the directory where to lookup for image themes.
+It defaults to \"tree-widget-themes\".
+
+Unless it is absolute directory name, it should be the name of a
+sub-directory located in `load-path', or in the data directory.
+
+If running GNU Emacs, the data directory is in the variable
+`data-directory'.  If running XEmacs, it is what
+\(`locate-data-directory' \"tree-widget\") returns."
   :type '(choice (const :tag "Default" nil)
                  (directory :format "%{%t%}:\n%v")
                  )
@@ -229,133 +235,141 @@ See also the option `widget-image-conversion'."
     ))
   )
 
-(defvar tree-widget--image-cache nil)
-(make-variable-buffer-local 'tree-widget--image-cache)
+;; Buffer local cache of theme data.
 (defvar tree-widget--theme nil)
-(make-variable-buffer-local 'tree-widget--theme)
-(defvar tree-widget--image-properties nil)
-(make-variable-buffer-local 'tree-widget--image-properties)
+
+(defsubst tree-widget-theme-name ()
+  "Return the current theme name, or nil if no theme is active."
+  (and tree-widget--theme (aref tree-widget--theme 0)))
 
 (defsubst tree-widget-set-theme (&optional name)
-  "Define the current image theme to use.
-The theme is defined locally to the current buffer, where the tree
-widget is drawn.  Also clear the image cache.
-If optional argument NAME is non-nil, it is the name of the theme to
-use.  By default it is the global theme defined by the option
-`tree-widget-theme'."
-  (setq tree-widget--image-cache nil
-        tree-widget--theme (or name tree-widget-theme "default")))
+  "In the current buffer, set the theme to use for images.
+The current buffer should be where the tree widget is drawn.
+Optional argument NAME is the name of the theme to use, which defaults
+to the value of the variable `tree-widget-theme'.
+Does nothing if NAME is the name of the current theme."
+  (or name (setq name (or tree-widget-theme "default")))
+  (unless (equal name (tree-widget-theme-name))
+    (set (make-local-variable 'tree-widget--theme)
+         (make-vector 4 nil))
+    (aset tree-widget--theme 0 name)))
 
 (defun tree-widget-themes-directory ()
-  "Locate the directory where to search for image themes.
-Its name is defined in variable `tree-widget-themes-directory', and
-defaults to \"tree-widget-themes\".
-If it is an absolute name, return it if that directory is readable and
-exists, otherwise return nil.
-If it is a relative name, try to locate that sub-directory in
-`load-path', then in `data-directory', and return the absolute name of
-the first one found which is readable.  Return nil if none found."
-  (let ((dir (or tree-widget-themes-directory "tree-widget-themes"))
-        path try-dir found)
-    (if (file-name-absolute-p dir)
-        (and (file-directory-p dir)
-             (file-readable-p dir)
-             (expand-file-name dir))
-      (setq path load-path)
-      (while (and (not found) path)
-        (setq try-dir (expand-file-name dir (car path))
-              path (cdr path))
-        (and (file-directory-p try-dir)
-             (file-readable-p try-dir)
-             (setq found try-dir)))
-      (unless found
-        (setq try-dir (expand-file-name dir data-directory))
-        (and (file-directory-p try-dir)
-             (file-readable-p try-dir)
-             (setq found try-dir)))
-      found)))
+  "Locate the directory where to search for a theme.
+It is defined in variable `tree-widget-themes-directory'.
+If it is an absolute name, use it.  If it is a relative name, try to
+locate that sub-directory in `load-path', then in the data directory,
+and use the first one found which is readable.
+Return the absolute name of the directory found, or nil if the
+specified directory doesn't exist or is not readable."
+  (let ((dir (aref tree-widget--theme 1))
+        path found)
+    (cond
+     ;; Don't locate again a previously not found directory.
+     ((eq dir 'void) nil)
+     ;; The directory is in the cache, return it.
+     (dir)
+     ;; Locate the specified themes directory.
+     ((setq dir (or tree-widget-themes-directory "tree-widget-themes"))
+      (if (file-name-absolute-p dir)
+          ;; Check if the given absolute directory name is valid.
+          (and (file-directory-p (setq dir (expand-file-name dir)))
+               (file-readable-p dir)
+               (setq found dir))
+        ;; Search for a sub-directory in `load-path' and data directory
+        (setq path (append load-path
+                           ;; The data directory depends on which, GNU
+                           ;; Emacs or XEmacs, is running.
+                           (list (if (fboundp 'locate-data-directory)
+                                     (locate-data-directory "tree-widget")
+                                   data-directory))))
+        (while (and path (not found))
+          (when (car path)
+            (setq found (expand-file-name dir (car path)))
+            (or (and (file-directory-p found) (file-readable-p found))
+                (setq found nil)))
+          (setq path (cdr path))))
+      ;; Store the result in the cache for later use.
+      (aset tree-widget--theme 1 (or found 'void))
+      found))))
 
 (defsubst tree-widget-set-image-properties (props)
-  "Set image properties of current theme to PROPS."
-  (setq tree-widget--image-properties props))
+  "In current theme, set images properties to PROPS."
+  (aset tree-widget--theme 2 props))
 
 (defun tree-widget-image-properties (file)
-  "Return image properties from theme where is located image FILE."
-  ;; If already setup, just return it.
-  (if (and (local-variable-p 'tree-widget--image-properties
-                             (current-buffer))
-           tree-widget--image-properties)
-      tree-widget--image-properties
-    ;; Try to load the theme setup file.  Typically the theme setup
-    ;; file should contain something like this:
-    ;;
-    ;;     (tree-widget-set-image-properties
-    ;;      (if (featurep 'xemacs)
-    ;;          '(:ascent center)
-    ;;        '(:ascent center :mask (heuristic t))
-    ;;        ))
-    ;;
-    (load (expand-file-name
-           "tree-widget-theme-setup" (file-name-directory file)) t t)
-    ;; If theme setup, return it.
-    (if (and (local-variable-p 'tree-widget--image-properties
-                               (current-buffer))
-             tree-widget--image-properties)
-        tree-widget--image-properties
-      ;; Use default global values.
-      (tree-widget-set-image-properties
-       (if (featurep 'xemacs)
-           tree-widget-image-properties-xemacs
-         tree-widget-image-properties-emacs)))))
+  "Return properties of images in current theme.
+If the \"tree-widget-theme-setup.el\" file exists in the directory
+where is located the image FILE, load it to setup theme images
+properties.  Typically that file should contain something like this:
 
-(defun tree-widget-find-image (image-name)
-  "Create the image with IMAGE-NAME found in current theme.
-IMAGE-NAME must be a file name sans extension located in the current
-theme directory (see the options `tree-widget-themes-directory' and
-`tree-widget-theme').  Use the first image found having a supported
-format in those returned by the function `tree-widget-image-formats'.
-Return the image found or nil if not found."
-  (cond
-   ;; No image support
-   ((not (tree-widget-use-image-p))
-    nil)
-   ;; Image with IMAGE-NAME found in cache
-   ((cdr (assoc image-name tree-widget--image-cache))
-    )
-   ;; Search for an image with IMAGE-NAME
-   (t
-    (let ((default-directory (tree-widget-themes-directory))
-          path formats found image file)
-      (when default-directory
-        ;; Don't use `tree-widget-set-theme' here, because it clears
-        ;; the image cache.
-        (setq tree-widget--theme (or tree-widget--theme
-                                     tree-widget-theme
-                                     "default")
-              path (mapcar 'expand-file-name
-                           (if (equal tree-widget--theme "default")
-                               (list tree-widget--theme)
-                             (list tree-widget--theme "default")))
-              formats (tree-widget-image-formats)
-              found (catch 'found
+  (tree-widget-set-image-properties
+   (if (featurep 'xemacs)
+       '(:ascent center)
+     '(:ascent center :mask (heuristic t))
+     ))
+
+By default, use the global properties provided in variables
+`tree-widget-image-properties-emacs' or
+`tree-widget-image-properties-xemacs'."
+  ;; If properties are in the cache, use them.
+  (or (aref tree-widget--theme 2)
+      (progn
+        ;; Load tree-widget-theme-setup if available.
+        (load (expand-file-name
+               "tree-widget-theme-setup"
+               (file-name-directory file)) t t)
+        ;; If properties have been setup, use them.
+        (or (aref tree-widget--theme 2)
+            ;; By default, use supplied global properties.
+            (tree-widget-set-image-properties
+             (if (featurep 'xemacs)
+                 tree-widget-image-properties-xemacs
+               tree-widget-image-properties-emacs))))))
+
+(defun tree-widget-find-image (name)
+  "Find the image with NAME in current theme.
+NAME is an image file name sans extension.
+Search first in current theme, then in default theme.
+A theme is a sub-directory of the root theme directory specified in
+variable `tree-widget-themes-directory'.
+Return the first image found having a supported format in those
+returned by the function `tree-widget-image-formats', or nil if not
+found."
+  (when (tree-widget-use-image-p)
+    ;; Ensure there is an active theme.
+    (tree-widget-set-theme (tree-widget-theme-name))
+    ;; If the image is in the cache, return it.
+    (or (cdr (assoc name (aref tree-widget--theme 3)))
+        ;; Search the image in the current, then default themes.
+        (let ((default-directory (tree-widget-themes-directory)))
+          (when default-directory
+            (let* ((theme (tree-widget-theme-name))
+                   (path (mapcar 'expand-file-name
+                                 (if (equal theme "default")
+                                     '("default")
+                                   (list theme "default"))))
+                   (formats (tree-widget-image-formats))
+                   (found
+                    (catch 'found
                       (dolist (dir path)
                         (dolist (fmt formats)
                           (dolist (ext (cdr fmt))
-                            (setq file (expand-file-name
-                                        (concat image-name ext) dir))
-                            (and (file-readable-p file)
-                                 (file-regular-p file)
-                                 (throw 'found
-                                        (cons (car fmt) file))))))
-                      nil))
-          (when found
-            (setq image (tree-widget-create-image
-                         (car found) (cdr found)
-                         (tree-widget-image-properties (cdr found))))
-            ;; Add the image into the cache.
-            (push (cons image-name image) tree-widget--image-cache)
-            image)))
-    )))
+                            (let ((file (expand-file-name
+                                         (concat name ext) dir)))
+                              (and (file-readable-p file)
+                                   (file-regular-p file)
+                                   (throw 'found
+                                          (cons (car fmt) file)))))))
+                      nil)))
+              (when found
+                (let ((image
+                       (tree-widget-create-image
+                        (car found) (cdr found)
+                        (tree-widget-image-properties (cdr found)))))
+                  ;; Store image in the cache for later use.
+                  (push (cons name image) (aref tree-widget--theme 3))
+                  image))))))))
 
 ;;; Widgets
 ;;
