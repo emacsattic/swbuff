@@ -1,3 +1,14 @@
+2003-10-08  David Ponce  <david@dponce.com>
+
+	* tabbar.el
+
+	(tabbar-line-template): Renamed to...
+	(tabbar-line-format): New function.  Cache and return the whole
+	`header-line-format' used to display a tab set.
+	(tabbar-line): Use it.
+	(tabbar-default-inhibit-function): Inhibit display of the tab bar
+	in `ispell-choices-buffer'.
+
 2003-10-06  David Ponce  <david@dponce.com>
 
 	* tree-widget.el
