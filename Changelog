@@ -1,3 +1,35 @@
+2004-09-21  David Ponce  <david@dponce.com>
+
+	* tabbar.el
+
+	(tabbar-display-update): When possible, only force redisplay of
+	the selected window.
+	(tabbar-make-mouse-keymap): Rename from tabbar-make-button-keymap.
+	All uses changed.
+	(tabbar-home-button-keymap, tabbar-home-button-callback)
+	(tabbar-home-button-help, tabbar-scroll-left-button-keymap)
+	(tabbar-scroll-left-button-callback)
+	(tabbar-scroll-left-button-help)
+	(tabbar-scroll-right-button-keymap)
+	(tabbar-scroll-right-button-callback)
+	(tabbar-scroll-right-button-help): Remove.
+	(tabbar-default-button-keymap): New constant.
+	(tabbar-help-on-button, tabbar-click-on-button)
+	(tabbar-select-button-callback)
+	(tabbar-make-button-keymap): New functions.
+	(tabbar-help-on-tab): Get text property at received POSITION.
+	(tabbar-select-tab-callback): Use posn-string.  Get text property
+	at event position.
+	(tabbar-make-tab-keymap): Likewise.
+	(tabbar-button-label): Intern soft the tabbar-NAME-button symbol.
+	(tabbar-line-button): Doc fix.  Update to new design.
+	(tabbar-line-separator, tabbar-line-tab): Doc fix.
+	(tabbar-line-buttons): Add missing TABSET argument.
+	(tabbar-truncated-p): New function.
+	(tabbar-line-format): Use it.
+	(tabbar-buffer-tab-label): Don't abbreviate label when tracking
+	the selected tab.  Correctly abbreviate group labels.
+
 2004-09-13  David Ponce  <david@dponce.com>
 
 	* tabbar.el
