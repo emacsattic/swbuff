@@ -1,5 +1,5 @@
 ;;; jmaker.el -- Java Makefile generator add-on to JDE.
-;; $Revision: 1.3 $
+;; $Revision: 1.4 $
 
 ;; Copyright (C) 1998 by David Ponce
 
@@ -18,7 +18,7 @@
 ;; GNU General Public License for more details.
 
 ;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs; see the file COPYING.  If not, write to the
+;; along with this program; see the file COPYING.  If not, write to the
 ;; Free Software Foundation, Inc., 59 Temple Place - Suite 330,
 ;; Boston, MA 02111-1307, USA.
 
@@ -76,7 +76,7 @@
 (require 'jde)
 (require 'tempo)
 
-(defconst jmaker-version "$Revision: 1.3 $"
+(defconst jmaker-version "$Revision: 1.4 $"
   "jmaker version number.")
 
 (defgroup jmaker nil
@@ -235,6 +235,9 @@ This is a temporary buffer which could be edited and must be saved to allow buil
 
 ;;
 ;; $Log: jmaker.el,v $
+;; Revision 1.4  1998/09/28 22:54:19  ebat311
+;; Copyright notice updated.
+;;
 ;; Revision 1.3  1998/09/28 22:18:58  ebat311
 ;; Fixed an error in function `jmaker-version-number' which did not display
 ;; the version number.
