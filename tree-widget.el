@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 16 Feb 2001
 ;; Keywords: extensions
-;; Revision: $Id: tree-widget.el,v 1.15 2003/10/06 12:41:59 ponced Exp $
+;; Revision: $Id: tree-widget.el,v 1.16 2003/11/24 15:20:20 ponced Exp $
 
 (defconst tree-widget-version "2.0")
 
@@ -192,13 +192,11 @@ no-handle    an invisible handle
       (and tree-widget-image-enable
            widget-glyph-enable
            (console-on-window-system-p)))
-    (defsubst tree-widget-create-image (type file)
+    (defsubst tree-widget-create-image (type file &optional props)
       "Create an image of type TYPE from FILE.
-Give the image the specified `tree-widget-image-properties-xemacs'
-properties.  Return the new image."
-      (apply 'make-glyph
-             `([,type :file ,file
-                      ,@tree-widget-image-properties-xemacs])))
+Give the image the specified properties PROPS.
+Return the new image."
+      (apply 'make-glyph `([,type :file ,file ,@props])))
     (defsubst tree-widget-image-formats ()
       "Return the list of image formats, file name suffixes associations.
 See also the option `widget-image-file-name-suffixes'."
@@ -215,13 +213,11 @@ See also the option `widget-image-file-name-suffixes'."
       (and tree-widget-image-enable
            widget-image-enable
            (display-images-p)))
-    (defsubst tree-widget-create-image (type file)
+    (defsubst tree-widget-create-image (type file &optional props)
       "Create an image of type TYPE from FILE.
-Give the image the specified `tree-widget-image-properties-emacs'
-properties.  Return the new image."
-      (apply 'create-image
-             `(,file ,type nil
-                     ,@tree-widget-image-properties-emacs)))
+Give the image the specified properties PROPS.
+Return the new image."
+      (apply 'create-image `(,file ,type nil ,@props)))
     (defsubst tree-widget-image-formats ()
       "Return the list of image formats, file name suffixes associations.
 See also the option `widget-image-conversion'."
@@ -237,6 +233,8 @@ See also the option `widget-image-conversion'."
 (make-variable-buffer-local 'tree-widget--image-cache)
 (defvar tree-widget--theme nil)
 (make-variable-buffer-local 'tree-widget--theme)
+(defvar tree-widget--image-properties nil)
+(make-variable-buffer-local 'tree-widget--image-properties)
 
 (defsubst tree-widget-set-theme (&optional name)
   "Define the current image theme to use.
@@ -257,6 +255,39 @@ Return nil if not found."
                                  (locate-library "tree-widget")))))
     (and (file-directory-p dir) dir)))
 
+(defsubst tree-widget-set-image-properties (props)
+  "Set image properties of current theme to PROPS."
+  (setq tree-widget--image-properties props))
+
+(defun tree-widget-image-properties (file)
+  "Return image properties from theme where is located image FILE."
+  ;; If already setup, just return it.
+  (if (and (local-variable-p 'tree-widget--image-properties
+                             (current-buffer))
+           tree-widget--image-properties)
+      tree-widget--image-properties
+    ;; Try to load the theme setup file.  Typically the theme setup
+    ;; file should contain something like this:
+    ;;
+    ;;     (tree-widget-set-image-properties
+    ;;      (if (featurep 'xemacs)
+    ;;          '(:ascent center)
+    ;;        '(:ascent center :mask (heuristic t))
+    ;;        ))
+    ;;
+    (load (expand-file-name
+           "tree-widget-theme-setup" (file-name-directory file)) t t)
+    ;; If theme setup, return it.
+    (if (and (local-variable-p 'tree-widget--image-properties
+                               (current-buffer))
+             tree-widget--image-properties)
+        tree-widget--image-properties
+      ;; Use default global values.
+      (tree-widget-set-image-properties
+       (if (featurep 'xemacs)
+           tree-widget-image-properties-xemacs
+         tree-widget-image-properties-emacs)))))
+
 (defun tree-widget-find-image (image-name)
   "Create the image with IMAGE-NAME found in current theme.
 IMAGE-NAME must be a file name sans extension located in the current
@@ -273,32 +304,37 @@ Return the image found or nil if not found."
     )
    ;; Search for an image with IMAGE-NAME
    (t
-    (let ((dir (tree-widget-themes-directory)))
-      (when dir
+    (let ((default-directory (tree-widget-themes-directory))
+          path formats found image file)
+      (when default-directory
         ;; Don't use `tree-widget-set-theme' here, because it clears
         ;; the image cache.
-        (setq tree-widget--theme
-              (or tree-widget--theme tree-widget-theme "default"))
-        (let* ((default-directory dir)
-               (formats (tree-widget-image-formats))
-               (path (if (equal tree-widget--theme "default")
-                         (list tree-widget--theme)
-                       (list tree-widget--theme "default")))
-               file image type fmts load-path load-suffixes)
-          (while (and path (not file))
-            (setq load-path (list (expand-file-name (car path)))
-                  path (cdr path)
-                  fmts formats)
-            (while (and fmts (not file))
-              (setq type (caar fmts)
-                    load-suffixes (cdar fmts)
-                    fmts (cdr fmts)
-                    file (locate-library image-name))))
-          (when file
-            (setq image (tree-widget-create-image type file))
+        (setq tree-widget--theme (or tree-widget--theme
+                                     tree-widget-theme
+                                     "default")
+              path (mapcar 'expand-file-name
+                           (if (equal tree-widget--theme "default")
+                               (list tree-widget--theme)
+                             (list tree-widget--theme "default")))
+              formats (tree-widget-image-formats)
+              found (catch 'found
+                      (dolist (dir path)
+                        (dolist (fmt formats)
+                          (dolist (ext (cdr fmt))
+                            (setq file (expand-file-name
+                                        (concat image-name ext) dir))
+                            (and (file-readable-p file)
+                                 (file-regular-p file)
+                                 (throw 'found
+                                        (cons (car fmt) file))))))
+                      nil))
+          (when found
+            (setq image (tree-widget-create-image
+                         (car found) (cdr found)
+                         (tree-widget-image-properties (cdr found))))
             ;; Add the image into the cache.
             (push (cons image-name image) tree-widget--image-cache)
-            image))))
+            image)))
     )))
 
 ;;; Widgets
