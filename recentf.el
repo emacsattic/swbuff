@@ -1,5 +1,5 @@
 ;; @(#) recentf.el -- Setup a menu of recently opened files
-;; @(#) $Id: recentf.el,v 1.6 1999/08/24 07:18:57 ebat311 Exp $
+;; @(#) $Id: recentf.el,v 1.7 1999/08/24 07:50:54 ebat311 Exp $
 
 ;; This file is not part of Emacs
 
@@ -11,7 +11,7 @@
 ;; LCD Archive Entry:
 ;; recentf|David Ponce|david.ponce@wanadoo.fr|
 ;; Setup a menu of recently opened files|
-;; $Date: 1999/08/24 07:18:57 $|$Revision: 1.6 $|~/misc/recentf.el|
+;; $Date: 1999/08/24 07:50:54 $|$Revision: 1.7 $|~/misc/recentf.el|
 
 ;; COPYRIGHT NOTICE
 ;;
@@ -115,7 +115,7 @@
 ;;; Code:
 (require 'easymenu)
 
-(defconst recentf-version "$Revision: 1.6 $"
+(defconst recentf-version "$Revision: 1.7 $"
   "recentf version number.")
 
 (defconst recentf-save-file-header
@@ -262,7 +262,8 @@ displayed in the menu and must return a new list of filenames."
     (setq recentf-update-menu-p t)
     (add-hook 'find-file-hooks       'recentf-add-file-hook)
     (add-hook 'write-file-hooks      'recentf-add-file-hook)
-    (add-hook 'activate-menubar-hook 'recentf-update-menu-hook)
+;;    (add-hook 'activate-menubar-hook 'recentf-update-menu-hook)
+    (add-hook 'menu-bar-update-hook  'recentf-update-menu-hook)
     (add-hook 'kill-emacs-hook       'recentf-save-list)
     )
   )
@@ -276,11 +277,14 @@ displayed in the menu and must return a new list of filenames."
 (defun recentf-update-menu-hook ()
   "Update the recentf menu from the current `recentf-list'."
   (when recentf-update-menu-p
-    (easy-menu-change recentf-menu-path
-                      recentf-menu-title
-                      (recentf-make-menu-items)
-                      recentf-menu-before)
-    (setq recentf-update-menu-p nil)
+    (condition-case nil
+        (progn
+          (easy-menu-change recentf-menu-path
+                            recentf-menu-title
+                            (recentf-make-menu-items)
+                            recentf-menu-before)
+          (setq recentf-update-menu-p nil))
+      (error nil))
     )
   )
 
@@ -367,7 +371,23 @@ If FILENAME is not readable it is removed from `recentf-list'."
 
 ;;
 ;; $Log: recentf.el,v $
-;; Revision 1.6  1999/08/24 07:18:57  ebat311
+;; Revision 1.7  1999/08/24 07:50:54  ebat311
+;; FIXED:
+;;
+;;   When vm-mail is called, emacs started beeping and was hanging.
+;;   So `recentf-update-menu-hook' is changed to use `menu-bar-update-hook'
+;;   instead of `activate-menubar-hook'.
+;;
+;;   `recentf-update-menu-hook' also causes an error when called while
+;;   vm-mode is the major-mode, since under vm the layout
+;;   of the menus is changed and there is no Files menu in the menubar.
+;;   This caused menu-bar-update-hook to be set to nil.
+;;   Possible errors are now catched during the menu update.
+;;
+;;   Thanks to "Diego Calvanese" <calvanese@dis.uniroma1.it>
+;;   who has reported and fixed thess bugs.
+;;
+;; Revision 1.6  1999-08-24 09:18:57+02  ebat311
 ;; NEW FEATURE:
 ;;   The `recentf-menu-filter' customizable variable can be set to a function
 ;;   used to filter the menu items. If its value is nil (default) the list will not change.
