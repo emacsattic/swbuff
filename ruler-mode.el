@@ -1,0 +1,456 @@
+;;; ruler-mode.el --- Display a ruler in the header line
+
+;; Copyright (C) 2001 Free Software Foundation, Inc.
+
+;; Author: David Ponce <david@dponce.com>
+;; Maintainer: David Ponce <david@dponce.com>
+;; Created: 24 Mar 2001
+;; Version: 1.1
+;; Keywords: environment
+
+;; This file is not part of Emacs
+
+;; This program is free software; you can redistribute it and/or
+;; modify it under the terms of the GNU General Public License as
+;; published by the Free Software Foundation; either version 2, or (at
+;; your option) any later version.
+
+;; This program is distributed in the hope that it will be useful, but
+;; WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+;; General Public License for more details.
+
+;; You should have received a copy of the GNU General Public License
+;; along with this program; see the file COPYING.  If not, write to
+;; the Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+;; Boston, MA 02111-1307, USA.
+
+;;; Commentary:
+
+;; This library provides a minor mode to display a ruler in the header
+;; line.  It works only on Emacs 21.
+;;
+;; You can use the mouse to change the `fill-column' and
+;; `window-margins' settings:
+;;
+;; [header-line (shift down-mouse-1)] set left margin to the ruler
+;; graduation where the mouse pointer is on.
+;;
+;; [header-line (shift down-mouse-3)] set right margin to the ruler
+;; graduation where the mouse pointer is on.
+;;
+;; [header-line down-mouse-2] set `fill-column' to the ruler
+;; graduation where the mouse pointer is on.
+;;
+;; In the ruler the character `ruler-mode-fill-column-char' shows the
+;; `current-column' location and the character
+;; `ruler-mode-current-column-char' shows the `fill-column' location.
+;; `window-margins' areas are shown with a different backgound color.
+;;
+;; It is also possible to customize the following characters:
+;;
+;; - `ruler-mode-margins-char' character used to pad margin areas.
+;; - `ruler-mode-basic-graduation-char' character used for basic
+;;   graduations (dots).
+;; - `ruler-mode-inter-graduation-char' character used for
+;;   intermediate graduations (plus sign).
+;;
+;; The following faces are customizable:
+;;
+;; - `ruler-mode-default-face' the ruler default face.
+;; - `ruler-mode-fill-column-face' the face used to highlight the
+;;   `fill-column' character.
+;; - `ruler-mode-current-column-face' the face used to highlight the
+;;   `current-column' character.
+;; - `ruler-mode-margins-face' the face used to highlight the
+;;   `window-margins' areas.
+;; - `ruler-mode-column-number-face' the face used to highlight the
+;;   number graduations.
+
+;; Installation
+;;
+;; Put this file on your Emacs-Lisp load path and add following into
+;; your ~/.emacs startup file
+;;
+;;   (require 'ruler-mode)
+;;
+;; Or use the `autoload' feature:
+;;
+;;   (autoload 'ruler-mode "ruler-mode"
+;;     "Display a ruler in the header line." t)
+;;
+;; To automatically display the ruler in specific major modes use:
+;;
+;;    (add-hook '<major-mode>-hook 'ruler-mode)
+;;
+
+;;; History:
+;;
+
+;;; Code:
+(eval-when-compile
+  (require 'wid-edit))
+
+(defgroup ruler-mode nil
+  "Display a ruler in the header line."
+  :version "21.1"
+  :group 'environment)
+
+;; IMPORTANT: This function must be defined before the following
+;; defcustoms because it is used in their :validate clause.
+(defun ruler-mode-character-validate (widget)
+  "Ensure WIDGET value is a valid character value."
+  (save-excursion
+    (let ((value (widget-value widget)))
+      (if (char-valid-p value)
+          nil
+        (widget-put widget :error
+                    (format "Invalid character value: %S" value))
+        widget))))
+      
+(defcustom ruler-mode-fill-column-char (if window-system
+                                           ?\¶
+                                         ?\|)
+  "*Character used at the `fill-column' location."
+  :group 'ruler-mode
+  :type '(choice
+          (character :tag "Character")
+          (integer :tag "Integer char value"
+                   :validate ruler-mode-character-validate)))
+
+(defcustom ruler-mode-current-column-char (if window-system
+                                              ?\¦
+                                            ?\@)
+  "*Character used at the `current-column' location."
+  :group 'ruler-mode
+  :type '(choice
+          (character :tag "Character")
+          (integer :tag "Integer char value"
+                   :validate ruler-mode-character-validate)))
+
+(defcustom ruler-mode-margins-char ?\ 
+  "*Character used in margin areas."
+  :group 'ruler-mode
+  :type '(choice
+          (character :tag "Character")
+          (integer :tag "Integer char value"
+                   :validate ruler-mode-character-validate)))
+
+(defcustom ruler-mode-basic-graduation-char ?\.
+  "*Character used for basic graduations."
+  :group 'ruler-mode
+  :type '(choice
+          (character :tag "Character")
+          (integer :tag "Integer char value"
+                   :validate ruler-mode-character-validate)))
+
+(defcustom ruler-mode-inter-graduation-char ?\!
+  "*Character used for intermediate graduations."
+  :group 'ruler-mode
+  :type '(choice
+          (character :tag "Character")
+          (integer :tag "Integer char value"
+                   :validate ruler-mode-character-validate)))
+
+(defface ruler-mode-default-face
+  '((t (:inherit default
+                 :background "grey76"
+                 :foreground "grey64"
+                 :box (:color "grey76"
+                              :line-width 1
+                              :style released-button)
+                 )))
+  "Default face used by the ruler."
+  :group 'ruler-mode)
+
+(defface ruler-mode-fill-column-face
+  '((t (:inherit ruler-mode-default-face
+                 :foreground "red"
+                 )))
+  "Face used to highlight the fill column character."
+  :group 'ruler-mode)
+
+(defface ruler-mode-margins-face
+  '((t (:inherit ruler-mode-default-face
+                 :background "grey64"
+                 )))
+  "Face used to highlight the `window-margins' areas."
+  :group 'ruler-mode)
+
+(defface ruler-mode-current-column-face
+  '((t (:inherit ruler-mode-default-face
+                 :weight bold
+                 :foreground "yellow"
+                 )))
+  "Face used to highlight the `current-column' character."
+  :group 'ruler-mode)
+
+(defface ruler-mode-column-number-face
+  '((t (:inherit ruler-mode-default-face
+                 :foreground "black"
+                 )))
+  "Face used to highlight number graduations."
+  :group 'ruler-mode)
+
+(defun ruler-mode-mouse-set-left-margin (start-event)
+  "Set left margin to the graduation where the mouse pointer is on.
+START-EVENT is the mouse click event."
+  (interactive "e")
+  (let* ((start (event-start start-event))
+         (end   (event-end   start-event))
+         w col m lm0 lm rm)
+    (if (eq start end) ;; mouse click
+        (save-selected-window
+          (select-window (posn-window start))
+          (setq m   (window-margins)
+                lm0 (or (car m) 0)
+                rm  (or (cdr m) 0)
+                w   (window-width)
+                col (car (posn-col-row start))
+                lm  (min (- w rm) col))
+          (message "Left margin set to %d (was %d)" lm lm0)
+          (set-window-margins nil lm rm)))))
+
+(defun ruler-mode-mouse-set-right-margin (start-event)
+  "Set right margin to the graduation where the mouse pointer is on.
+START-EVENT is the mouse click event."
+  (interactive "e")
+  (let* ((start (event-start start-event))
+         (end   (event-end   start-event))
+         m col w lm rm0 rm)
+    (if (eq start end) ;; mouse click
+        (save-selected-window
+          (select-window (posn-window start))
+          (setq m   (window-margins)
+                rm0 (or (cdr m) 0)
+                lm  (or (car m) 0)
+                col (car (posn-col-row start))
+                w   (window-width)
+                rm  (max 0 (- w col)))
+          (message "Right margin set to %d (was %d)" rm rm0)
+          (set-window-margins nil lm rm)))))
+
+(defun ruler-mode-mouse-set-fill-column (start-event)
+  "Set `fill-column' to the graduation where the mouse pointer is on.
+START-EVENT is the mouse click event."
+  (interactive "e")
+  (let* ((start (event-start start-event))
+         (end   (event-end   start-event))
+         m col w lm rm hs fc)
+    (if (eq start end) ;; mouse click
+        (save-selected-window
+          (select-window (posn-window start))
+          (setq m   (window-margins)
+                lm  (or (car m) 0)
+                rm  (or (cdr m) 0)
+                col (- (car (posn-col-row start)) lm)
+                w     (window-width)
+                hs    (window-hscroll)
+                fc    (+ col hs))
+          (and (>= col 0) (< (+ col lm rm) w)
+               (progn
+                 (message "Fill column set to %d (was %d)" fc fill-column)
+                 (setq fill-column fc)))))))
+
+(defvar ruler-mode-map
+  (let ((km (make-sparse-keymap)))
+    (define-key km [header-line down-mouse-1]
+      #'ignore)
+    (define-key km [header-line down-mouse-3]
+      #'ignore)
+    (define-key km [header-line down-mouse-2]
+      #'ruler-mode-mouse-set-fill-column)
+    (define-key km [header-line (shift down-mouse-1)]
+      #'ruler-mode-mouse-set-left-margin)
+    (define-key km [header-line (shift down-mouse-3)]
+      #'ruler-mode-mouse-set-right-margin)
+    km)
+  "Keymap for ruler minor mode.")
+
+(defvar ruler-mode-header-line-format-old nil
+  "Hold previous value of `header-line-format'.")
+(make-variable-buffer-local 'ruler-mode-header-line-format-old)
+
+(defconst ruler-mode-header-line-format
+  '(:eval (ruler-mode-ruler))
+  "`header-line-format' used by `ruler-mode'.")
+
+(defun ruler-mode-post-command-hook ()
+  "Local hook run after each command to update the ruler."
+  (set-buffer-modified-p (buffer-modified-p)))
+
+(define-minor-mode ruler-mode
+  "Display a ruler in the header line if ARG > 0."
+  nil nil
+  ruler-mode-map
+  (if ruler-mode
+      (progn
+        ;; When `ruler-mode' is on save previous header line format and
+        ;; install the ruler header line format.
+        (setq ruler-mode-header-line-format-old header-line-format
+              header-line-format ruler-mode-header-line-format)
+        (add-hook 'post-command-hook    ; add local hook
+                  #'ruler-mode-post-command-hook nil t))
+    ;; When `ruler-mode' is off restore previous header line format if
+    ;; the current one is the ruler header line format.
+    (if (equal header-line-format ruler-mode-header-line-format)
+        (setq header-line-format ruler-mode-header-line-format-old))
+    (remove-hook 'post-command-hook     ; remove local hook
+                 #'ruler-mode-post-command-hook t)))
+
+(defconst ruler-mode-ruler-help-echo
+  (concat "S-mouse-1: set left margin, "
+          "S-mouse-3: set right margin, "
+          "mouse-2: set fill column")
+  "Default help string shown when mouse pointer is over the ruler.")
+
+(defconst ruler-mode-left-margin-help-echo
+  "Left margin %S"
+  "Help string shown when mouse is over the left margin area.")
+
+(defconst ruler-mode-right-margin-help-echo
+  "Right margin %S"
+  "Help string shown when mouse is over the right margin area.")
+
+(defvar ruler-mode-left-fringe-cols nil
+  "Cache values returned by function `ruler-mode-left-fringe-cols'.")
+
+(defun ruler-mode-left-fringe-cols (&optional check)
+  "Return the character width of fringe and left vertical scrollbar.
+That is a pair (FRINGE-COLS . VSCROLLBAR-COLS) where:
+- - FRINGE-COLS is the number of columns occupied by a fringe area.
+- - VSCROLLBAR-COLS is the number of columns occupied by the left
+    vertical scrollbar or 0 if there is no vertical scrollbar on the
+    left side."
+  (let* ((f   (window-frame (selected-window)))
+         (sbm (frame-parameter f 'vertical-scroll-bars)))
+    (if (or check (not ruler-mode-left-fringe-cols))
+        (let* ((w   (frame-first-window f))
+               (sbw  (frame-pixel-width f))
+               (chw  (frame-char-width f))
+               (chx  (/ 1.0 (float chw)))
+               (pos  (cons 0 0.0))
+               (lfw  0.)
+               coord)
+          (if sbm
+              (modify-frame-parameters
+               f '((vertical-scroll-bars . nil))))
+          (setq coord (coordinates-in-window-p pos w))
+          (while (not (memq coord '(left-fringe mode-line)))
+            (setcdr pos (1+ (cdr pos)))
+            (setq coord (coordinates-in-window-p pos w)))
+          (while (eq coord 'left-fringe)
+            (setcar pos (+ (car pos) chx))
+            (setq lfw   (+ lfw chx)
+                  coord (coordinates-in-window-p pos w)))
+          (or sbm
+              (modify-frame-parameters
+               f '((vertical-scroll-bars . right))))
+          (setq sbw (/ (abs (- sbw (frame-pixel-width f))) chw)
+                lfw (floor lfw))
+          (modify-frame-parameters
+           f (list (cons 'vertical-scroll-bars sbm)))
+          (setq ruler-mode-left-fringe-cols (vector (cons lfw sbw)
+                                                    (cons lfw 0)))))
+    (aref ruler-mode-left-fringe-cols
+          (if (eq sbm 'left) 0 1))))
+
+(defun ruler-mode-ruler ()
+  "Return a string ruler."
+  (and ruler-mode
+       (let* ((lfr   (ruler-mode-left-fringe-cols))
+              (w     (+ (window-width) 1 (cdr lfr)))
+              (m     (window-margins))
+              (l     (or (car m) 0))
+              (r     (or (cdr m) 0))
+              (j     (+ (car lfr) (cdr lfr)))
+              (o     (- (window-hscroll) l j))
+              (i     0)
+              (ruler (concat
+                      ;; unit graduations
+                      (make-string w ruler-mode-basic-graduation-char)
+                      ;; extra space to fill the header line
+                      (make-string j ?\ )))
+              c k)
+
+         ;; Setup default face and help echo.
+         (put-text-property 0 (length ruler)
+                            'face 'ruler-mode-default-face
+                            ruler)
+         (put-text-property 0 (length ruler)
+                            'help-echo ruler-mode-ruler-help-echo
+                            ruler)
+         ;; Setup the local map.
+         (put-text-property 0 (length ruler)
+                            'local-map ruler-mode-map
+                            ruler)
+
+         (setq j (+ l j))
+         ;; Setup the left margin area.
+         (put-text-property
+          i j 'face 'ruler-mode-margins-face
+          ruler)
+         (put-text-property
+          i j 'help-echo (format ruler-mode-left-margin-help-echo l)
+          ruler)
+         (while (< i j)
+           (aset ruler i ruler-mode-margins-char)
+           (setq i (1+ i)))
+
+         ;; Setup the ruler area.
+         (setq r (- w r))
+         (while (< i r)
+           (setq j (+ i o))
+           (cond
+            ((= (mod j 10) 0)
+             (setq c (number-to-string (/ j 10))
+                   m (length c)
+                   k i)
+             (put-text-property
+              i (1+ i) 'face 'ruler-mode-column-number-face
+              ruler)
+             (while (and (> m 0) (>= k 0))
+               (aset ruler k (aref c (setq m (1- m))))
+               (setq k (1- k)))
+             )
+            ((= (mod j 5) 0)
+             (aset ruler i ruler-mode-inter-graduation-char)
+             )
+            )
+           (setq i (1+ i)))
+
+         ;; Setup the right margin area.
+         (put-text-property
+          i (length ruler) 'face 'ruler-mode-margins-face
+          ruler)
+         (put-text-property
+          i (length ruler) 'help-echo
+          (format ruler-mode-right-margin-help-echo (- w r))
+          ruler)
+         (while (< i (length ruler))
+           (aset ruler i ruler-mode-margins-char)
+           (setq i (1+ i)))
+         
+         ;; Show the `fill-column' marker.
+         (setq i (- fill-column o))
+         (and (>= i 0) (< i r)
+              (aset ruler i ruler-mode-fill-column-char)
+              (put-text-property
+               i (1+ i) 'face 'ruler-mode-fill-column-face
+               ruler))
+         ;; Show the `current-column' marker.
+         (setq i (- (current-column) o))
+         (and (>= i 0) (< i r)
+              (aset ruler i ruler-mode-current-column-char)
+              (put-text-property
+               i (1+ i) 'face 'ruler-mode-current-column-face
+               ruler))
+         ruler)))
+
+(provide 'ruler-mode)
+
+;; Local Variables:
+;; coding: iso-latin-1
+;; End:
+
+;;; ruler-mode.el ends here
