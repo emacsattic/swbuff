@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 27 Nov 2001
 ;; Keywords: extensions
-;; Revision: $Id: tree-widget-examples.el,v 1.1 2004/04/30 13:23:45 ponced Exp $
+;; Revision: $Id: tree-widget-examples.el,v 1.6 2004/05/14 11:03:52 ponced Exp $
 
 (defconst tree-widget-examples-version "1.2")
 

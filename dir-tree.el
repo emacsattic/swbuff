@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 16 Feb 2001
 ;; Keywords: extensions
-;; Revision: $Id: dir-tree.el,v 1.1 2004/04/30 13:23:45 ponced Exp $
+;; Revision: $Id: dir-tree.el,v 1.6 2004/05/14 11:03:51 ponced Exp $
 
 (defconst dir-tree-version "1.1")
 
