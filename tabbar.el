@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 25 February 2003
 ;; Keywords: convenience
-;; Revision: $Id: tabbar.el,v 1.23 2003/10/15 12:34:03 ponced Exp $
+;; Revision: $Id: tabbar.el,v 1.24 2003/11/21 11:52:10 ponced Exp $
 
 (defconst tabbar-version "1.3")
 
@@ -184,6 +184,11 @@ The following scopes are possible:
                  (const :tag "Visible Tabs Only" tabs)
                  (const :tag "Tab Groups Only" groups)
                  (const :tag "Visible Tabs then Tab Groups" nil)))
+
+(defcustom tabbar-selected-tab-always-visible t
+  "*non-nil means to keep the selected tab visible."
+  :group 'tabbar
+  :type 'boolean)
 
 (defcustom tabbar-inhibit-functions
   '(tabbar-default-inhibit-function)
@@ -393,7 +398,7 @@ Return TAB if selected, nil if not."
   (when (tabbar-member tab tabset)
     (unless (tabbar-selected-p tab tabset)
       (tabbar-set-template tabset nil)
-      (setq tabbar-show-selected t))
+      (setq tabbar-show-selected tabbar-selected-tab-always-visible))
     (put tabset 'select tab)))
 
 (defsubst tabbar-select-tab-value (object tabset)
@@ -1330,18 +1335,37 @@ Return the the first group where the current buffer is."
 (defun tabbar-buffer-tab-label (tab)
   "Return the label to display TAB.
 Must be a valid `header-line-format' template element."
-  (if tabbar-buffer-group-mode
-      (format "[%s]" (tabbar-tab-tabset tab))
-    (format " %s " (tabbar-tab-value tab))))
+  (let* ((tabset (tabbar-tab-tabset tab))
+         (label (if tabbar-buffer-group-mode
+                    (format "[%s]" tabset)
+                  (format "%s" (tabbar-tab-value tab))))
+         (edges (window-edges))
+         (llab (length label))
+         (lmax (max 10 (/ (- (nth 2 edges) (car edges))
+                          (length (tabbar-view tabset)))))
+         (cont  "...")
+         (lcont (length cont)))
+    (cond
+     ((<= llab lmax)
+      label)
+     ((< llab (+ lmax lcont))
+      (concat (substring label 0 (- lmax lcont)) cont))
+     (t
+      (setq llab (/ (- lmax lcont) 2))
+      (concat (substring label 0 llab) cont
+              (substring label (+ lcont (- llab lmax))))))
+    ))
 
 (defun tabbar-buffer-help-on-tab (tab)
   "Return the help string shown when mouse is onto TAB."
   (if tabbar-buffer-group-mode
-      "mouse-1: switch to selected tab in group"
-    "\
-mouse-1: switch to buffer, \
-mouse-2: pop to buffer, \
-mouse-3: delete other windows"
+      (let* ((tabset (tabbar-tab-tabset tab))
+             (tab (tabbar-selected-tab tabset)))
+        (format "mouse-1: switch to buffer %S in group [%s]"
+                (tabbar-tab-value tab) tabset))
+    (format "mouse-1: switch to buffer %S\n\
+mouse-2: pop to buffer, mouse-3: delete other windows"
+            (tabbar-tab-value tab))
     ))
 
 (defun tabbar-buffer-select-tab (event tab)
