@@ -1,11 +1,13 @@
 ;;; overlay-fix.el --- overlay bug workaround
 
-;; Copyright (C) 2001 by David Ponce
+;; Copyright (C) 2001, 2003 by David Ponce
 
 ;; Author: David Ponce <david@dponce.com>
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 12 Feb 2001
-;; X-RCS: $Id: overlay-fix.el,v 1.2 2001/08/29 14:53:31 ponce Exp $
+;; Revision: $Id: overlay-fix.el,v 1.3 2003/04/25 11:30:25 ponced Exp $
+
+(defconst overlay-fix-version "1.0")
 
 ;; This file is not part of Emacs
 
