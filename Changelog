@@ -1,5 +1,10 @@
 2003-09-30  David Ponce  <david@dponce.com>
 
+	* tree-widget.el
+
+	(tree-widget--image-cache): Move.  Make buffer local.
+	(tree-widget--clear-images-and-set): Remove.  All callers updated.
+
 	* dir-tree.el
 
 	(dir-tree): Use the "folder" theme.
