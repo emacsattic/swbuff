@@ -1,3 +1,10 @@
+2004-10-08  David Ponce  <david@dponce.com>
+
+	* tabbar.el
+
+	(tabbar-local-mode): Toggle the display of the tab bar locally,
+	when no local header line is shown.
+
 2004-10-07  David Ponce  <david@dponce.com>
 
 	* tabbar.el
