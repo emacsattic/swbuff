@@ -1,3 +1,9 @@
+2003-12-17  David Ponce  <david@dponce.com>
+
+	* tabbar.el
+
+	New "Known problems" section in comment header.
+
 2003-12-02  David Ponce  <david@dponce.com>
 
 	* tabbar.el
