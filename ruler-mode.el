@@ -418,19 +418,19 @@ dragging.  See also the variable `ruler-mode-dragged-symbol'."
       (and
        (>= col 0) (< col (window-width))
        (cond
-        
+
         ;; Handle the fill column.
         ((eq newc fill-column)
          (setq oldc fill-column
                ruler-mode-dragged-symbol 'fill-column)
          t) ;; Start dragging
-        
+
         ;; Handle the comment column.
         ((eq newc comment-column)
          (setq oldc comment-column
                ruler-mode-dragged-symbol 'comment-column)
          t) ;; Start dragging
-        
+
         ;; Handle the goal column.
         ;; A. On mouse down on the goal column character on the ruler,
         ;;    update the `goal-column' value while dragging.
@@ -442,7 +442,7 @@ dragging.  See also the variable `ruler-mode-dragged-symbol'."
          (setq oldc goal-column
                ruler-mode-dragged-symbol 'goal-column)
          t) ;; Start dragging
-        
+
         ((null goal-column)             ; B. Set the goal column.
          (setq oldc goal-column
                goal-column newc)
@@ -670,7 +670,7 @@ mouse-2: unset goal column"
            (i     o)
            (j     (window-hscroll))
            k c l1 l2 r2 r1 h1 h2 f1 f2)
-      
+
       ;; Setup the default properties.
       (put-text-property 0 fullw 'face 'ruler-mode-default-face ruler)
       (put-text-property 0 fullw
@@ -685,7 +685,7 @@ mouse-2: unset goal column"
                          ruler)
       ;; Setup the local map.
       (put-text-property 0 fullw 'local-map ruler-mode-map ruler)
-      
+
       ;; Setup the active area.
       (while (< x w)
         ;; Graduations.
@@ -748,7 +748,7 @@ mouse-2: unset goal column"
         (setq i (1+ i)
               j (1+ j)
               x (1+ x)))
-      
+
       ;; Highlight the fringes and margins.
       (if (nth 2 (window-fringes))
           ;; fringes outside margins.
@@ -781,11 +781,11 @@ mouse-2: unset goal column"
       (setq i j j (+ i r1))
       (put-text-property i j 'face f1 ruler)
       (put-text-property i j 'help-echo (format h1 "Right" r1) ruler)
-      
+
       ;; Show inactive areas.
       (put-text-property 0 lsb   'face 'ruler-mode-pad-face ruler)
       (put-text-property j fullw 'face 'ruler-mode-pad-face ruler)
-      
+
       ;; Return the ruler propertized string.
       ruler)))
 
