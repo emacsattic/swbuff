@@ -1,3 +1,12 @@
+2004-04-23  David Ponce  <david@dponce.com>
+
+	* tree-widget.el
+
+	(tree-widget-version): Update to 2.1.
+	(tree-widget-themes-directory): Locate an absolute directory name,
+	or one relative to a directory in `load-path', or to
+	`data-directory'.
+
 2004-04-21  David Ponce  <david@dponce.com>
 
 	* recentf.el
