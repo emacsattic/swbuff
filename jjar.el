@@ -1,5 +1,5 @@
 ;; @(#) jjar.el -- Java Archive builder
-;; @(#) $Id: jjar.el,v 1.1 1999/07/05 21:30:12 ebat311 Exp $
+;; @(#) $Id: jjar.el,v 1.2 1999/07/06 10:39:20 ebat311 Exp $
 
 ;; This file is not part of Emacs
 
@@ -11,7 +11,7 @@
 ;; LCD Archive Entry:
 ;; jjar|David Ponce|david.ponce@wanadoo.fr|
 ;; Java Archive builder|
-;; $Date: 1999/07/05 21:30:12 $|$Revision: 1.1 $|~/misc/jjar.el|
+;; $Date: 1999/07/06 10:39:20 $|$Revision: 1.2 $|~/misc/jjar.el|
 
 ;; COPYRIGHT NOTICE
 ;;
@@ -33,7 +33,7 @@
 ;;; Description:
 ;;
 ;;  This elisp package provides the `jjar-build' command to create a
-;;  Java ARrchive files (JAR) containing all the files in a given directory
+;;  Java ARrchive files (JAR) containing all the files in given directories
 ;;  that match predefined shell wildcards.
 
 ;;; Installation:
@@ -47,10 +47,7 @@
 ;;
 ;;  M-x `jjar-build'
 ;;     Builds a jar file containing all the files that match `jjar-include-wildcards'
-;;     in a given directory tree. This one must be accessible from a given classpath root
-;;     to ensure that a correct directory structure (that is Java package structure) is
-;;     stored in the jar file.
-;;
+;;     in given directories.
 
 ;;; Customization:
 ;;
@@ -93,7 +90,7 @@
 (eval-when-compile
   (require 'wid-edit))
 
-(defconst jjar-version "$Revision: 1.1 $"
+(defconst jjar-version "$Revision: 1.2 $"
   "jjar version number."
   )
 
@@ -156,8 +153,8 @@ The default setting includes class and properties files."
 
 ;;;###autoload
 (defun jjar-build (classpath-root)
-  "Builds a jar file containing all the files in choosen sub-directories of ROOT
-that match one of the `jjar-include-wildcards' wildcard expressions.
+  "Builds a jar file containing all the files in choosen sub-directories of
+CLASSPATH-ROOT that match one of the `jjar-include-wildcards' wildcard expressions.
 See also `jjar-choose-classpath-root-subdirs'."
   (interactive "DClasspath-root: ")
   (let* ((default-directory (expand-file-name classpath-root))
@@ -191,9 +188,10 @@ JAR-FILE is the JAR file to be created.
       (setq jjar-selected-subdirs nil)
       (setq jjar-jar-file jar-file)
       (setq default-directory classpath-root)
-      (widget-insert "Select directories to include in JAR file.\n")
-      (widget-insert "Then click the OK button to build the JAR file.\n" )
-      (widget-insert "Or click the Cancel button to quit.\n" )
+      (widget-insert
+       (format "Select the sub-directories of '%s'\nto include in the JAR file '%s'.\n\n"
+               default-directory jjar-jar-file))
+      (widget-insert "Click OK to build the JAR file or Cancel to quit.\n" )
       (let (i n)                        ; Iteration vars
         (setq i 0)
         (setq n (length subdirs))
@@ -261,13 +259,10 @@ JAR-FILE is the JAR file to be created.
 `default-directory' is the CLASSPATH root."
   (let ((classpath-root (file-name-as-directory default-directory)))
     (mapcan '(lambda (f)
-               (let ((rel-f (concat classpath-root f)))
-                 (if  (and (file-directory-p rel-f)
-                           (not (string= f ".."))
-                           (not (string= f ".")))
-                     (list f))
-                 )
-               )
+               (let ((file (concat classpath-root f)))
+                 (if  (and (file-directory-p file)
+                           (not (string= f "..")))
+                     (list f))))
             (directory-files classpath-root)))
   )
 
@@ -304,11 +299,7 @@ SUBDIRS is the list of sub-directories of DIR to be included in JAR-FILE."
 (defun jjar-make-jar-command (jar-file subdirs)
   "Returns the jar command needed to build JAR-FILE. SUBDIRS is the list of
 directory trees where files stored in JAR-FILE are searched (see `jjar-build')."
-  (let ((files
-         (mapcan '(lambda (subdir)
-                    (jjar-get-matching-wildcards-in-tree
-                     (concat (file-name-as-directory default-directory) subdir)))
-                 subdirs)))
+  (let ((files (jjar-get-matching-wilcards subdirs)))
     (and files
          (concat jjar-jar-command " " 
                  (jjar-get-jar-options) " "
@@ -328,6 +319,19 @@ directory trees where files stored in JAR-FILE are searched (see `jjar-build')."
     options)
   )
 
+(defun jjar-get-matching-wilcards (subdirs)
+  "Returns a list of wildcard expressions corresponding to files in SUBDIRS
+that match one of `jjar-include-wildcards' wildcard expressions. Each wildcard
+expression returned is relative to `default-directory'."
+  (message "Searching matching files, please wait...")
+  (mapcan '(lambda (subdir)
+             (let ((dir (concat (file-name-as-directory default-directory) subdir)))
+               (if (string= subdir ".")
+                   (jjar-get-matching-wildcards-in-dir dir)
+                 (jjar-get-matching-wildcards-in-tree dir))))
+          subdirs)
+  )
+
 (defun jjar-get-matching-wildcards-in-tree (dir)
   "Returns a list of wildcard expressions corresponding to files in directory
 DIR and its subdirs that match one of `jjar-include-wildcards' wildcard
@@ -342,12 +346,12 @@ expressions. Each wildcard expression returned is relative to `default-directory
   "Auxiliary function used by `jjar-get-matching-wildcards-in-tree'."
   (let ((dir (file-name-as-directory dir)))
     (mapcan  '(lambda (f)
-                (let ((rel-f (concat dir f)))
+                (let ((file (concat dir f)))
                   (unless (or (string= f "..") (string= f ".")
-                              (not (file-directory-p rel-f)))
+                              (not (file-directory-p file)))
                     (nconc
-                     (jjar-get-matching-wildcards-in-dir rel-f)
-                     (jjar-get-matching-wildcards-in-tree-aux rel-f)))))
+                     (jjar-get-matching-wildcards-in-dir file)
+                     (jjar-get-matching-wildcards-in-tree-aux file)))))
              (directory-files dir)))
   )
 
@@ -370,7 +374,12 @@ Each wildcard expression returned is relative to `default-directory'."
 
 ;;
 ;; $Log: jjar.el,v $
-;; Revision 1.1  1999/07/05 21:30:12  ebat311
+;; Revision 1.2  1999/07/06 10:39:20  ebat311
+;; FIXED:
+;;   - missing selection of files in the classpath-root directory.
+;;   - comments.
+;;
+;; Revision 1.1  1999-07-05 23:30:12+02  ebat311
 ;; Initial revision
 ;;
 ;;
