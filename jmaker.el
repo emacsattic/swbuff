@@ -1,5 +1,5 @@
 ;; @(#) jmaker.el -- Java Makefile generator
-;; @(#) $Id: jmaker.el,v 1.17 2000/03/31 15:26:42 david_ponce Exp $
+;; @(#) $Id: jmaker.el,v 1.18 2000/04/14 09:04:35 david_ponce Exp $
 
 ;; This file is not part of Emacs
 
@@ -11,7 +11,7 @@
 ;; LCD Archive Entry:
 ;; jmaker|David Ponce|<david@dponce.com>|
 ;; Java Makefile generator|
-;; $Date: 2000/03/31 15:26:42 $|$Revision: 1.17 $|~/misc/jmaker.el|
+;; $Date: 2000/04/14 09:04:35 $|$Revision: 1.18 $|~/misc/jmaker.el|
 
 ;; COPYRIGHT NOTICE
 ;;
@@ -100,7 +100,7 @@
 (eval-when-compile
   (require 'wid-edit))
 
-(defconst jmaker-version "$Revision: 1.17 $"
+(defconst jmaker-version "$Revision: 1.18 $"
   "jmaker version tag.")
 
 (defgroup jmaker nil
@@ -216,18 +216,14 @@ in `default-directory'."
           (directory-files default-directory nil ".\\.java$")))
 
 (defun jmaker-convert-directory-to-package (dir)
-  "Convert the directory path DIR to a Java package form
-by replacing '/' by '.' and removing extra '/' at end."
-  (let* ((i (length dir))
-         (pkg (cond ((= i 0)
-                     "")
-                    ((eq (aref dir (1- i)) ?/)
-                     (substring dir 0 (setq i (1- i))))
-                    ((copy-sequence dir)))))
-    (while (> i 0)
-      (if (eq (aref pkg (setq i (1- i))) ?/)
-          (aset pkg i ?.)))
-    pkg))
+  "Converts the given directory path to a valid Java package name
+by replacing `directory-sep-char' by '.' and removing extra
+`directory-sep-char' at end."
+  (if (string= dir "")
+      ""
+    (subst-char-in-string directory-sep-char ?.
+                          (substring (file-name-as-directory dir) 0 -1)
+                          t)))
 
 (defun jmaker-get-makefiles-in-tree (root)
   "Return the list of Makefiles found in the ROOT directory tree.
@@ -310,9 +306,10 @@ other: FORCE
 FORCE:
 \"
 "
-  (let ((subdir-list (mapcar '(lambda (x)
-                                (directory-file-name (file-name-directory x)))
-                             (jmaker-get-makefiles-in-tree default-directory))))
+  (let* ((directory-sep-char ?/)        ; force Unix directory separator
+         (subdir-list (mapcar '(lambda (x)
+                                 (directory-file-name (file-name-directory x)))
+                              (jmaker-get-makefiles-in-tree default-directory))))
     (concat "all:\t\\\n"
             (mapconcat '(lambda (dir)
                           (concat "\t" (jmaker-convert-directory-to-package dir)))
@@ -572,6 +569,15 @@ If Makefile.meta already exists the command requires confirmation to overwrite i
 
 ;;
 ;; $Log: jmaker.el,v $
+;; Revision 1.18  2000/04/14 09:04:35  david_ponce
+;; With `directory-sep-char' value set to '\' jmaker did not
+;; correctly handle directory pathes when generating meta Makefile.
+;; To fix this, jmaker enforce usage of an Unix style separator '/'
+;; in `jmaker-sub-makefile-targets' function.
+;;
+;; `jmaker-convert-directory-to-package' now works with different
+;; values of `directory-sep-char'.
+;;
 ;; Revision 1.17  2000/03/31 15:26:42  david_ponce
 ;; Documentation changes.
 ;;
