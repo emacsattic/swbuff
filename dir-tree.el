@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 16 Feb 2001
 ;; Keywords: extensions
-;; Revision: $Id: dir-tree.el,v 1.2 2003/09/29 10:25:56 ponced Exp $
+;; Revision: $Id: dir-tree.el,v 1.3 2003/09/30 06:44:56 ponced Exp $
 
 (defconst dir-tree-version "1.1")
 
@@ -156,6 +156,7 @@ Reuse :args cache if exists."
   (let ((all (dir-tree-overlay-lists)))
     (mapcar 'dir-tree-delete-overlay (car all))
     (mapcar 'dir-tree-delete-overlay (cdr all)))
+  (tree-widget-set-theme "folder")
   (widget-insert (format "%s directory tree. \n\n" root))
   (let ((default-directory root))
     (widget-create (dir-tree-widget root)))
