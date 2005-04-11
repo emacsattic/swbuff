@@ -1,3 +1,9 @@
+2005-04-11  David Ponce  <david@dponce.com>
+
+	* tabbar.el
+
+	(tabbar-separator face, tabbar-button): Fix doc string.
+
 2005-04-05  David Ponce  <david@dponce.com>
 
 	* tabbar.el
