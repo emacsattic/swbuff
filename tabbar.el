@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 25 February 2003
 ;; Keywords: convenience
-;; Revision: $Id: tabbar.el,v 1.50 2005/04/05 20:59:45 ponced Exp $
+;; Revision: $Id: tabbar.el,v 1.51 2005/04/11 18:41:42 ponced Exp $
 
 (defconst tabbar-version "1.5")
 
@@ -611,7 +611,7 @@ current cached copy."
      :inherit tabbar-default
      :height 0.1
      ))
-  "Face used for the select mode button."
+  "Face used for separators between tabs."
   :group 'tabbar)
 
 (defface tabbar-button
@@ -620,7 +620,7 @@ current cached copy."
      :box (:line-width 1 :color "white" :style released-button)
      :foreground "dark red"
      ))
-  "Face used for the select mode button."
+  "Face used for tab bar buttons."
   :group 'tabbar)
 
 (defcustom tabbar-background-color nil
