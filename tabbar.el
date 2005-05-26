@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 25 February 2003
 ;; Keywords: convenience
-;; Revision: $Id: tabbar.el,v 1.51 2005/04/11 18:41:42 ponced Exp $
+;; Revision: $Id: tabbar.el,v 1.52 2005/05/26 10:55:58 ponced Exp $
 
 (defconst tabbar-version "1.5")
 
@@ -606,6 +606,13 @@ current cached copy."
   "Face used for the selected tab."
   :group 'tabbar)
 
+(defface tabbar-highlight
+  '((t
+     :underline t
+     ))
+  "Face used to highlight a tab during mouse-overs."
+  :group 'tabbar)
+
 (defface tabbar-separator
   '((t
      :inherit tabbar-default
@@ -621,6 +628,13 @@ current cached copy."
      :foreground "dark red"
      ))
   "Face used for tab bar buttons."
+  :group 'tabbar)
+
+(defface tabbar-button-highlight
+  '((t
+     :inherit tabbar-default
+     ))
+  "Face used to highlight a button during mouse-overs."
   :group 'tabbar)
 
 (defcustom tabbar-background-color nil
@@ -1038,6 +1052,7 @@ element."
           (propertize (car label)
                       'tabbar-button name
                       'face 'tabbar-button
+                      'mouse-face 'tabbar-button-highlight
                       'pointer 'hand
                       'local-map (tabbar-make-button-keymap name)
                       'help-echo 'tabbar-help-on-button)
@@ -1071,9 +1086,9 @@ element."
     ))
 
 (defsubst tabbar-line-buttons (tabset)
-  "Return a propertized string for tab bar buttons.
+  "Return a list of propertized strings for tab bar buttons.
 TABSET is the tab set used to choose the appropriate buttons."
-  (concat
+  (list
    (if tabbar-home-function
        (car tabbar-home-button-value)
      (cdr tabbar-home-button-value))
@@ -1098,6 +1113,7 @@ Call `tabbar-tab-label-function' to obtain a label for TAB."
            'tabbar-tab tab
            'local-map (tabbar-make-tab-keymap tab)
            'help-echo 'tabbar-help-on-tab
+           'mouse-face 'tabbar-highlight
            'face (if (tabbar-selected-p tab (tabbar-current-tabset))
                      'tabbar-selected
                    'tabbar-unselected)
@@ -1107,13 +1123,13 @@ Call `tabbar-tab-label-function' to obtain a label for TAB."
 (defun tabbar-truncated-p (buttons tabs)
   "Return non-nil if the tab bar has a good chance to be truncated.
 That is, if the tab bar extends beyond the right edge of the window
-when it displays BUTTONS and TABS.
-BUTTON is a propertized string and TABS is a list propertized string
-to display."
+when it displays BUTTONS and TABS.  BUTTON and TABS are lists of
+propertized strings to display."
   (with-temp-buffer
     (let ((truncate-partial-width-windows nil))
       (setq truncate-lines nil)
-      (apply 'insert buttons tabs)
+      (apply 'insert buttons)
+      (apply 'insert tabs)
       (goto-char (point-min))
       (> (vertical-motion (buffer-size)) 0))))
 
@@ -1450,9 +1466,8 @@ visiting a file."
         (setq mode (get mode 'derived-mode-parent))))
     derived))
 
-(defun tabbar-buffer-groups (buffer)
-  "Return the list of group names BUFFER belongs to.
-Return only one group for each buffer."
+(defun tabbar-buffer-group-based-on-mode (buffer)
+  "Return the group name BUFFER belongs to based on major mode."
   (with-current-buffer buffer
     (cond
      ((or (get-buffer-process (current-buffer))
@@ -1460,18 +1475,18 @@ Return only one group for each buffer."
           ;; `compilation-mode'.
           (tabbar-buffer-mode-derived-p
            major-mode '(comint-mode compilation-mode)))
-      '("Process")
+      "Process"
       )
      ((member (buffer-name)
               '("*scratch*" "*Messages*"))
-      '("Common")
+      "Common"
       )
      ((eq major-mode 'dired-mode)
-      '("Dired")
+      "Dired"
       )
      ((memq major-mode
             '(help-mode apropos-mode Info-mode Man-mode))
-      '("Help")
+      "Help"
       )
      ((memq major-mode
             '(rmail-mode
@@ -1479,20 +1494,42 @@ Return only one group for each buffer."
               mh-letter-mode mh-show-mode mh-folder-mode
               gnus-summary-mode message-mode gnus-group-mode
               gnus-article-mode score-mode gnus-browse-killed-mode))
-      '("Mail")
+      "Mail"
       )
      (t
-      (list
-       ;; Return `mode-name' if not blank, `major-mode' otherwise.
-       (if (and (stringp mode-name)
-                ;; Take care of preserving the match-data because this
-                ;; function is called when updating the header line.
-                (save-match-data
-                  (string-match "[^ ]" mode-name)))
-           mode-name
-         (symbol-name major-mode)))
-      )
-     )))
+      ;; Return `mode-name' if not blank, `major-mode' otherwise.
+      (if (and (stringp mode-name)
+               ;; Take care of preserving the match-data because this
+               ;; function is called when updating the header line.
+               (save-match-data (string-match "[^ ]" mode-name)))
+          mode-name
+        (symbol-name major-mode))
+      ))
+    ))
+
+(defun tabbar-buffer-find (buffer)
+  "Return the list of tabs containing BUFFER."
+  (let (tablist)
+    (tabbar-map-tabsets
+     #'(lambda (tabset)
+         (mapc #'(lambda (tab)
+                   (and (eq buffer (tabbar-tab-value tab))
+                        (push tab tablist)))
+               (tabbar-tabs tabset))))
+    tablist))
+
+(defun tabbar-buffer-groups (buffer)
+  "Return the list of group names BUFFER belongs to.
+Return only one group for each buffer based on its major mode."
+  (let* ((tabs   (tabbar-buffer-find buffer))
+         (group  (tabbar-buffer-group-based-on-mode buffer))
+         (tabset (tabbar-get-tabset group)))
+    ;; If BUFFER is found in tabs in other groups, remove them.
+    (while tabs
+      (or (eq (tabbar-tab-tabset (car tabs)) tabset)
+          (tabbar-delete-tab (car tabs)))
+      (setq tabs (cdr tabs)))
+    (list group)))
 
 ;;; Group buffers in tab sets.
 ;;
@@ -1504,9 +1541,8 @@ BUFFERS.  Delete tab sets that no more contain tabs."
         (tabbar-map-tabsets
          #'(lambda (tabset)
              (mapc #'(lambda (tab)
-                       (let ((b (get-buffer (tabbar-tab-value tab))))
-                         (unless (and b (memq b buffers))
-                           (tabbar-delete-tab tab))))
+                       (or (memq (tabbar-tab-value tab) buffers)
+                           (tabbar-delete-tab tab)))
                    (tabbar-tabs tabset))
              (unless (tabbar-tabs tabset)
                tabset)))))
