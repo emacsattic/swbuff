@@ -1,3 +1,26 @@
+2005-05-26  David Ponce  <david@dponce.com>
+
+	* tabbar.el
+
+	Fix multiple groups by buffer on major mode change.
+
+	(tabbar-buffer-group-based-on-mode)
+	(tabbar-buffer-find): New functions.
+	(tabbar-buffer-groups): Use them.
+	(tabbar-buffer-cleanup-tabsets): Simplify.
+
+2005-05-25  David Ponce  <david@dponce.com>
+
+	* tabbar.el
+
+	Add support for highlighting during mouse-overs (new in Emacs 22).
+	
+	(tabbar-button-highlight, tabbar-highlight): New faces.
+	(tabbar-line-button, tabbar-line-tab): Use them to respectively
+	highlight a button or a tab during mouse-overs.
+	(tabbar-line-buttons): Return buttons as a list of strings.
+	(tabbar-truncated-p): Handle buttons as a list of strings.
+
 2005-04-22  Kenichi Handa  <handa@m17n.org>
 
 	* recentf.el
