@@ -8,7 +8,7 @@
 ;; Maintainer: FSF
 ;; Keywords: files
 
-(defconst recentf-version "$Revision: 1.36 $")
+(defconst recentf-version "$Revision: 1.37 $")
 
 ;; This file is part of GNU Emacs.
 
@@ -99,7 +99,7 @@ See the command `recentf-save-list'."
   :type 'file)
 
 (defcustom recentf-exclude nil
-"*List of regexps and predicates for filenames excluded from the recent list.
+  "*List of regexps and predicates for filenames excluded from the recent list.
 When a filename matches any of the regexps or satisfies any of the
 predicates it is excluded from the recent list.
 A predicate is a function that is passed a filename to check and that
@@ -1023,7 +1023,9 @@ That is, remove a non kept file from the recent list."
   "Update the recentf menu from the current recent list."
   (let ((cache (cons default-directory recentf-list)))
     ;; Does nothing, if nothing has changed.
-    (unless (equal recentf-data-cache cache)
+    (if (equal recentf-data-cache cache)
+        ;; Tell XEmacs to not update the menubar
+        t
       (setq recentf-data-cache cache)
       (condition-case err
           (easy-menu-add-item
@@ -1033,7 +1035,9 @@ That is, remove a non kept file from the recent list."
            recentf-menu-before)
         (error
          (message "recentf update menu failed: %s"
-                  (error-message-string err)))))))
+                  (error-message-string err))))
+      ;; Tell XEmacs to update the menubar
+      nil)))
 
 (defconst recentf-menu-hook (if (boundp 'activate-menubar-hook)
                                 'activate-menubar-hook
@@ -1294,7 +1298,14 @@ that were operated on recently."
                        (not recentf-mode)))
   (unless (and recentf-mode (recentf-enabled-p))
     (if recentf-mode
-        (recentf-load-list)
+        (progn
+          (recentf-load-list)
+          ;; This ugly hack tells XEmacs to update the initial menubar
+          ;; when recentf-mode is enabled from the custom-file!
+          (when (featurep 'xemacs)
+            (add-hook 'after-init-hook 'recentf-update-menu t)))
+      (when (featurep 'xemacs)
+        (remove-hook 'after-init-hook 'recentf-update-menu))
       (recentf-save-list))
     (recentf-auto-cleanup)
     (recentf-clear-data)
