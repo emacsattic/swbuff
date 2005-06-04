@@ -8,7 +8,7 @@
 ;; Maintainer: FSF
 ;; Keywords: files
 
-(defconst recentf-version "$Revision: 1.37 $")
+(defconst recentf-version "$Revision: 1.38 $")
 
 ;; This file is part of GNU Emacs.
 
@@ -1298,14 +1298,7 @@ that were operated on recently."
                        (not recentf-mode)))
   (unless (and recentf-mode (recentf-enabled-p))
     (if recentf-mode
-        (progn
           (recentf-load-list)
-          ;; This ugly hack tells XEmacs to update the initial menubar
-          ;; when recentf-mode is enabled from the custom-file!
-          (when (featurep 'xemacs)
-            (add-hook 'after-init-hook 'recentf-update-menu t)))
-      (when (featurep 'xemacs)
-        (remove-hook 'after-init-hook 'recentf-update-menu))
       (recentf-save-list))
     (recentf-auto-cleanup)
     (recentf-clear-data)
@@ -1316,6 +1309,15 @@ that were operated on recently."
     (when (interactive-p)
       (message "Recentf mode %sabled" (if recentf-mode "en" "dis"))))
   recentf-mode)
+
+;; XEmacs doesn't update the initial menu bar when recentf-mode is
+;; enabled while loading the init file. So do it once after init.
+(when (featurep 'xemacs)
+  (let ((hook (list 'lambda)))
+    (setcdr hook `(()
+                   (remove-hook 'after-init-hook ,hook)
+                   (and recentf-mode (recentf-update-menu))))
+    (add-hook 'after-init-hook hook)))
 
 (provide 'recentf)
 
