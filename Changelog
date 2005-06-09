@@ -1,3 +1,22 @@
+2005-06-09  David Ponce  <david@dponce.com>
+
+	* tabbar.el
+
+	Better updating of buffer groups.
+	
+	(tabbar-version): Update to 1.6.
+	(tabbar-line-format): Don't check for cached value here.
+	(tabbar-line): But here to avoid a function call.
+	(tabbar-buffer-groups-function): Doc fix.
+	(tabbar-buffer-list): Always include the current buffer.
+	(tabbar-buffer-groups): Operate on current buffer.
+	(tabbar-buffer-find, tabbar-buffer-group-based-on-mode)
+	(tabbar-buffer-cleanup-tabsets): Remove.
+	(tabbar--buffers): New variable.
+	(tabbar-buffer-update-tabsets): New function.
+	(tabbar-buffer-update-groups): Use them.  Improve implementation.
+	(tabbar-buffer-group-mode): Make permanent-local.
+
 2005-06-04  David Ponce  <david@dponce.com>
 
 	* recentf.el
