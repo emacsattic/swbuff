@@ -6,9 +6,9 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 25 February 2003
 ;; Keywords: convenience
-;; Revision: $Id: tabbar.el,v 1.52 2005/05/26 10:55:58 ponced Exp $
+;; Revision: $Id: tabbar.el,v 1.53 2005/06/09 11:20:21 ponced Exp $
 
-(defconst tabbar-version "1.5")
+(defconst tabbar-version "1.6")
 
 ;; This file is not part of GNU Emacs.
 
@@ -1135,54 +1135,51 @@ propertized strings to display."
 
 (defun tabbar-line-format (tabset)
   "Return the `header-line-format' value to display TABSET."
-  ;; If a cached value of the `header-line-format' exists use it.
-  (or (tabbar-template tabset)
-      ;; Otherwise recompute a new `header-line-format'.
-      (let* ((sel (tabbar-selected-tab tabset))
-             (tabs (tabbar-view tabset))
-             (padcolor (tabbar-background-color))
-             atsel elts)
-        ;; Initialize buttons and separator values.
-        (or tabbar-separator-value
-            (tabbar-line-separator))
-        (or tabbar-home-button-value
-            (tabbar-line-button 'home))
-        (or tabbar-scroll-left-button-value
-            (tabbar-line-button 'scroll-left))
-        (or tabbar-scroll-right-button-value
-            (tabbar-line-button 'scroll-right))
-        ;; Track the selected tab to ensure it is always visible.
-        (when tabbar-show-selected
-          (while (not (memq sel tabs))
-            (tabbar-scroll tabset -1)
-            (setq tabs (tabbar-view tabset)))
-          (while (and tabs (not atsel))
-            (setq elts  (cons (tabbar-line-tab (car tabs)) elts)
-                  atsel (eq (car tabs) sel)
-                  tabs  (cdr tabs)))
-          (setq elts (nreverse elts))
-          ;; At this point the selected tab is the last elt in ELTS.
-          (while (and (cdr elts) ;; Always show the selected tab!
-                      (tabbar-truncated-p
-                       (tabbar-line-buttons tabset) elts))
-            (tabbar-scroll tabset 1)
-            (setq elts (cdr elts)))
-          (setq elts (nreverse elts))
-          (setq tabbar-show-selected nil))
-        ;; Format remaining tabs.
-        (while tabs
-          (setq elts (cons (tabbar-line-tab (car tabs)) elts)
-                tabs (cdr tabs)))
-        ;; Cache and return the new tab bar.
-        (tabbar-set-template
-         tabset
-         (list (tabbar-line-buttons tabset)
-               (nreverse elts)
-               (propertize "%-"
-                           'face (list :background padcolor
-                                       :foreground padcolor)
-                           'pointer 'arrow)))
-        )))
+  (let* ((sel (tabbar-selected-tab tabset))
+         (tabs (tabbar-view tabset))
+         (padcolor (tabbar-background-color))
+         atsel elts)
+    ;; Initialize buttons and separator values.
+    (or tabbar-separator-value
+        (tabbar-line-separator))
+    (or tabbar-home-button-value
+        (tabbar-line-button 'home))
+    (or tabbar-scroll-left-button-value
+        (tabbar-line-button 'scroll-left))
+    (or tabbar-scroll-right-button-value
+        (tabbar-line-button 'scroll-right))
+    ;; Track the selected tab to ensure it is always visible.
+    (when tabbar-show-selected
+      (while (not (memq sel tabs))
+        (tabbar-scroll tabset -1)
+        (setq tabs (tabbar-view tabset)))
+      (while (and tabs (not atsel))
+        (setq elts  (cons (tabbar-line-tab (car tabs)) elts)
+              atsel (eq (car tabs) sel)
+              tabs  (cdr tabs)))
+      (setq elts (nreverse elts))
+      ;; At this point the selected tab is the last elt in ELTS.
+      (while (and (cdr elts) ;; Always show the selected tab!
+                  (tabbar-truncated-p
+                   (tabbar-line-buttons tabset) elts))
+        (tabbar-scroll tabset 1)
+        (setq elts (cdr elts)))
+      (setq elts (nreverse elts))
+      (setq tabbar-show-selected nil))
+    ;; Format remaining tabs.
+    (while tabs
+      (setq elts (cons (tabbar-line-tab (car tabs)) elts)
+            tabs (cdr tabs)))
+    ;; Cache and return the new tab bar.
+    (tabbar-set-template
+     tabset
+     (list (tabbar-line-buttons tabset)
+           (nreverse elts)
+           (propertize "%-"
+                       'face (list :background padcolor
+                                   :foreground padcolor)
+                       'pointer 'arrow)))
+    ))
 
 (defun tabbar-line ()
   "Return the header line templates that represent the tab bar.
@@ -1191,7 +1188,11 @@ Inhibit display of the tab bar in current window if any of the
   (if (run-hook-with-args-until-success 'tabbar-inhibit-functions)
       (setq header-line-format nil)
     (let ((tabset (tabbar-current-tabset t)))
-      (and tabset (tabbar-line-format tabset)))))
+      (and tabset
+           ;; If a cached value exists use it.
+           (or (tabbar-template tabset)
+               ;; Otherwise recompute a new `header-line-format'.
+               (tabbar-line-format tabset))))))
 
 ;;; Cyclic navigation through tabs
 ;;
@@ -1438,20 +1439,21 @@ buffers."
 
 (defcustom tabbar-buffer-groups-function
   'tabbar-buffer-groups
-  "*Function that gives the group names a buffer belongs to.
-That function is passed a buffer and must return a list of group
-names, or nil if the buffer has no group.
-Notice that it is better that a buffer belongs to one group."
+  "*Function that gives the group names the current buffer belongs to.
+It must return a list of group names, or nil if the buffer has no
+group.  Notice that it is better that a buffer belongs to one group."
   :group 'tabbar
   :type 'function)
 
 (defun tabbar-buffer-list ()
   "Return the list of buffers to show in tabs.
 Exclude buffers whose name starts with a space, when they are not
-visiting a file."
+visiting a file.  The current buffer is always included."
   (delq t
         (mapcar #'(lambda (b)
                     (cond
+                     ;; Always include the current buffer.
+                     ((eq (current-buffer) b) b)
                      ((buffer-file-name b) b)
                      ((char-equal ?\  (aref (buffer-name b) 0)))
                      (b)))
@@ -1466,115 +1468,116 @@ visiting a file."
         (setq mode (get mode 'derived-mode-parent))))
     derived))
 
-(defun tabbar-buffer-group-based-on-mode (buffer)
-  "Return the group name BUFFER belongs to based on major mode."
-  (with-current-buffer buffer
-    (cond
-     ((or (get-buffer-process (current-buffer))
-          ;; Check if the major mode derives from `comint-mode' or
-          ;; `compilation-mode'.
-          (tabbar-buffer-mode-derived-p
-           major-mode '(comint-mode compilation-mode)))
-      "Process"
-      )
-     ((member (buffer-name)
-              '("*scratch*" "*Messages*"))
-      "Common"
-      )
-     ((eq major-mode 'dired-mode)
-      "Dired"
-      )
-     ((memq major-mode
-            '(help-mode apropos-mode Info-mode Man-mode))
-      "Help"
-      )
-     ((memq major-mode
-            '(rmail-mode
-              rmail-edit-mode vm-summary-mode vm-mode mail-mode
-              mh-letter-mode mh-show-mode mh-folder-mode
-              gnus-summary-mode message-mode gnus-group-mode
-              gnus-article-mode score-mode gnus-browse-killed-mode))
-      "Mail"
-      )
-     (t
-      ;; Return `mode-name' if not blank, `major-mode' otherwise.
-      (if (and (stringp mode-name)
-               ;; Take care of preserving the match-data because this
-               ;; function is called when updating the header line.
-               (save-match-data (string-match "[^ ]" mode-name)))
-          mode-name
-        (symbol-name major-mode))
-      ))
-    ))
-
-(defun tabbar-buffer-find (buffer)
-  "Return the list of tabs containing BUFFER."
-  (let (tablist)
-    (tabbar-map-tabsets
-     #'(lambda (tabset)
-         (mapc #'(lambda (tab)
-                   (and (eq buffer (tabbar-tab-value tab))
-                        (push tab tablist)))
-               (tabbar-tabs tabset))))
-    tablist))
-
-(defun tabbar-buffer-groups (buffer)
-  "Return the list of group names BUFFER belongs to.
-Return only one group for each buffer based on its major mode."
-  (let* ((tabs   (tabbar-buffer-find buffer))
-         (group  (tabbar-buffer-group-based-on-mode buffer))
-         (tabset (tabbar-get-tabset group)))
-    ;; If BUFFER is found in tabs in other groups, remove them.
-    (while tabs
-      (or (eq (tabbar-tab-tabset (car tabs)) tabset)
-          (tabbar-delete-tab (car tabs)))
-      (setq tabs (cdr tabs)))
-    (list group)))
+(defun tabbar-buffer-groups ()
+  "Return the list of group names the current buffer belongs to.
+Return a list of one element based on major mode."
+  (list
+   (cond
+    ((or (get-buffer-process (current-buffer))
+         ;; Check if the major mode derives from `comint-mode' or
+         ;; `compilation-mode'.
+         (tabbar-buffer-mode-derived-p
+          major-mode '(comint-mode compilation-mode)))
+     "Process"
+     )
+    ((member (buffer-name)
+             '("*scratch*" "*Messages*"))
+     "Common"
+     )
+    ((eq major-mode 'dired-mode)
+     "Dired"
+     )
+    ((memq major-mode
+           '(help-mode apropos-mode Info-mode Man-mode))
+     "Help"
+     )
+    ((memq major-mode
+           '(rmail-mode
+             rmail-edit-mode vm-summary-mode vm-mode mail-mode
+             mh-letter-mode mh-show-mode mh-folder-mode
+             gnus-summary-mode message-mode gnus-group-mode
+             gnus-article-mode score-mode gnus-browse-killed-mode))
+     "Mail"
+     )
+    (t
+     ;; Return `mode-name' if not blank, `major-mode' otherwise.
+     (if (and (stringp mode-name)
+              ;; Take care of preserving the match-data because this
+              ;; function is called when updating the header line.
+              (save-match-data (string-match "[^ ]" mode-name)))
+         mode-name
+       (symbol-name major-mode))
+     ))))
 
 ;;; Group buffers in tab sets.
 ;;
-(defun tabbar-buffer-cleanup-tabsets (buffers)
-  "Remove obsolete tabs from existing tab sets.
-That is tabs whose value is a killed buffer or a buffer not in
-BUFFERS.  Delete tab sets that no more contain tabs."
-  (mapc 'tabbar-delete-tabset
-        (tabbar-map-tabsets
-         #'(lambda (tabset)
-             (mapc #'(lambda (tab)
-                       (or (memq (tabbar-tab-value tab) buffers)
-                           (tabbar-delete-tab tab)))
-                   (tabbar-tabs tabset))
-             (unless (tabbar-tabs tabset)
-               tabset)))))
+(defvar tabbar--buffers nil)
+
+(defun tabbar-buffer-update-tabsets (e)
+  "Update tabsets from the buffer cache entry E."
+  (dolist (g (nth 2 e))
+    (let ((tabset (tabbar-get-tabset g)))
+      (if tabset
+          (tabbar-add-tab tabset (car e) t)
+        (tabbar-make-tabset g (car e))))))
 
 (defun tabbar-buffer-update-groups ()
   "Update group of buffers.
 Return the the first group where the current buffer is."
-  (let ((buffers (funcall tabbar-buffer-list-function))
-        current-group)
-    (mapc
-     #'(lambda (buffer)
-         (let ((groups (funcall tabbar-buffer-groups-function buffer)))
-           (when (eq buffer (current-buffer))
-             (setq current-group (car groups)))
-           (mapc #'(lambda (group)
-                     (let ((tabset (tabbar-get-tabset group)))
-                       (if tabset
-                           (tabbar-add-tab tabset buffer t)
-                         (tabbar-make-tabset group buffer))))
-                 groups)))
-     (if (memq (current-buffer) buffers)
-         buffers
-       ;; Ensure that the current buffer will always have a tab!
-       (cons (current-buffer) buffers)))
-    (tabbar-buffer-cleanup-tabsets buffers)
-    current-group))
+  (let ((bl (funcall tabbar-buffer-list-function)) ; buffer list
+        (nc nil)                                   ; new cache
+        (dirty nil))
+    ;; For buffers found in list, copy entries from the current cache
+    ;; to the new one.
+    (dolist (e tabbar--buffers)
+      (if (memq (car e) bl)
+          (push e nc)
+        (setq dirty t)))
+    ;; Update the new cache and tabsets with new buffers and those
+    ;; renamed or whose groups have changed.
+    (dolist (b bl)
+      (let ((e1 (assq b nc))            ; old buffer cache entry
+            (e2 (with-current-buffer b  ; new buffer cache entry
+                  (list (current-buffer)
+                        (buffer-name)
+                        (funcall tabbar-buffer-groups-function)))))
+        (if e1
+            ;; The buffer name or groups have changed.
+            (unless (equal e1 e2)
+              (setq dirty t)
+              (setcdr e1 (cdr e2))
+              (tabbar-buffer-update-tabsets e2))
+          ;; New buffer.
+          (setq dirty t)
+          (push e2 nc)
+          (tabbar-buffer-update-tabsets e2))))
+    ;; The current cache is obsolete.
+    (when dirty
+      ;; Synchronize tabsets with the new cache.  That is, remove tabs
+      ;; for buffers not found in cache or moved to other groups, and
+      ;; remove empty tabsets.
+      (mapc 'tabbar-delete-tabset
+        (tabbar-map-tabsets
+         #'(lambda (tabset)
+             (dolist (tab (tabbar-tabs tabset))
+               (let ((e (assq (tabbar-tab-value tab) nc)))
+                 (or (and e (memq tabset (mapcar 'tabbar-get-tabset
+                                                 (nth 2 e))))
+                     (tabbar-delete-tab tab))))
+             (if (tabbar-tabs tabset)
+                 (tabbar-set-template tabset nil)
+               tabset))))
+      ;; The new cache becomes the current one.
+      (setq tabbar--buffers nc)))
+  ;; Return the first group the current buffer belongs to.
+  (car (nth 2 (assq (current-buffer) tabbar--buffers))))
 
 ;;; Tab bar callbacks
 ;;
 (defvar tabbar-buffer-group-mode nil
   "Display tabs for group of buffers, when non-nil.")
 (make-variable-buffer-local 'tabbar-buffer-group-mode)
+(put 'tabbar-buffer-group-mode 'permanent-local t)
 
 (defsubst tabbar-buffer-set-group-mode (flag)
   "Set display of tabs for group of buffers to FLAG."
