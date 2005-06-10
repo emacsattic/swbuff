@@ -1,3 +1,13 @@
+2005-06-10  David Ponce  <david@dponce.com>
+
+	* tabbar.el
+
+	Doc fix in comment header.
+	(tabbar-inhibit-functions, tabbar-template, tabbar-set-template)
+	(tabbar-start, tabbar-view, tabbar-scroll, tabbar-current-tabset)
+	(tabbar-button-label, tabbar-buffer-button-label): Doc fix.
+	(tabbar-local-mode): Fix error message.
+
 2005-06-09  David Ponce  <david@dponce.com>
 
 	* tabbar.el
