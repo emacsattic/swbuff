@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 25 February 2003
 ;; Keywords: convenience
-;; Revision: $Id: tabbar.el,v 1.53 2005/06/09 11:20:21 ponced Exp $
+;; Revision: $Id: tabbar.el,v 1.54 2005/06/10 21:58:26 ponced Exp $
 
 (defconst tabbar-version "1.6")
 
@@ -29,59 +29,62 @@
 
 ;;; Commentary:
 ;;
-;; This library provides a minor mode to display tabs in the header
-;; line.  It works only on GNU Emacs 21.
+;; This library provides a global minor mode to display a tab bar in
+;; the header line of Emacs 21 and later versions.
 ;;
-;; M-x `tabbar-mode' toggle the display of the tab bar, globally.
+;; M-x `tabbar-mode' toggle the tab bar global minor mode.  When
+;; enabled a tab bar is displayed in the header line.
 ;;
-;; M-x `tabbar-local-mode' toggle the display of the tab bar, locally
-;; in the current buffer, when the global mode in on.  This mode
-;; permit to see the tab bar in a buffer where the header line is
-;; already used by another mode (like `info' buffers).  That command
+;; M-x `tabbar-local-mode' toggle the tab bar local minor mode.
+;; Provided the global minor mode is turned on, the tab bar becomes
+;; local in the current buffer when the local minor mode is enabled.
+;; This permits to see the tab bar in a buffer where the header line
+;; is already used by another mode (like `Info-mode').  This command
 ;; is particularly useful when it is given a keyboard shortcut, like
 ;; this:
 ;;
 ;;   (global-set-key [(control f10)] 'tabbar-local-mode)
 ;;
-;; It is possible to navigate through tabs using commands (that is,
-;; using the keyboard).  The main commands to cycle through tabs are:
+;; It is possible to navigate cyclically through tabs using these
+;; commands:
 ;;
-;; - `tabbar-forward' select the next available tab.
-;; - `tabbar-backward' select the previous available tab.
+;;   - `tabbar-forward' select the next available tab.
+;;   - `tabbar-backward' select the previous available tab.
 ;;
 ;; It is worth defining keys for them.  For example:
 ;;
 ;;   (global-set-key [(control shift tab)] 'tabbar-backward)
 ;;   (global-set-key [(control tab)]       'tabbar-forward)
 ;;
-;; The default cycle is to first try to select the tab just
-;; after/before the selected tab.  If this is the last/first tab, then
-;; the first/last tab of the next/previous group of tabs is selected.
-;; That behavior is controlled by the `tabbar-cycling-scope' option.
+;; The cycle is controlled by the `tabbar-cycling-scope' option.  The
+;; default is to select the tab just after [before] the selected tab
+;; if there is one, or to select the first [last] tab of the next
+;; [previous] group of tabs otherwise (see "Core" below for more
+;; details on tab grouping).
 ;;
-;; The following specialized commands can be useful too:
+;; You can also use these more specialized commands:
 ;;
-;; - `tabbar-forward-tab'/`tabbar-backward-tab'
-;;      Navigate through visible tabs only.
+;; - `tabbar-forward-tab'/`tabbar-backward-tab' to navigate through
+;;   visible tabs only.
 ;;
-;; - `tabbar-forward-group'/`tabbar-backward-group'
-;;      Navigate through tab groups only.
+;; - `tabbar-forward-group'/`tabbar-backward-group' to navigate
+;;   between groups of tabs.
 ;;
 ;; Core
 ;; ----
 ;;
 ;; The content of the tab bar is represented by an internal data
-;; structure: a tab set.  A tab set is a collection of tabs,
+;; structure: a tab set.  A tab set is a collection (group) of tabs,
 ;; identified by an unique name.  In a tab set, at any time, one and
 ;; only one tab is designated as selected within the tab set.
 ;;
-;; A tab is a simple data structure giving: the value of the tab, and
-;; a reference to its tab set container.  A tab value can be any Lisp
+;; A tab is a simple data structure giving the value of the tab, and a
+;; reference to its tab set container.  A tab value can be any Lisp
 ;; object.  Each tab object is guaranteed to be unique.
 ;;
 ;; A tab set is displayed on the tab bar through a "view" defined by
 ;; the index of the leftmost tab shown.  Thus, it is possible to
-;; scroll the tab bar horizontally, by changing the start index of the
+;; scroll the tab bar horizontally by changing the start index of the
 ;; tab set view.
 ;;
 ;; The visual representation of a tab set is a list a
@@ -98,8 +101,8 @@
 ;; received, and the tab.
 ;;
 ;; To increase performance, the tab set automatically maintains its
-;; visual representation in a cache.  As far as possible, that cache
-;; is used to display the tab set, and refreshed only when necessary.
+;; visual representation in a cache.  As far as possible, the cache is
+;; used to display the tab set, and refreshed only when necessary.
 ;;
 ;; Several tab sets can be maintained at the same time.  Only one is
 ;; displayed on the tab bar, it is obtained by calling the function
@@ -111,13 +114,13 @@
 ;; created tab set, allowing to switch to another tab set by clicking
 ;; on the corresponding tab.
 ;;
-;; Three buttons are displayed to the left, on the tab bar: the "home"
-;; button, the "scroll left" and the "scroll right" buttons.  The
-;; "home" button is a general purpose button used to change something
-;; on the tab bar.  The scroll left and scroll right buttons are used
-;; to scroll tabs horizontally.  The following variables are
-;; available, for respectively the `home', `scroll-left' and
-;; `scroll-right' value of `<button>':
+;; Three buttons are displayed on the left side of the tab bar: the
+;; "home" button, then the "scroll left" and the "scroll right"
+;; buttons.  The "home" button is a general purpose button used to
+;; change something on the tab bar.  The scroll left and scroll right
+;; buttons are used to scroll tabs horizontally.  The following
+;; variables are available, for respectively the `home', `scroll-left'
+;; and `scroll-right' value of `<button>':
 ;;
 ;; `tabbar-<button>-function'
 ;;    Specify a function called when clicking on the button.  The
@@ -134,7 +137,7 @@
 ;; Buffer tabs
 ;; -----------
 ;;
-;; The default tab bar implementation provided, displays buffers in
+;; The default tab bar implementation provided displays buffers in
 ;; dedicated tabs.  Selecting a tab, switch (mouse-1), or pop
 ;; (mouse-2), to the buffer it contains.
 ;;
@@ -146,13 +149,13 @@
 ;; Buffers are organized in groups, each one represented by a tab set.
 ;; A buffer can have no group, or belong to more than one group.  The
 ;; function specified by the variable `tabbar-buffer-groups-function'
-;; is called for each buffer to obtain its groups.  The default
-;; function provided: `tabbar-buffer-groups' organizes buffers
+;; is called for each buffer to obtain the groups it belongs to.  The
+;; default function provided: `tabbar-buffer-groups' organizes buffers
 ;; depending on their major mode (see that function for details).
 ;;
 ;; The "home" button toggles display of buffer groups on the tab bar,
-;; allowing to easily choose another buffer group by clicking on its
-;; tab.
+;; allowing to easily choose another buffer group by clicking on the
+;; associated tab.
 ;;
 ;; The scroll buttons permit to scroll tabs when some of them are
 ;; outside the tab bar visible area.
@@ -199,7 +202,7 @@ The following scopes are possible:
   '(tabbar-default-inhibit-function)
   "List of functions to be called before displaying the tab bar.
 Those functions are called one by one, with no arguments, until one of
-them returns a non-nil value, and thus, prevent to display the tab
+them returns a non-nil value, and thus, prevents to display the tab
 bar."
   :group 'tabbar
   :type 'hook)
@@ -442,11 +445,15 @@ Return the tab found, or nil if not found."
       (memq tab (tabbar-tabs tabset))))
 
 (defsubst tabbar-template (tabset)
-  "Return the template to display TABSET in the header line."
+  "Return the cached visual representation of TABSET.
+That is, a `header-line-format' template, or nil if the cache is
+empty."
   (get tabset 'template))
 
 (defsubst tabbar-set-template (tabset template)
-  "Set the TABSET's header line format with TEMPLATE."
+  "Set the cached visual representation of TABSET to TEMPLATE.
+TEMPLATE must be a valid `header-line-format' template, or nil to
+cleanup the cache."
   (put tabset 'template template))
 
 (defsubst tabbar-selected-tab (tabset)
@@ -480,11 +487,12 @@ Return the tab selected, or nil if nothing was selected."
   (tabbar-select-tab (tabbar-get-tab object tabset) tabset))
 
 (defsubst tabbar-start (tabset)
-  "Return the index of the first tab in the TABSET's view."
+  "Return the index of the first visible tab in TABSET."
   (get tabset 'start))
 
 (defsubst tabbar-view (tabset)
-  "Return the list of tabs in the TABSET's view."
+  "Return the list of visible tabs in TABSET.
+That is, the sub-list of tabs starting at the first visible one."
   (nthcdr (tabbar-start tabset) (tabbar-tabs tabset)))
 
 (defun tabbar-add-tab (tabset object &optional append)
@@ -513,7 +521,7 @@ added at the end."
     (set tabset (delq tab tabs))))
 
 (defun tabbar-scroll (tabset count)
-  "Scroll the TABSET's view of COUNT tabs.
+  "Scroll the visible tabs in TABSET of COUNT units.
 If COUNT is positive move the view on right.  If COUNT is negative,
 move the view on left."
   (let ((start (min (max 0 (+ (tabbar-start tabset) count))
@@ -533,7 +541,7 @@ TAB.  Return the tab found, or nil otherwise."
     (and tabs (if before last (nth 1 tabs)))))
 
 (defun tabbar-current-tabset (&optional update)
-  "Return the current tab set, that will be displayed on the tab bar.
+  "Return the tab set currently displayed on the tab bar.
 If optional argument UPDATE is non-nil, call the user defined function
 `tabbar-current-tabset-function' to obtain it.  Otherwise return the
 current cached copy."
@@ -1021,7 +1029,7 @@ Pass mouse click events on a tab to `tabbar-click-on-tab'."
 (defun tabbar-button-label (name)
   "Return a label for button NAME.
 That is a pair (ENABLED . DISABLED), where ENABLED and DISABLED are
-respectively the appearence of the button when enabled and disabled.
+respectively the appearance of the button when enabled and disabled.
 They are propertized strings which could display images, as specified
 by the variable `tabbar-NAME-button'."
   (let* ((btn (symbol-value
@@ -1321,7 +1329,7 @@ Does nothing if the tab bar global mode is off."
   :global nil
   :group 'tabbar
   (unless (tabbar-mode-on-p)
-    (error "Tab bar mode must be enabled."))
+    (error "Tab bar mode must be enabled"))
 ;;; ON
   (if tabbar-local-mode
       (if (and (local-variable-p 'header-line-format)
@@ -1606,7 +1614,7 @@ Return the the first group where the current buffer is."
 (defun tabbar-buffer-button-label (name)
   "Return a label for button NAME.
 That is a pair (ENABLED . DISABLED), where ENABLED and DISABLED are
-respectively the appearence of the button when enabled and disabled.
+respectively the appearance of the button when enabled and disabled.
 They are propertized strings which could display images, as specified
 by the variable `tabbar-button-label'.
 When NAME is 'home, return a different ENABLED button depending on the
@@ -1638,7 +1646,7 @@ That is, a string used to represent it on the tab bar."
   (let ((label  (if tabbar-buffer-group-mode
                     (format "[%s]" (tabbar-tab-tabset tab))
                   (format "%s" (tabbar-tab-value tab)))))
-    ;; Unless tracking the selected tab, wich auto-hscroll the tab
+    ;; Unless tracking the selected tab, which auto-hscroll the tab
     ;; bar, shorten the tab label to try to keep all tabs in the
     ;; visible area of the tab bar.
     (if tabbar-show-selected
