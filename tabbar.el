@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 25 February 2003
 ;; Keywords: convenience
-;; Revision: $Id: tabbar.el,v 1.54 2005/06/10 21:58:26 ponced Exp $
+;; Revision: $Id: tabbar.el,v 1.55 2005/06/11 21:24:46 ponced Exp $
 
 (defconst tabbar-version "1.6")
 
@@ -1582,6 +1582,12 @@ Return the the first group where the current buffer is."
 
 ;;; Tab bar callbacks
 ;;
+(defun tabbar-buffer-init ()
+  "Initialize buffer tabs data."
+  (setq tabbar--buffers nil))
+;; Reset buffer tabs data when tabbar-mode is turned on/off.
+(add-hook 'tabbar-mode-hook 'tabbar-buffer-init)
+
 (defvar tabbar-buffer-group-mode nil
   "Display tabs for group of buffers, when non-nil.")
 (make-variable-buffer-local 'tabbar-buffer-group-mode)
