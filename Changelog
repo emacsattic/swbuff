@@ -1,3 +1,16 @@
+2005-06-12  David Ponce  <david@dponce.com>
+
+	* tabbar.el
+
+	(tabbar-map-tabsets): Define as a function.  Don't reverse the
+	result list as the order is meaningless.
+	(tabbar-empty-tabsets-store-p): New function.
+	(tabbar-buffer-update-groups): Use it.
+	(tabbar-buffer-list): Filter killed buffers.
+	(tabbar-buffer-init): Remove.
+	(tabbar-delete-tab, tabbar-mode-on-p)
+	(tabbar-buffer-update-tabsets): Doc fix.
+
 2005-06-11  David Ponce  <david@dponce.com>
 
 	* tabbar.el
