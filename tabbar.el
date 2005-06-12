@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 25 February 2003
 ;; Keywords: convenience
-;; Revision: $Id: tabbar.el,v 1.55 2005/06/11 21:24:46 ponced Exp $
+;; Revision: $Id: tabbar.el,v 1.56 2005/06/12 13:32:10 ponced Exp $
 
 (defconst tabbar-version "1.6")
 
@@ -299,8 +299,7 @@ The function is called with no arguments."
   (defalias 'tabbar-display-update
     (if (fboundp 'force-window-update)
         #'(lambda () (force-window-update (selected-window)))
-      'force-mode-line-update))
-  )
+      'force-mode-line-update)))
 
 (defsubst tabbar-click-p (event)
   "Return non-nil if EVENT is a mouse click event."
@@ -392,17 +391,30 @@ TABSET is the tab set the tab belongs to."
         tabbar-tabsets-tabset (make-symbol "tabbar-tabsets-tabset"))
   (put tabbar-tabsets-tabset 'start 0))
 
-(defmacro tabbar-map-tabsets (function)
-  "Apply FUNCTION to each existing tab set.
-Return the list of the results."
-  (let ((result (make-symbol "result"))
-        (tabset (make-symbol "tabset")))
-    `(let (,result)
-       (mapatoms
-        #'(lambda (,tabset)
-            (push (funcall ,function ,tabset) ,result))
-        tabbar-tabsets)
-       (nreverse ,result))))
+(defun tabbar-empty-tabsets-store-p ()
+  "Return non-nil if the tab set store is empty.
+This function can be used to check if the tab set store has been
+cleaned up to update other data depending on it."
+  (catch 'tabbar-tabset-found
+    (mapatoms #'(lambda (s) (throw 'tabbar-tabset-found nil))
+              tabbar-tabsets) t))
+
+;; Define an "hygienic" function free of side effect between its local
+;; variables and those of the callee.
+(eval-and-compile
+  (defalias 'tabbar-map-tabsets
+    (let ((function (make-symbol "function"))
+          (result   (make-symbol "result"))
+          (tabset   (make-symbol "tabset")))
+      `(lambda (,function)
+         "Apply FUNCTION to each tab set, and make a list of the results.
+The result is a list just as long as the number of existing tab sets."
+         (let (,result)
+           (mapatoms
+            #'(lambda (,tabset)
+                (push (funcall ,function ,tabset) ,result))
+            tabbar-tabsets)
+           ,result)))))
 
 (defun tabbar-make-tabset (name &rest objects)
   "Make a new tab set whose name is the string NAME.
@@ -510,7 +522,7 @@ added at the end."
                       (cons tab tabs)))))))
 
 (defun tabbar-delete-tab (tab)
-  "Remove TAB from its tabset."
+  "Remove TAB from its tab set."
   (let* ((tabset (tabbar-tab-tabset tab))
          (tabs   (tabbar-tabs tabset)))
     (tabbar-set-template tabset nil)
@@ -1310,7 +1322,7 @@ Depend on the setting of the option `tabbar-cycling-scope'."
 (make-variable-buffer-local 'tabbar-old-local-hlf)
 
 (defsubst tabbar-mode-on-p ()
-  "Return non-nil if tabbar mode is on."
+  "Return non-nil if tab bar mode is on."
   (eq (default-value 'header-line-format)
       tabbar-header-line-format))
 
@@ -1457,14 +1469,14 @@ group.  Notice that it is better that a buffer belongs to one group."
   "Return the list of buffers to show in tabs.
 Exclude buffers whose name starts with a space, when they are not
 visiting a file.  The current buffer is always included."
-  (delq t
+  (delq nil
         (mapcar #'(lambda (b)
                     (cond
                      ;; Always include the current buffer.
                      ((eq (current-buffer) b) b)
                      ((buffer-file-name b) b)
-                     ((char-equal ?\  (aref (buffer-name b) 0)))
-                     (b)))
+                     ((char-equal ?\  (aref (buffer-name b) 0)) nil)
+                     ((buffer-live-p b) b)))
                 (buffer-list))))
 
 (defun tabbar-buffer-mode-derived-p (mode parents)
@@ -1522,7 +1534,7 @@ Return a list of one element based on major mode."
 (defvar tabbar--buffers nil)
 
 (defun tabbar-buffer-update-tabsets (e)
-  "Update tabsets from the buffer cache entry E."
+  "Update tab sets from the buffer cache entry E."
   (dolist (g (nth 2 e))
     (let ((tabset (tabbar-get-tabset g)))
       (if tabset
@@ -1535,12 +1547,14 @@ Return the the first group where the current buffer is."
   (let ((bl (funcall tabbar-buffer-list-function)) ; buffer list
         (nc nil)                                   ; new cache
         (dirty nil))
-    ;; For buffers found in list, copy entries from the current cache
-    ;; to the new one.
-    (dolist (e tabbar--buffers)
-      (if (memq (car e) bl)
-          (push e nc)
-        (setq dirty t)))
+    ;; If there is no tabset yet, ensure to re-create the cache.
+    (unless (tabbar-empty-tabsets-store-p)
+      ;; For buffers found in list, copy entries from the current cache
+      ;; to the new one.
+      (dolist (e tabbar--buffers)
+        (if (memq (car e) bl)
+            (push e nc)
+          (setq dirty t))))
     ;; Update the new cache and tabsets with new buffers and those
     ;; renamed or whose groups have changed.
     (dolist (b bl)
@@ -1582,12 +1596,6 @@ Return the the first group where the current buffer is."
 
 ;;; Tab bar callbacks
 ;;
-(defun tabbar-buffer-init ()
-  "Initialize buffer tabs data."
-  (setq tabbar--buffers nil))
-;; Reset buffer tabs data when tabbar-mode is turned on/off.
-(add-hook 'tabbar-mode-hook 'tabbar-buffer-init)
-
 (defvar tabbar-buffer-group-mode nil
   "Display tabs for group of buffers, when non-nil.")
 (make-variable-buffer-local 'tabbar-buffer-group-mode)
