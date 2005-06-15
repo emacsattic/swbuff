@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 16 Feb 2001
 ;; Keywords: extensions
-;; Revision: $Id: tree-widget.el,v 1.21 2005/06/15 08:10:07 ponced Exp $
+;; Revision: $Id: tree-widget.el,v 1.22 2005/06/15 13:39:00 ponced Exp $
 
 (defconst tree-widget-version "2.2")
 
@@ -189,7 +189,7 @@ no-handle    an invisible handle
 
 ;;; Image support
 ;;
-(eval-when-compile ;; GNU Emacs/XEmacs compatibility stuff
+(eval-and-compile ;; GNU Emacs/XEmacs compatibility stuff
   (cond
    ;; XEmacs
    ((featurep 'xemacs)
@@ -631,9 +631,17 @@ IGNORE other arguments."
          (widget-glyph-enable widget-image-enable)           ; XEmacs
          (node (tree-widget-node tree))
          (flags (widget-get tree :tree-widget--guide-flags))
-         (indent (and (bolp) (widget-get tree :indent)))
+         (indent (widget-get tree :indent))
          children buttons)
-    (and (null flags) indent (insert-char ?\  indent))
+    (and indent
+         (null flags)
+         (save-restriction
+           (widen)
+           (or (bolp)
+               (and (eq (char-before) ?<)
+                    (save-excursion
+                      (backward-char) (bolp)))))
+         (insert-char ?\  indent))
     (if (widget-get tree :open)
 ;;;; Unfolded node.
         (let ((args     (widget-get tree :args))
