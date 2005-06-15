@@ -1,14 +1,14 @@
 ;;; dir-tree.el --- Sophisticated example of `tree-widget' usage
 
-;; Copyright (C) 2001, 2003 by David Ponce
+;; Copyright (C) 2001, 2003, 2005 by David Ponce
 
 ;; Author: David Ponce <david@dponce.com>
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 16 Feb 2001
 ;; Keywords: extensions
-;; Revision: $Id: dir-tree.el,v 1.6 2004/05/14 11:03:51 ponced Exp $
+;; Revision: $Id: dir-tree.el,v 1.7 2005/06/15 08:10:39 ponced Exp $
 
-(defconst dir-tree-version "1.1")
+(defconst dir-tree-version "1.2")
 
 ;; This file is not part of Emacs
 
@@ -69,6 +69,7 @@
 (define-widget 'dir-tree-dir-widget 'tree-widget
   "Directory Tree widget."
   :dynargs        'dir-tree-expand-dir
+  :indent         4
   :has-children   t)
 
 (define-widget 'dir-tree-file-widget 'push-button
