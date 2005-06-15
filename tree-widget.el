@@ -1,14 +1,14 @@
 ;;; tree-widget.el --- Tree widget
 
-;; Copyright (C) 2001, 2003, 2004 by David Ponce
+;; Copyright (C) 2001, 2003, 2004, 2005 by David Ponce
 
 ;; Author: David Ponce <david@dponce.com>
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 16 Feb 2001
 ;; Keywords: extensions
-;; Revision: $Id: tree-widget.el,v 1.20 2004/05/14 11:04:38 ponced Exp $
+;; Revision: $Id: tree-widget.el,v 1.21 2005/06/15 08:10:07 ponced Exp $
 
-(defconst tree-widget-version "2.1")
+(defconst tree-widget-version "2.2")
 
 ;; This file is not part of Emacs
 
@@ -484,21 +484,6 @@ found."
                    'widget-type)
               property))
 
-(defsubst tree-widget-super-format-handler (widget escape)
-  "Call WIDGET's inherited format handler to process ESCAPE character."
-  (let ((handler (tree-widget-get-super widget :format-handler)))
-    (and handler (funcall handler widget escape))))
-
-(defun tree-widget-format-handler (widget escape)
-  "For WIDGET, signal that the %p format template is obsolete.
-Call WIDGET's inherited format handler to process other ESCAPE
-characters."
-  (if (eq escape ?p)
-      (message "The %%p format template is obsolete and ignored")
-    (tree-widget-super-format-handler widget escape)))
-(make-obsolete 'tree-widget-format-handler
-               'tree-widget-super-format-handler)
-
 (defsubst tree-widget-node (widget)
   "Return the tree WIDGET :node value.
 If not found setup a default 'item' widget."
@@ -645,26 +630,27 @@ IGNORE other arguments."
   (let* ((widget-image-enable (tree-widget-use-image-p))     ; Emacs
          (widget-glyph-enable widget-image-enable)           ; XEmacs
          (node (tree-widget-node tree))
+         (flags (widget-get tree :tree-widget--guide-flags))
+         (indent (and (bolp) (widget-get tree :indent)))
          children buttons)
+    (and (null flags) indent (insert-char ?\  indent))
     (if (widget-get tree :open)
 ;;;; Unfolded node.
-        (let* ((args     (widget-get tree :args))
-               (dynargs  (widget-get tree :dynargs))
-               (flags    (widget-get tree :tree-widget--guide-flags))
-               (rflags   (reverse flags))
-               (guide    (tree-widget-guide     tree))
-               (noguide  (tree-widget-no-guide  tree))
-               (endguide (tree-widget-end-guide tree))
-               (handle   (tree-widget-handle    tree))
-               (nohandle (tree-widget-no-handle tree))
-               ;; Lookup for images and set widgets' tag-glyphs here,
-               ;; to allow to dynamically change the image theme.
-               (guidi    (tree-widget-find-image "guide"))
-               (noguidi  (tree-widget-find-image "no-guide"))
-               (endguidi (tree-widget-find-image "end-guide"))
-               (handli   (tree-widget-find-image "handle"))
-               (nohandli (tree-widget-find-image "no-handle"))
-               child)
+        (let ((args     (widget-get tree :args))
+              (dynargs  (widget-get tree :dynargs))
+              (guide    (tree-widget-guide     tree))
+              (noguide  (tree-widget-no-guide  tree))
+              (endguide (tree-widget-end-guide tree))
+              (handle   (tree-widget-handle    tree))
+              (nohandle (tree-widget-no-handle tree))
+              ;; Lookup for images and set widgets' tag-glyphs here,
+              ;; to allow to dynamically change the image theme.
+              (guidi    (tree-widget-find-image "guide"))
+              (noguidi  (tree-widget-find-image "no-guide"))
+              (endguidi (tree-widget-find-image "end-guide"))
+              (handli   (tree-widget-find-image "handle"))
+              (nohandli (tree-widget-find-image "no-handle"))
+              child)
           (when dynargs
             ;; Request the definition of dynamic children
             (setq dynargs (funcall dynargs tree))
@@ -686,8 +672,9 @@ IGNORE other arguments."
           (while args
             (setq child (car args)
                   args  (cdr args))
+            (and indent (insert-char ?\  indent))
             ;; Insert guide lines elements
-            (dolist (f rflags)
+            (dolist (f (reverse flags))
               (widget-create-child-and-convert
                tree (if f guide noguide)
                :tag-glyph (if f guidi noguidi))
