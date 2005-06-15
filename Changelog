@@ -1,3 +1,25 @@
+2005-06-15  David Ponce  <david@dponce.com>
+
+	* recentf.el
+
+	(recentf-dialog-mode): Use kill-all-local-variables and possibly
+	run-mode-hooks.
+	(recentf-edit-list, recentf-open-files): Don't call
+	kill-all-local-variables directly.  Setup major mode before widget
+	creation.
+
+	* dir-tree.el
+
+	(dir-tree-version): Update to 1.2.
+	(dir-tree-dir-widget): Add :indent property.
+
+	* tree-widget.el
+
+	(tree-widget-version): Update to 2.2.
+	(tree-widget-super-format-handler)
+	(tree-widget-format-handler): Remove.
+	(tree-widget-value-create): Handle the :indent property.
+
 2005-06-12  David Ponce  <david@dponce.com>
 
 	* tabbar.el
