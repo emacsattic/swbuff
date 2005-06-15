@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 16 Feb 2001
 ;; Keywords: extensions
-;; Revision: $Id: tree-widget.el,v 1.22 2005/06/15 13:39:00 ponced Exp $
+;; Revision: $Id: tree-widget.el,v 1.23 2005/06/15 19:11:32 ponced Exp $
 
 (defconst tree-widget-version "2.2")
 
@@ -633,14 +633,7 @@ IGNORE other arguments."
          (flags (widget-get tree :tree-widget--guide-flags))
          (indent (widget-get tree :indent))
          children buttons)
-    (and indent
-         (null flags)
-         (save-restriction
-           (widen)
-           (or (bolp)
-               (and (eq (char-before) ?<)
-                    (save-excursion
-                      (backward-char) (bolp)))))
+    (and indent (not (widget-get tree :parent))
          (insert-char ?\  indent))
     (if (widget-get tree :open)
 ;;;; Unfolded node.
