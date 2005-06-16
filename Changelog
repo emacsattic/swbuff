@@ -1,3 +1,29 @@
+2005-06-16  David Ponce  <david@dponce.com>
+
+	* recentf.el
+
+	Try to require the tree-widget library.
+	(recentf-overlay-lists, recentf-delete-overlay): Simplify.
+	(recentf-clear-data): Rebuild the menu when running XEmacs.
+	(recentf-cancel-dialog): Doc fix.
+	(recentf-dialog-mode-map): Set parent keymap first.
+	(recentf-dialog-mode): Don't display continuation lines in
+	dialogs.
+	(recentf-dialog): New macro.
+	(recentf-edit-list): Rename from recentf-edit-selected-items.
+	(recentf-edit-list-select): Rename from recentf-edit-list-action.
+	Simplify.
+	(recentf-edit-list-validate): New function.
+	(recentf-edit-list): Update accordingly.
+	(recentf-open-files-action): Doc fix.
+	(recentf-open-files-item-shift): Remove.
+	(recentf-open-files-item): Convert menu elements into widgets, but
+	don't create them.  Possibly use a tree-widget for sub-menus.
+	(recentf-open-files): Update accordingly.
+	(recentf-open-more-files): Doc fix.
+	(recentf-save-list): Untabify.
+	(recentf-mode): Whitespace change.
+
 2005-06-15  David Ponce  <david@dponce.com>
 
 	* tree-widget.el
