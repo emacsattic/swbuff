@@ -1,3 +1,10 @@
+2005-06-17  David Ponce  <david@dponce.com>
+
+	* recentf.el
+
+	(recentf-open-files-item): Fix typo.  Change widget format.
+	(recentf-open-files): Change widget format.
+
 2005-06-16  David Ponce  <david@dponce.com>
 
 	* recentf.el
