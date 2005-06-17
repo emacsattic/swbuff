@@ -8,7 +8,7 @@
 ;; Maintainer: FSF
 ;; Keywords: files
 
-(defconst recentf-version "$Revision: 1.40 $")
+(defconst recentf-version "$Revision: 1.41 $")
 
 ;; This file is part of GNU Emacs.
 
@@ -1156,7 +1156,6 @@ IGNORE other arguments."
       (if (featurep 'tree-widget)
           ;; Represent a sub-menu with a tree widget
           `(tree-widget
-            :format "%v\n"
             :open t
             :match ignore
             :node (item :tag ,(car menu-element)
@@ -1166,10 +1165,10 @@ IGNORE other arguments."
                       (cdr menu-element)))
         ;; Represent a sub-menu with a group widget
         `(group
-          ::extra-offset 2
+          :extra-offset 2
           :tag ,(car menu-element)
           :sample-face bold
-          :format "\n%{%t%}:\n%v"
+          :format "%{%t%}:\n%v"
           ,@(mapcar 'recentf-open-files-item
                     (cdr menu-element))))
     ;; Represent a single file with a link widget
@@ -1200,7 +1199,7 @@ Click on Cancel or type `q' to cancel.\n" )
     (apply 'widget-create
            `(group
              :indent 2
-             :format "\n%v"
+             :format "\n%v\n"
              ,@(mapcar 'recentf-open-files-item
                        (recentf-apply-menu-filter
                         recentf-menu-filter
