@@ -1,3 +1,15 @@
+2005-06-21  David Ponce  <david@dponce.com>
+
+	* tabbar.el
+
+	(tabbar-last-selected-tab): Remove.
+	(tabbar-free-tabsets-store, tabbar-current-tabset)
+	(tabbar-click-on-tab): Update accordingly.
+	(tabbar-empty-tabsets-store-p)
+	(tabbar-buffer-update-tabsets): Remove.
+	(tabbar-line, tabbar-buffer-update-groups)
+	(tabbar-buffer-tabs): Simplify.
+
 2005-06-17  David Ponce  <david@dponce.com>
 
 	* recentf.el
