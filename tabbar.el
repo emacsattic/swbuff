@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 25 February 2003
 ;; Keywords: convenience
-;; Revision: $Id: tabbar.el,v 1.56 2005/06/12 13:32:10 ponced Exp $
+;; Revision: $Id: tabbar.el,v 1.57 2005/06/21 18:00:58 ponced Exp $
 
 (defconst tabbar-version "1.6")
 
@@ -374,15 +374,11 @@ TABSET is the tab set the tab belongs to."
   "The tab set currently displayed on the tab bar.")
 (make-variable-buffer-local 'tabbar-current-tabset)
 
-(defvar tabbar-last-selected-tab nil
-  "The last selected tab.")
-
 (defsubst tabbar-free-tabsets-store ()
   "Free the tab set store."
   (setq tabbar-tabsets nil
         tabbar-tabsets-tabset nil
-        tabbar-current-tabset nil
-        tabbar-last-selected-tab nil))
+        tabbar-current-tabset nil))
 
 (defsubst tabbar-init-tabsets-store ()
   "Initialize the tab set store."
@@ -390,14 +386,6 @@ TABSET is the tab set the tab belongs to."
   (setq tabbar-tabsets (make-vector 31 0)
         tabbar-tabsets-tabset (make-symbol "tabbar-tabsets-tabset"))
   (put tabbar-tabsets-tabset 'start 0))
-
-(defun tabbar-empty-tabsets-store-p ()
-  "Return non-nil if the tab set store is empty.
-This function can be used to check if the tab set store has been
-cleaned up to update other data depending on it."
-  (catch 'tabbar-tabset-found
-    (mapatoms #'(lambda (s) (throw 'tabbar-tabset-found nil))
-              tabbar-tabsets) t))
 
 ;; Define an "hygienic" function free of side effect between its local
 ;; variables and those of the callee.
@@ -557,12 +545,9 @@ TAB.  Return the tab found, or nil otherwise."
 If optional argument UPDATE is non-nil, call the user defined function
 `tabbar-current-tabset-function' to obtain it.  Otherwise return the
 current cached copy."
-  (when (and update tabbar-current-tabset-function)
-    (setq tabbar-current-tabset
-          (funcall tabbar-current-tabset-function))
-    (or tabbar-last-selected-tab
-        (setq tabbar-last-selected-tab
-              (tabbar-selected-tab tabbar-current-tabset))))
+  (and update tabbar-current-tabset-function
+       (setq tabbar-current-tabset
+             (funcall tabbar-current-tabset-function)))
   tabbar-current-tabset)
 
 (defun tabbar-get-tabsets-tabset ()
@@ -1010,7 +995,6 @@ mouse click event, and TAB.
 Optional argument TYPE is a mouse click event type (see the function
 `tabbar-make-mouse-event' for details)."
   (when tabbar-select-tab-function
-    (setq tabbar-last-selected-tab tab)
     (funcall tabbar-select-tab-function
              (tabbar-make-mouse-event type) tab)
     (tabbar-display-update)))
@@ -1205,14 +1189,14 @@ propertized strings to display."
   "Return the header line templates that represent the tab bar.
 Inhibit display of the tab bar in current window if any of the
 `tabbar-inhibit-functions' return non-nil."
-  (if (run-hook-with-args-until-success 'tabbar-inhibit-functions)
-      (setq header-line-format nil)
-    (let ((tabset (tabbar-current-tabset t)))
-      (and tabset
-           ;; If a cached value exists use it.
-           (or (tabbar-template tabset)
-               ;; Otherwise recompute a new `header-line-format'.
-               (tabbar-line-format tabset))))))
+  (cond
+   ((run-hook-with-args-until-success 'tabbar-inhibit-functions)
+    ;; Don't show the tab bar.
+    (setq header-line-format nil))
+   ((tabbar-current-tabset t)
+    ;; When available, use a cached tab bar value, else recompute it.
+    (or (tabbar-template tabbar-current-tabset)
+        (tabbar-line-format tabbar-current-tabset)))))
 
 ;;; Cyclic navigation through tabs
 ;;
@@ -1533,64 +1517,44 @@ Return a list of one element based on major mode."
 ;;
 (defvar tabbar--buffers nil)
 
-(defun tabbar-buffer-update-tabsets (e)
-  "Update tab sets from the buffer cache entry E."
-  (dolist (g (nth 2 e))
-    (let ((tabset (tabbar-get-tabset g)))
-      (if tabset
-          (tabbar-add-tab tabset (car e) t)
-        (tabbar-make-tabset g (car e))))))
-
 (defun tabbar-buffer-update-groups ()
   "Update group of buffers.
 Return the the first group where the current buffer is."
-  (let ((bl (funcall tabbar-buffer-list-function)) ; buffer list
-        (nc nil)                                   ; new cache
-        (dirty nil))
-    ;; If there is no tabset yet, ensure to re-create the cache.
-    (unless (tabbar-empty-tabsets-store-p)
-      ;; For buffers found in list, copy entries from the current cache
-      ;; to the new one.
-      (dolist (e tabbar--buffers)
-        (if (memq (car e) bl)
-            (push e nc)
-          (setq dirty t))))
-    ;; Update the new cache and tabsets with new buffers and those
-    ;; renamed or whose groups have changed.
-    (dolist (b bl)
-      (let ((e1 (assq b nc))            ; old buffer cache entry
-            (e2 (with-current-buffer b  ; new buffer cache entry
-                  (list (current-buffer)
-                        (buffer-name)
-                        (funcall tabbar-buffer-groups-function)))))
-        (if e1
-            ;; The buffer name or groups have changed.
-            (unless (equal e1 e2)
-              (setq dirty t)
-              (setcdr e1 (cdr e2))
-              (tabbar-buffer-update-tabsets e2))
-          ;; New buffer.
-          (setq dirty t)
-          (push e2 nc)
-          (tabbar-buffer-update-tabsets e2))))
-    ;; The current cache is obsolete.
-    (when dirty
-      ;; Synchronize tabsets with the new cache.  That is, remove tabs
-      ;; for buffers not found in cache or moved to other groups, and
-      ;; remove empty tabsets.
+  (let* ((bl (sort
+              (mapcar
+               #'(lambda (b)
+                   (with-current-buffer b
+                     (list (current-buffer)
+                           (buffer-name)
+                           (funcall tabbar-buffer-groups-function))))
+               (funcall tabbar-buffer-list-function))
+                   #'(lambda (e1 e2)
+                       (string-lessp (nth 1 e1) (nth 1 e2))))))
+    ;; If the cache has changed, update the tab sets.
+    (unless (equal bl tabbar--buffers)
+      ;; Add new buffers, or update changed ones.
+      (dolist (e bl)
+        (dolist (g (nth 2 e))
+          (let ((tabset (tabbar-get-tabset g)))
+            (if tabset
+                (tabbar-add-tab tabset (car e) t)
+              (tabbar-make-tabset g (car e))))))
+      ;; Remove tabs for buffers not found in cache or moved to other
+      ;; groups, and remove empty tabsets.
       (mapc 'tabbar-delete-tabset
-        (tabbar-map-tabsets
-         #'(lambda (tabset)
-             (dolist (tab (tabbar-tabs tabset))
-               (let ((e (assq (tabbar-tab-value tab) nc)))
-                 (or (and e (memq tabset (mapcar 'tabbar-get-tabset
-                                                 (nth 2 e))))
-                     (tabbar-delete-tab tab))))
-             (if (tabbar-tabs tabset)
-                 (tabbar-set-template tabset nil)
-               tabset))))
+            (tabbar-map-tabsets
+             #'(lambda (tabset)
+                 (dolist (tab (tabbar-tabs tabset))
+                   (let ((e (assq (tabbar-tab-value tab) bl)))
+                     (or (and e (memq tabset
+                                      (mapcar 'tabbar-get-tabset
+                                              (nth 2 e))))
+                         (tabbar-delete-tab tab))))
+                 ;; Return empty tab sets
+                 (unless (tabbar-tabs tabset)
+                   tabset))))
       ;; The new cache becomes the current one.
-      (setq tabbar--buffers nc)))
+      (setq tabbar--buffers bl)))
   ;; Return the first group the current buffer belongs to.
   (car (nth 2 (assq (current-buffer) tabbar--buffers))))
 
@@ -1609,20 +1573,11 @@ Return the the first group where the current buffer is."
 
 (defun tabbar-buffer-tabs ()
   "Return the buffers to display on the tab bar, in a tab set."
-  (let ((group (tabbar-buffer-update-groups))
-        (buffer (current-buffer))
-        tabset curtab)
-    (if tabbar-buffer-group-mode
-        (progn
-          (setq tabset (tabbar-get-tabsets-tabset)
-                curtab (tabbar-selected-tab (tabbar-current-tabset)))
-          (unless (and (eq buffer (tabbar-tab-value curtab))
-                       (tabbar-select-tab curtab tabset))
-            (tabbar-select-tab-value buffer tabset)))
-      (setq tabset (tabbar-tab-tabset tabbar-last-selected-tab))
-      (unless (and tabset (tabbar-get-tab buffer tabset))
-        (setq tabset (tabbar-get-tabset group)))
-      (tabbar-select-tab-value buffer tabset))
+  (let ((tabset (tabbar-get-tabset (tabbar-buffer-update-groups))))
+    (tabbar-select-tab-value (current-buffer) tabset)
+    (when tabbar-buffer-group-mode
+      (setq tabset (tabbar-get-tabsets-tabset))
+      (tabbar-select-tab-value (current-buffer) tabset))
     tabset))
 
 (defun tabbar-buffer-button-label (name)
