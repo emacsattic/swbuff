@@ -1,3 +1,21 @@
+2005-06-23  David Ponce  <david@dponce.com>
+
+	* tabbar.el
+
+	(tabbar-init-hook): New hook.
+	(tabbar-init-tabsets-store): Use it.
+	(tabbar-buffer-init): New function.
+
+2005-06-22  David Ponce  <david@dponce.com>
+
+	* recentf.el
+
+	[XEmacs] Remove `after-init-hook' hack no more necessary since
+	previous fix to `recentf-clear-data'.
+	(recentf-button-keymap): Setup for use with XEmacs only.
+	(recentf-dialog): Don't use `recentf-button-keymap' with Emacs.
+	(recentf-edit-list, recentf-open-files-item): Likewise.
+
 2005-06-21  David Ponce  <david@dponce.com>
 
 	* tabbar.el
