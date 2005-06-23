@@ -8,7 +8,7 @@
 ;; Maintainer: FSF
 ;; Keywords: files
 
-(defconst recentf-version "$Revision: 1.41 $")
+(defconst recentf-version "$Revision: 1.42 $")
 
 ;; This file is part of GNU Emacs.
 
@@ -978,16 +978,13 @@ IGNORE arguments."
   (message "Dialog canceled"))
 
 (defvar recentf-button-keymap
-  (let (parent-keymap mouse-button1 keymap)
-    (if (featurep 'xemacs)
-        (setq parent-keymap widget-button-keymap
-              mouse-button1 [button1])
-      (setq parent-keymap widget-keymap
-            mouse-button1 [down-mouse-1]))
-    (setq keymap (copy-keymap parent-keymap))
-    (define-key keymap mouse-button1 'widget-button-click)
-    keymap)
-  "Keymap used inside buttons.")
+  (let ((km (make-sparse-keymap)))
+    (when (boundp 'widget-button-keymap)
+      (set-keymap-parent km widget-button-keymap)
+      (define-key km [button1] 'widget-button-click))
+    km)
+  "Keymap used inside buttons.
+Handle mouse button 1 click on buttons.  Needed on XEmacs only.")
 
 (defvar recentf-dialog-mode-map
   (let ((km (make-sparse-keymap)))
@@ -1026,7 +1023,6 @@ IGNORE arguments."
     ;; Insert a Cancel button
     (widget-create 'push-button
                    :button-keymap recentf-button-keymap ; XEmacs
-                   :keymap        recentf-button-keymap ; Emacs
                    :notify 'recentf-cancel-dialog
                     "Cancel")
     (widget-setup)
@@ -1136,7 +1132,6 @@ Click on Cancel or type `q' to cancel.\n")
     (widget-create
      'push-button
      :button-keymap recentf-button-keymap ; XEmacs
-     :keymap        recentf-button-keymap ; Emacs
      :notify 'recentf-edit-list-validate
      :help-echo "Delete selected files from the recent list"
       "Ok")
@@ -1174,7 +1169,6 @@ IGNORE other arguments."
     ;; Represent a single file with a link widget
     `(link :tag ,(car menu-element)
            :button-keymap ,recentf-button-keymap ; XEmacs
-           :keymap        recentf-button-keymap ; Emacs
            :button-prefix ""
            :button-suffix ""
            :button-face default
@@ -1296,15 +1290,6 @@ that were operated on recently."
     (when (interactive-p)
       (message "Recentf mode %sabled" (if recentf-mode "en" "dis"))))
   recentf-mode)
-
-;; XEmacs doesn't update the initial menu bar when recentf-mode is
-;; enabled while loading the init file. So do it once after init.
-(when (featurep 'xemacs)
-  (let ((hook (list 'lambda)))
-    (setcdr hook `(()
-                   (remove-hook 'after-init-hook ,hook)
-                   (and recentf-mode (recentf-update-menu))))
-    (add-hook 'after-init-hook hook)))
 
 (provide 'recentf)
 
