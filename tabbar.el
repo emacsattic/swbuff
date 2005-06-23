@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 25 February 2003
 ;; Keywords: convenience
-;; Revision: $Id: tabbar.el,v 1.57 2005/06/21 18:00:58 ponced Exp $
+;; Revision: $Id: tabbar.el,v 1.58 2005/06/23 11:14:04 ponced Exp $
 
 (defconst tabbar-version "1.6")
 
@@ -198,6 +198,13 @@ The following scopes are possible:
   :group 'tabbar
   :type 'boolean)
 
+(defcustom tabbar-init-hook
+  '(tabbar-buffer-init)
+  "Hook run after tab bar data has been initialized.
+You should use this hook to initialize dependent data."
+  :group 'tabbar
+  :type 'hook)
+
 (defcustom tabbar-inhibit-functions
   '(tabbar-default-inhibit-function)
   "List of functions to be called before displaying the tab bar.
@@ -385,7 +392,8 @@ TABSET is the tab set the tab belongs to."
   (tabbar-free-tabsets-store)
   (setq tabbar-tabsets (make-vector 31 0)
         tabbar-tabsets-tabset (make-symbol "tabbar-tabsets-tabset"))
-  (put tabbar-tabsets-tabset 'start 0))
+  (put tabbar-tabsets-tabset 'start 0)
+  (run-hooks 'tabbar-init-hook))
 
 ;; Define an "hygienic" function free of side effect between its local
 ;; variables and those of the callee.
@@ -1560,6 +1568,11 @@ Return the the first group where the current buffer is."
 
 ;;; Tab bar callbacks
 ;;
+(defun tabbar-buffer-init ()
+  "Initialize tab bar buffer data.
+Run as `tabbar-init-hook'."
+  (setq tabbar--buffers nil))
+
 (defvar tabbar-buffer-group-mode nil
   "Display tabs for group of buffers, when non-nil.")
 (make-variable-buffer-local 'tabbar-buffer-group-mode)
