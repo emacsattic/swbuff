@@ -1,3 +1,12 @@
+2005-06-25  David Ponce  <david@dponce.com>
+
+	* recentf.el
+
+	(recentf-dialog): Don't add cancel button nor go to bob.
+	(recentf-dialog-goto-first): New function.
+	(recentf-edit-list): Use it. Add cancel button.
+	(recentf-open-files): Likewise.
+
 2005-06-23  David Ponce  <david@dponce.com>
 
 	* tabbar.el
