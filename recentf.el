@@ -8,7 +8,7 @@
 ;; Maintainer: FSF
 ;; Keywords: files
 
-(defconst recentf-version "$Revision: 1.42 $")
+(defconst recentf-version "$Revision: 1.43 $")
 
 ;; This file is part of GNU Emacs.
 
@@ -977,6 +977,19 @@ IGNORE arguments."
   (kill-buffer (current-buffer))
   (message "Dialog canceled"))
 
+(defun recentf-dialog-goto-first (widget-type)
+  "Move the cursor to the first WIDGET-TYPE in current dialog.
+Go to the beginning of buffer if not found."
+  (goto-char (point-min))
+  (condition-case nil
+      (let (done)
+        (widget-move 1)
+        (while (not done)
+          (if (eq widget-type (widget-type (widget-at (point))))
+              (setq done t)
+            (widget-move 1))))
+    (goto-char (point-min))))
+
 (defvar recentf-button-keymap
   (let ((km (make-sparse-keymap)))
     (when (boundp 'widget-button-keymap)
@@ -1020,13 +1033,7 @@ Handle mouse button 1 click on buttons.  Needed on XEmacs only.")
       (erase-buffer))
     (recentf-dialog-mode)
     ,@forms
-    ;; Insert a Cancel button
-    (widget-create 'push-button
-                   :button-keymap recentf-button-keymap ; XEmacs
-                   :notify 'recentf-cancel-dialog
-                    "Cancel")
     (widget-setup)
-    (goto-char (point-min))
     (switch-to-buffer (current-buffer))))
 
 ;;; Hooks
@@ -1134,8 +1141,13 @@ Click on Cancel or type `q' to cancel.\n")
      :button-keymap recentf-button-keymap ; XEmacs
      :notify 'recentf-edit-list-validate
      :help-echo "Delete selected files from the recent list"
-      "Ok")
-    (widget-insert " ")))
+     "Ok")
+    (widget-insert " ")
+    (widget-create
+     'push-button
+     :notify 'recentf-cancel-dialog
+     "Cancel")
+    (recentf-dialog-goto-first 'checkbox)))
 
 ;;; Open file dialog
 ;;
@@ -1198,7 +1210,12 @@ Click on Cancel or type `q' to cancel.\n" )
                        (recentf-apply-menu-filter
                         recentf-menu-filter
                         (mapcar 'recentf-make-default-menu-element
-                                (or files recentf-list))))))))
+                                (or files recentf-list))))))
+    (widget-create
+     'push-button
+     :notify 'recentf-cancel-dialog
+     "Cancel")
+    (recentf-dialog-goto-first 'link)))
 
 (defun recentf-open-more-files ()
   "Show a dialog to open a recent file that is not in the menu."
