@@ -8,7 +8,7 @@
 ;; Maintainer: FSF
 ;; Keywords: files
 
-(defconst recentf-version "$Revision: 1.43 $")
+(defconst recentf-version "$Revision: 1.44 $")
 
 ;; This file is part of GNU Emacs.
 
@@ -289,7 +289,8 @@ If `file-name-history' is not empty, do nothing."
 It is passed a filename to give a chance to transform it.
 If it returns nil, the filename is left unchanged."
   :group 'recentf
-  :type 'function)
+  :type '(choice (const :tag "None" nil)
+                 function))
 
 ;;;###autoload
 (defcustom recentf-mode nil
