@@ -1,3 +1,28 @@
+2005-06-27  David Ponce  <david@dponce.com>
+
+	* tabbar.el:
+	
+	Improve header Commentary section.
+	(tabbar-cycle-scope): Rename from `tabbar-cycling-scope'.  All
+	references updated.
+	(tabbar-selected-tab-always-visible)
+	(tabbar-use-images, tabbar-buffer-list-function)
+	(tabbar-buffer-groups-function): Doc fix.
+	(tabbar--mouse): New function.
+	(tabbar-press-home, tabbar-press-scroll-left)
+	(tabbar-press-scroll-right): New commands.
+	(tabbar-prefix-key, tabbar-prefix-map)
+	(tabbar-mode-map): New variables.
+	(tabbar-mode): Doc fix.  Use `tabbar-mode-map' keymap.
+	(tabbar-buffer-update-groups): Doc fix.
+	(tabbar-buffer-show-groups-flag): Rename from
+	`tabbar-buffer-group-mode'.  No more buffer local.  All references
+	updated.
+	(tabbar-buffer-init): Initialize it.
+	(tabbar-buffer-show-groups): Rename from
+	`tabbar-buffer-set-group-mode'.  All references updated.
+	(tabbar-load-hook): New hook run after tabbar has been loaded.
+	
 2005-06-26  David Ponce  <david@dponce.com>
 
 	* recentf.el
