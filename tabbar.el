@@ -1,4 +1,4 @@
-;;; tabbar.el --- Display a tab bar in the header line
+;;; Tabbar.el --- Display a tab bar in the header line
 
 ;; Copyright (C) 2003, 2004, 2005 David Ponce
 
@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 25 February 2003
 ;; Keywords: convenience
-;; Revision: $Id: tabbar.el,v 1.58 2005/06/23 11:14:04 ponced Exp $
+;; Revision: $Id: tabbar.el,v 1.59 2005/06/27 10:30:44 ponced Exp $
 
 (defconst tabbar-version "1.6")
 
@@ -29,46 +29,71 @@
 
 ;;; Commentary:
 ;;
-;; This library provides a global minor mode to display a tab bar in
-;; the header line of Emacs 21 and later versions.
+;;  This library provides the global minor mode Tabbar-Mode to display
+;;  a tab bar in the header line of Emacs 21 and later versions.  You
+;;  can use the mouse to click on a tab and select it.  Also, three
+;;  buttons are displayed on the left side of the tab bar in this
+;;  order: the "home", "scroll left", and "scroll right" buttons.  The
+;;  "home" button is a general purpose button used to change something
+;;  on the tab bar.  The scroll left and scroll right buttons are used
+;;  to scroll tabs horizontally.  Tabs can be divided up into groups to
+;;  maintain several sets of tabs at the same time (see also the
+;;  chapter "Core" below for more details on tab grouping).  Only one
+;;  group is displayed on the tab bar, and the "home" button, for
+;;  example, can be used to navigate through the different groups, to
+;;  show different tab bars.
 ;;
-;; M-x `tabbar-mode' toggle the tab bar global minor mode.  When
-;; enabled a tab bar is displayed in the header line.
+;;  In a graphic environment, using the mouse is probably the preferred
+;;  way to work with the tab bar.  However, you can also use the tab
+;;  bar when Emacs is running on a terminal, so it is possible to use
+;;  commands to press special buttons, or to navigate cyclically
+;;  through tabs.
 ;;
-;; M-x `tabbar-local-mode' toggle the tab bar local minor mode.
-;; Provided the global minor mode is turned on, the tab bar becomes
-;; local in the current buffer when the local minor mode is enabled.
-;; This permits to see the tab bar in a buffer where the header line
-;; is already used by another mode (like `Info-mode').  This command
-;; is particularly useful when it is given a keyboard shortcut, like
-;; this:
+;;  These commands, and default keyboard shortcuts, are provided:
 ;;
-;;   (global-set-key [(control f10)] 'tabbar-local-mode)
+;;  `tabbar-mode'
 ;;
-;; It is possible to navigate cyclically through tabs using these
-;; commands:
+;;    Toggle the tab bar global minor mode.  When enabled a tab bar is
+;;    displayed in the header line.
 ;;
-;;   - `tabbar-forward' select the next available tab.
-;;   - `tabbar-backward' select the previous available tab.
+;;  `tabbar-local-mode'         (C-c <C-f10>)
 ;;
-;; It is worth defining keys for them.  For example:
+;;    Toggle the tab bar local minor mode.  Provided the global minor
+;;    mode is turned on, the tab bar becomes local in the current
+;;    buffer when the local minor mode is enabled.  This permits to see
+;;    the tab bar in a buffer where the header line is already used by
+;;    another mode (like `Info-mode' for example).
 ;;
-;;   (global-set-key [(control shift tab)] 'tabbar-backward)
-;;   (global-set-key [(control tab)]       'tabbar-forward)
+;;  `tabbar-press-home'         (C-c <C-home>)
+;;  `tabbar-press-scroll-left'  (C-c <C-prior>)
+;;  `tabbar-press-scroll-right' (C-c <C-next>)
 ;;
-;; The cycle is controlled by the `tabbar-cycling-scope' option.  The
-;; default is to select the tab just after [before] the selected tab
-;; if there is one, or to select the first [last] tab of the next
-;; [previous] group of tabs otherwise (see "Core" below for more
-;; details on tab grouping).
+;;    Simulate a mouse-1 click on respectively the "home", "scroll
+;;    left", and "scroll right" buttons.  A numeric prefix argument
+;;    value of 2, or 3, respectively simulate a mouse-2, or mouse-3
+;;    click.
 ;;
-;; You can also use these more specialized commands:
+;;  `tabbar-backward'           (C-c <C-left>)
+;;  `tabbar-forward'            (C-c <C-right>)
 ;;
-;; - `tabbar-forward-tab'/`tabbar-backward-tab' to navigate through
-;;   visible tabs only.
+;;    Are the basic commands to navigate cyclically through tabs or
+;;    groups of tabs.  The cycle is controlled by the
+;;    `tabbar-cycle-scope' option.  The default is to navigate through
+;;    all tabs across all existing groups of tabs.  You can change the
+;;    default behavior to navigate only through the tabs visible on
+;;    the tab bar, or through groups of tabs only.  Or use the more
+;;    specialized commands below.
 ;;
-;; - `tabbar-forward-group'/`tabbar-backward-group' to navigate
-;;   between groups of tabs.
+;;  `tabbar-backward-tab'
+;;  `tabbar-forward-tab'
+;;
+;;    Navigate through the tabs visible on the tab bar.
+;;
+;;  `tabbar-backward-group'     (C-c <C-up>)
+;;  `tabbar-forward-group'      (C-c <C-down>)
+;;
+;;    Navigate through existing groups of tabs.
+;;
 ;;
 ;; Core
 ;; ----
@@ -87,20 +112,36 @@
 ;; scroll the tab bar horizontally by changing the start index of the
 ;; tab set view.
 ;;
-;; The visual representation of a tab set is a list a
-;; `header-line-format' template elements.  Each template element is
-;; the visual representation of a tab.  When the visual representation
-;; of a tab is required, the function specified in the variable
-;; `tabbar-tab-label-function' is called to obtain a label (a text
-;; representation) for that tab.  Also, the function specified in the
-;; variable `tabbar-help-on-tab-function' is called when the mouse is
-;; on a tab.  That function is passed the tab and can return a help
-;; string to display.  Finally, when a tab is selected by clicking on
-;; it, the function specified in the variable
-;; `tabbar-select-tab-function' is called with the mouse event
-;; received, and the tab.
+;; The visual representation of a tab bar is a list of valid
+;; `header-line-format' template elements, one for each special
+;; button, and for each tab found into a tab set "view".  When the
+;; visual representation of a tab is required, the function specified
+;; in the variable `tabbar-tab-label-function' is called to obtain it.
+;; The visual representation of a special button is obtained by
+;; calling the function specified in `tabbar-button-label-function',
+;; which is passed a button name among `home', `scroll-left', or
+;; `scroll-right'.  There are also options and faces to customize the
+;; appearance of buttons and tabs (see the code for more details).
 ;;
-;; To increase performance, the tab set automatically maintains its
+;; When the mouse is over a tab, the function specified in
+;; `tabbar-help-on-tab-function' is called, which is passed the tab
+;; and should return a help string to display.  When a tab is
+;; selected, the function specified in `tabbar-select-tab-function' is
+;; called, which is passed the tab and the event received.
+;;
+;; Similarly, to control the behavior of the special buttons, the
+;; following variables are available, for respectively the `home',
+;; `scroll-left' and `scroll-right' value of `<button>':
+;;
+;; `tabbar-<button>-function'
+;;    Function called when <button> is selected.  The function is
+;;    passed the mouse event received.
+;;
+;; `tabbar-<button>-help-function'
+;;    Function called with no arguments to obtain a help string
+;;    displayed when the mouse is over <button>.
+;;
+;; To increase performance, each tab set automatically maintains its
 ;; visual representation in a cache.  As far as possible, the cache is
 ;; used to display the tab set, and refreshed only when necessary.
 ;;
@@ -108,31 +149,12 @@
 ;; displayed on the tab bar, it is obtained by calling the function
 ;; specified in the variable `tabbar-current-tabset-function'.
 ;;
-;; A special tab set is maintained, that contains the list of
-;; currently selected tabs, in existing tab sets.  For example, a such
-;; tab set can be used to display a tab bar with a tab for each
-;; created tab set, allowing to switch to another tab set by clicking
-;; on the corresponding tab.
+;; A special tab set is maintained, that contains the list of the
+;; currently selected tabs in the existing tab sets.  This tab set is
+;; useful to show the existing tab sets in a tab bar, and switch
+;; between them easily.  The function `tabbar-get-tabsets-tabset'
+;; returns this special tab set.
 ;;
-;; Three buttons are displayed on the left side of the tab bar: the
-;; "home" button, then the "scroll left" and the "scroll right"
-;; buttons.  The "home" button is a general purpose button used to
-;; change something on the tab bar.  The scroll left and scroll right
-;; buttons are used to scroll tabs horizontally.  The following
-;; variables are available, for respectively the `home', `scroll-left'
-;; and `scroll-right' value of `<button>':
-;;
-;; `tabbar-<button>-function'
-;;    Specify a function called when clicking on the button.  The
-;;    function is passed the mouse event received.
-;;
-;; `tabbar-<button>-help-function'
-;;    Specify a function to obtain a help string displayed when the
-;;    mouse is onto the button.  The function is called with no
-;;    arguments.
-;;
-;; The appearance of tabs and buttons is also customizable (see the
-;; code for more details).
 ;;
 ;; Buffer tabs
 ;; -----------
@@ -154,11 +176,8 @@
 ;; depending on their major mode (see that function for details).
 ;;
 ;; The "home" button toggles display of buffer groups on the tab bar,
-;; allowing to easily choose another buffer group by clicking on the
+;; allowing to easily show another buffer group by clicking on the
 ;; associated tab.
-;;
-;; The scroll buttons permit to scroll tabs when some of them are
-;; outside the tab bar visible area.
 ;;
 ;; Known problems:
 ;;
@@ -177,7 +196,7 @@
   "Display a tab bar in the header line."
   :group 'convenience)
 
-(defcustom tabbar-cycling-scope nil
+(defcustom tabbar-cycle-scope nil
   "*Specify the scope of cyclic navigation through tabs.
 The following scopes are possible:
 
@@ -194,7 +213,7 @@ The following scopes are possible:
                  (const :tag "Visible Tabs then Tab Groups" nil)))
 
 (defcustom tabbar-selected-tab-always-visible t
-  "*non-nil means to keep the selected tab visible."
+  "*Non-nil means to keep the selected tab visible."
   :group 'tabbar
   :type 'boolean)
 
@@ -842,7 +861,7 @@ The variable `tabbar-separator-widget' gives details on this widget."
 ;;; Images
 ;;
 (defcustom tabbar-use-images t
-  "*non-nil means to try to use images in tab bar.
+  "*Non-nil means to try to use images in tab bar.
 That is for buttons and separators."
   :group 'tabbar
   :type 'boolean
@@ -1211,7 +1230,7 @@ Inhibit display of the tab bar in current window if any of the
 (defun tabbar-cycle (&optional backward type)
   "Cycle to the next available tab.
 The scope of the cyclic navigation through tabs is specified by the
-option `tabbar-cycling-scope'.
+option `tabbar-cycle-scope'.
 If optional argument BACKWARD is non-nil, cycle to the previous tab
 instead.
 Optional argument TYPE is a mouse event type (see the function
@@ -1222,7 +1241,7 @@ Optional argument TYPE is a mouse event type (see the function
       (setq selected (tabbar-selected-tab tabset))
       (cond
        ;; Cycle through visible tabs only.
-       ((eq tabbar-cycling-scope 'tabs)
+       ((eq tabbar-cycle-scope 'tabs)
         (setq tab (tabbar-tab-next tabset selected backward))
         ;; When there is no tab after/before the selected one, cycle
         ;; to the first/last visible tab.
@@ -1231,7 +1250,7 @@ Optional argument TYPE is a mouse event type (see the function
                 tab (car (if backward (last tabset) tabset))))
         )
        ;; Cycle through tab groups only.
-       ((eq tabbar-cycling-scope 'groups)
+       ((eq tabbar-cycle-scope 'groups)
         (setq tabset (tabbar-get-tabsets-tabset)
               tab (tabbar-tab-next tabset selected backward))
         ;; When there is no group after/before the selected one, cycle
@@ -1262,14 +1281,14 @@ Optional argument TYPE is a mouse event type (see the function
 ;;;###autoload
 (defun tabbar-backward ()
   "Select the previous available tab.
-Depend on the setting of the option `tabbar-cycling-scope'."
+Depend on the setting of the option `tabbar-cycle-scope'."
   (interactive)
   (tabbar-cycle t))
 
 ;;;###autoload
 (defun tabbar-forward ()
   "Select the next available tab.
-Depend on the setting of the option `tabbar-cycling-scope'."
+Depend on the setting of the option `tabbar-cycle-scope'."
   (interactive)
   (tabbar-cycle))
 
@@ -1277,29 +1296,66 @@ Depend on the setting of the option `tabbar-cycling-scope'."
 (defun tabbar-backward-group ()
   "Go to selected tab in the previous available group."
   (interactive)
-  (let ((tabbar-cycling-scope 'groups))
+  (let ((tabbar-cycle-scope 'groups))
     (tabbar-cycle t)))
 
 ;;;###autoload
 (defun tabbar-forward-group ()
   "Go to selected tab in the next available group."
   (interactive)
-  (let ((tabbar-cycling-scope 'groups))
+  (let ((tabbar-cycle-scope 'groups))
     (tabbar-cycle)))
 
 ;;;###autoload
 (defun tabbar-backward-tab ()
   "Select the previous visible tab."
   (interactive)
-  (let ((tabbar-cycling-scope 'tabs))
+  (let ((tabbar-cycle-scope 'tabs))
     (tabbar-cycle t)))
 
 ;;;###autoload
 (defun tabbar-forward-tab ()
   "Select the next visible tab."
   (interactive)
-  (let ((tabbar-cycling-scope 'tabs))
+  (let ((tabbar-cycle-scope 'tabs))
     (tabbar-cycle)))
+
+;;; Button press commands
+;;
+(defsubst tabbar--mouse (number)
+  "Return a mouse button symbol from NUMBER.
+That is mouse-2, or mouse-3 when NUMBER is respectively 2, or 3.
+Return mouse-1 otherwise."
+  (cond ((eq number 2) 'mouse-2)
+        ((eq number 3) 'mouse-3)
+        ('mouse-1)))
+
+;;;###autoload
+(defun tabbar-press-home (&optional arg)
+  "Press the tab bar home button.
+That is, simulate a mouse click on that button.
+A numeric prefix ARG value of 2, or 3, respectively simulates a
+mouse-2, or mouse-3 click.  The default is a mouse-1 click."
+  (interactive "p")
+  (tabbar-click-on-button 'home (tabbar--mouse arg)))
+
+;;;###autoload
+(defun tabbar-press-scroll-left (&optional arg)
+  "Press the tab bar scroll-left button.
+That is, simulate a mouse click on that button.
+A numeric prefix ARG value of 2, or 3, respectively simulates a
+mouse-2, or mouse-3 click.  The default is a mouse-1 click."
+  (interactive "p")
+  (tabbar-click-on-button 'scroll-left (tabbar--mouse arg)))
+
+;;;###autoload
+(defun tabbar-press-scroll-right (&optional arg)
+  "Press the tab bar scroll-right button.
+That is, simulate a mouse click on that button.
+A numeric prefix ARG value of 2, or 3, respectively simulates a
+mouse-2, or mouse-3 click.  The default is a mouse-1 click."
+  (interactive "p")
+  (tabbar-click-on-button 'scroll-right (tabbar--mouse arg)))
 
 ;;; Minor modes
 ;;
@@ -1357,13 +1413,38 @@ Does nothing if the tab bar global mode is off."
       ;; The tab bar is locally hidden, show it again.
       (kill-local-variable 'header-line-format))))
 
+(defvar tabbar-prefix-key [(control ?c)]
+  "The common prefix key used in tab bar minor mode.")
+
+(defvar tabbar-prefix-map
+  (let ((km (make-sparse-keymap)))
+    (define-key km [(control home)]  'tabbar-press-home)
+    (define-key km [(control left)]  'tabbar-backward)
+    (define-key km [(control right)] 'tabbar-forward)
+    (define-key km [(control up)]    'tabbar-backward-group)
+    (define-key km [(control down)]  'tabbar-forward-group)
+    (define-key km [(control prior)] 'tabbar-press-scroll-left)
+    (define-key km [(control next)]  'tabbar-press-scroll-right)
+    (define-key km [(control f10)]   'tabbar-local-mode)
+    km)
+  "The key bindings provided in tab bar minor mode.")
+
+(defvar tabbar-mode-map
+  (let ((km (make-sparse-keymap)))
+    (define-key km tabbar-prefix-key tabbar-prefix-map)
+    km)
+  "Keymap to use in tab bar minor mode.")
+
 ;;;###autoload
 (define-minor-mode tabbar-mode
   "Toggle display of a tab bar in the header line.
 With prefix argument ARG, turn on if positive, otherwise off.
-Returns non-nil if the new state is enabled."
-  :global t
+Returns non-nil if the new state is enabled.
+
+\\{tabbar-mode-map}"
   :group 'tabbar
+  :global t
+  :keymap tabbar-mode-map
   (if tabbar-mode
 ;;; ON
       (unless (tabbar-mode-on-p)
@@ -1443,7 +1524,7 @@ The variable `tabbar-button-widget' gives details on this widget."
 
 (defcustom tabbar-buffer-list-function
   'tabbar-buffer-list
-  "*Function that returns the list of buffers to show in tabs.
+  "Function that returns the list of buffers to show in tabs.
 That function is called with no arguments and must return a list of
 buffers."
   :group 'tabbar
@@ -1451,7 +1532,7 @@ buffers."
 
 (defcustom tabbar-buffer-groups-function
   'tabbar-buffer-groups
-  "*Function that gives the group names the current buffer belongs to.
+  "Function that gives the group names the current buffer belongs to.
 It must return a list of group names, or nil if the buffer has no
 group.  Notice that it is better that a buffer belongs to one group."
   :group 'tabbar
@@ -1526,7 +1607,7 @@ Return a list of one element based on major mode."
 (defvar tabbar--buffers nil)
 
 (defun tabbar-buffer-update-groups ()
-  "Update group of buffers.
+  "Update tab sets from groups of existing buffers.
 Return the the first group where the current buffer is."
   (let* ((bl (sort
               (mapcar
@@ -1568,19 +1649,18 @@ Return the the first group where the current buffer is."
 
 ;;; Tab bar callbacks
 ;;
+(defvar tabbar-buffer-show-groups-flag nil
+  "Non-nil means to display tabs for groups of buffers.")
+
 (defun tabbar-buffer-init ()
   "Initialize tab bar buffer data.
 Run as `tabbar-init-hook'."
-  (setq tabbar--buffers nil))
+  (setq tabbar--buffers nil
+        tabbar-buffer-show-groups-flag nil))
 
-(defvar tabbar-buffer-group-mode nil
-  "Display tabs for group of buffers, when non-nil.")
-(make-variable-buffer-local 'tabbar-buffer-group-mode)
-(put 'tabbar-buffer-group-mode 'permanent-local t)
-
-(defsubst tabbar-buffer-set-group-mode (flag)
-  "Set display of tabs for group of buffers to FLAG."
-  (setq tabbar-buffer-group-mode flag
+(defsubst tabbar-buffer-show-groups (flag)
+  "Set display of tabs for groups of buffers to FLAG."
+  (setq tabbar-buffer-show-groups-flag flag
         ;; Redisplay the home button.
         tabbar-home-button-value nil))
 
@@ -1588,7 +1668,7 @@ Run as `tabbar-init-hook'."
   "Return the buffers to display on the tab bar, in a tab set."
   (let ((tabset (tabbar-get-tabset (tabbar-buffer-update-groups))))
     (tabbar-select-tab-value (current-buffer) tabset)
-    (when tabbar-buffer-group-mode
+    (when tabbar-buffer-show-groups-flag
       (setq tabset (tabbar-get-tabsets-tabset))
       (tabbar-select-tab-value (current-buffer) tabset))
     tabset))
@@ -1600,7 +1680,7 @@ respectively the appearance of the button when enabled and disabled.
 They are propertized strings which could display images, as specified
 by the variable `tabbar-button-label'.
 When NAME is 'home, return a different ENABLED button depending on the
-value of `tabbar-buffer-group-mode'.  Otherwise just call the function
+value of `tabbar-buffer-show-groups-flag'.  Otherwise just call the function
 `tabbar-button-label'."
   (let ((lab (tabbar-button-label name)))
     (when (eq name 'home)
@@ -1616,7 +1696,7 @@ value of `tabbar-buffer-group-mode'.  Otherwise just call the function
             (tabbar-normalize-image off 1)
           (setq off (get-text-property 0 'display (car lab))))
       (setcar lab
-              (if tabbar-buffer-group-mode
+              (if tabbar-buffer-show-groups-flag
                   (propertize (or (caar btn) (car lab)) 'display on)
                 (propertize (or (cadr btn) (car lab)) 'display off)))
       ))
@@ -1625,7 +1705,7 @@ value of `tabbar-buffer-group-mode'.  Otherwise just call the function
 (defun tabbar-buffer-tab-label (tab)
   "Return a label for TAB.
 That is, a string used to represent it on the tab bar."
-  (let ((label  (if tabbar-buffer-group-mode
+  (let ((label  (if tabbar-buffer-show-groups-flag
                     (format "[%s]" (tabbar-tab-tabset tab))
                   (format "%s" (tabbar-tab-value tab)))))
     ;; Unless tracking the selected tab, which auto-hscroll the tab
@@ -1640,7 +1720,7 @@ That is, a string used to represent it on the tab bar."
 
 (defun tabbar-buffer-help-on-tab (tab)
   "Return the help string shown when mouse is onto TAB."
-  (if tabbar-buffer-group-mode
+  (if tabbar-buffer-show-groups-flag
       (let* ((tabset (tabbar-tab-tabset tab))
              (tab (tabbar-selected-tab tabset)))
         (format "mouse-1: switch to buffer %S in group [%s]"
@@ -1662,17 +1742,18 @@ mouse-2: pop to buffer, mouse-3: delete other windows"
      (t
       (switch-to-buffer buffer)))
     ;; Disable group mode.
-    (tabbar-buffer-set-group-mode nil)
+    (tabbar-buffer-show-groups nil)
     ))
 
 (defun tabbar-buffer-click-on-home (event)
   "Handle a mouse click EVENT on the tab bar home button.
-mouse-1, toggle the display of tabs for group of buffers.
+mouse-1, toggle the display of tabs for groups of buffers.
 mouse-3, close the current buffer."
   (let ((mouse-button (event-basic-type event)))
     (cond
      ((eq mouse-button 'mouse-1)
-      (tabbar-buffer-set-group-mode (not tabbar-buffer-group-mode)))
+      (tabbar-buffer-show-groups
+       (not tabbar-buffer-show-groups-flag)))
      ((eq mouse-button 'mouse-3)
       (kill-buffer nil))
      )))
@@ -1680,11 +1761,13 @@ mouse-3, close the current buffer."
 (defun tabbar-buffer-help-on-home ()
   "Return the help string shown when mouse is onto the toggle button."
   (concat
-   (if tabbar-buffer-group-mode
+   (if tabbar-buffer-show-groups-flag
        "mouse-1: show buffers in selected group"
      "mouse-1: show groups of buffers")
    ", mouse-3: close current buffer"))
 
 (provide 'tabbar)
 
+(run-hooks 'tabbar-load-hook)
+
 ;;; tabbar.el ends here
