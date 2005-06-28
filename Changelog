@@ -1,3 +1,28 @@
+2005-06-28  David Ponce  <david@dponce.com>
+
+	* tabbar.el:
+
+	(tabbar-header-line-format)
+	(tabbar-default-inhibit-function): Move.
+	(tabbar-cycle): If navigation through groups is requested, and
+	there is only one group, navigate through visible tabs.
+	(tabbar-old-global-hlf, tabbar-mode-on-p)
+	(tabbar-prefix-key, tabbar-mode-map)
+	(tabbar-buffer-kill-buffer-hook): Doc fix.
+	(tabbar-old-local-hlf, tabbar-local-mode): Move.  Doc fix.
+
+	New Tabbar-Mwheel minor mode to use the mouse wheel to navigate
+	through tabs or groups.
+	
+	(tabbar-mwheel-backward, tabbar-mwheel-forward)
+	(tabbar-mwheel-backward-group, tabbar-mwheel-forward-group)
+	(tabbar-mwheel-backward-tab, tabbar-mwheel-forward-tab)
+	(tabbar-mwheel-switch-tab)
+	(tabbar-mwheel-switch-group): New commands.
+	(tabbar-mwheel-mode-map): New variable.
+	(tabbar-mwheel-up-p, tabbar-mwheel-follow)
+	(tabbar-mwheel-mode): New functions.
+	
 2005-06-27  David Ponce  <david@dponce.com>
 
 	* tabbar.el:
