@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 25 February 2003
 ;; Keywords: convenience
-;; Revision: $Id: tabbar.el,v 1.59 2005/06/27 10:30:44 ponced Exp $
+;; Revision: $Id: tabbar.el,v 1.60 2005/06/28 09:34:08 ponced Exp $
 
 (defconst tabbar-version "1.6")
 
@@ -29,15 +29,15 @@
 
 ;;; Commentary:
 ;;
-;;  This library provides the global minor mode Tabbar-Mode to display
-;;  a tab bar in the header line of Emacs 21 and later versions.  You
+;;  This library provides the Tabbar global minor mode to display a
+;;  tab bar in the header line of Emacs 21 and later versions.  You
 ;;  can use the mouse to click on a tab and select it.  Also, three
 ;;  buttons are displayed on the left side of the tab bar in this
 ;;  order: the "home", "scroll left", and "scroll right" buttons.  The
 ;;  "home" button is a general purpose button used to change something
 ;;  on the tab bar.  The scroll left and scroll right buttons are used
-;;  to scroll tabs horizontally.  Tabs can be divided up into groups to
-;;  maintain several sets of tabs at the same time (see also the
+;;  to scroll tabs horizontally.  Tabs can be divided up into groups
+;;  to maintain several sets of tabs at the same time (see also the
 ;;  chapter "Core" below for more details on tab grouping).  Only one
 ;;  group is displayed on the tab bar, and the "home" button, for
 ;;  example, can be used to navigate through the different groups, to
@@ -53,16 +53,21 @@
 ;;
 ;;  `tabbar-mode'
 ;;
-;;    Toggle the tab bar global minor mode.  When enabled a tab bar is
+;;    Toggle the Tabbar global minor mode.  When enabled a tab bar is
 ;;    displayed in the header line.
 ;;
 ;;  `tabbar-local-mode'         (C-c <C-f10>)
 ;;
-;;    Toggle the tab bar local minor mode.  Provided the global minor
+;;    Toggle the Tabbar-Local minor mode.  Provided the global minor
 ;;    mode is turned on, the tab bar becomes local in the current
-;;    buffer when the local minor mode is enabled.  This permits to see
-;;    the tab bar in a buffer where the header line is already used by
-;;    another mode (like `Info-mode' for example).
+;;    buffer when the local minor mode is enabled.  This permits to
+;;    see the tab bar in a buffer where the header line is already
+;;    used by another mode (like `Info-mode' for example).
+;;
+;;  `tabbar-mwheel-mode'
+;;
+;;    Toggle the Tabbar-Mwheel global minor mode.  When enabled you
+;;    can use the mouse wheel to navigate through tabs of groups.
 ;;
 ;;  `tabbar-press-home'         (C-c <C-home>)
 ;;  `tabbar-press-scroll-left'  (C-c <C-prior>)
@@ -1224,6 +1229,19 @@ Inhibit display of the tab bar in current window if any of the
     ;; When available, use a cached tab bar value, else recompute it.
     (or (tabbar-template tabbar-current-tabset)
         (tabbar-line-format tabbar-current-tabset)))))
+
+(defconst tabbar-header-line-format '(:eval (tabbar-line))
+  "The tab bar header line format.")
+
+(defun tabbar-default-inhibit-function ()
+  "Inhibit display of the tab bar in specified windows.
+That is dedicated windows, and `checkdoc' status windows."
+  (or (window-dedicated-p (selected-window))
+      (member (buffer-name)
+              (list " *Checkdoc Status*"
+                    (if (boundp 'ispell-choices-buffer)
+                        ispell-choices-buffer
+                      "*Choices*")))))
 
 ;;; Cyclic navigation through tabs
 ;;
@@ -1235,13 +1253,20 @@ If optional argument BACKWARD is non-nil, cycle to the previous tab
 instead.
 Optional argument TYPE is a mouse event type (see the function
 `tabbar-make-mouse-event' for details)."
-  (let ((tabset (tabbar-current-tabset t))
-        selected tab)
+  (let* ((tabset (tabbar-current-tabset t))
+         (ttabset (tabbar-get-tabsets-tabset))
+         ;; If navigation through groups is requested, and there is
+         ;; only one group, navigate through visible tabs.
+         (cycle (if (and (eq tabbar-cycle-scope 'groups)
+                         (not (cdr (tabbar-tabs ttabset))))
+                    'tabs
+                  tabbar-cycle-scope))
+         selected tab)
     (when tabset
       (setq selected (tabbar-selected-tab tabset))
       (cond
        ;; Cycle through visible tabs only.
-       ((eq tabbar-cycle-scope 'tabs)
+       ((eq cycle 'tabs)
         (setq tab (tabbar-tab-next tabset selected backward))
         ;; When there is no tab after/before the selected one, cycle
         ;; to the first/last visible tab.
@@ -1250,13 +1275,12 @@ Optional argument TYPE is a mouse event type (see the function
                 tab (car (if backward (last tabset) tabset))))
         )
        ;; Cycle through tab groups only.
-       ((eq tabbar-cycle-scope 'groups)
-        (setq tabset (tabbar-get-tabsets-tabset)
-              tab (tabbar-tab-next tabset selected backward))
+       ((eq cycle 'groups)
+        (setq tab (tabbar-tab-next ttabset selected backward))
         ;; When there is no group after/before the selected one, cycle
         ;; to the first/last available group.
         (unless tab
-          (setq tabset (tabbar-tabs tabset)
+          (setq tabset (tabbar-tabs ttabset)
                 tab (car (if backward (last tabset) tabset))))
         )
        (t
@@ -1265,12 +1289,11 @@ Optional argument TYPE is a mouse event type (see the function
         ;; When there is no visible tab after/before the selected one,
         ;; cycle to the next/previous available group.
         (unless tab
-          (setq tabset (tabbar-get-tabsets-tabset)
-                tab (tabbar-tab-next tabset selected backward))
+          (setq tab (tabbar-tab-next ttabset selected backward))
           ;; When there is no next/previous group, cycle to the
           ;; first/last available group.
           (unless tab
-            (setq tabset (tabbar-tabs tabset)
+            (setq tabset (tabbar-tabs ttabset)
                   tab (car (if backward (last tabset) tabset))))
           ;; Select the first/last visible tab of the new group.
           (setq tabset (tabbar-tabs (tabbar-tab-tabset tab))
@@ -1357,64 +1380,104 @@ mouse-2, or mouse-3 click.  The default is a mouse-1 click."
   (interactive "p")
   (tabbar-click-on-button 'scroll-right (tabbar--mouse arg)))
 
-;;; Minor modes
+;;; Mouse-wheel commands
 ;;
-(defconst tabbar-header-line-format '(:eval (tabbar-line))
-  "The tab bar header line format.")
+(require 'mwheel)
 
+;;;###autoload
+(defun tabbar-mwheel-backward (event)
+  "Select the previous available tab.
+EVENT is the mouse event that triggered this command.
+Mouse-enabled equivalent of the command `tabbar-backward'."
+  (interactive "@e")
+  (tabbar-cycle t event))
+
+;;;###autoload
+(defun tabbar-mwheel-forward (event)
+  "Select the next available tab.
+EVENT is the mouse event that triggered this command.
+Mouse-enabled equivalent of the command `tabbar-forward'."
+  (interactive "@e")
+  (tabbar-cycle nil event))
+
+;;;###autoload
+(defun tabbar-mwheel-backward-group (event)
+  "Go to selected tab in the previous available group.
+If there is only one group, select the previous visible tab.
+EVENT is the mouse event that triggered this command.
+Mouse-enabled equivalent of the command `tabbar-backward-group'."
+  (interactive "@e")
+  (let ((tabbar-cycle-scope 'groups))
+    (tabbar-cycle t event)))
+
+;;;###autoload
+(defun tabbar-mwheel-forward-group (event)
+  "Go to selected tab in the next available group.
+If there is only one group, select the next visible tab.
+EVENT is the mouse event that triggered this command.
+Mouse-enabled equivalent of the command `tabbar-forward-group'."
+  (interactive "@e")
+  (let ((tabbar-cycle-scope 'groups))
+    (tabbar-cycle nil event)))
+
+;;;###autoload
+(defun tabbar-mwheel-backward-tab (event)
+  "Select the previous visible tab.
+EVENT is the mouse event that triggered this command.
+Mouse-enabled equivalent of the command `tabbar-backward-tab'."
+  (interactive "@e")
+  (let ((tabbar-cycle-scope 'tabs))
+    (tabbar-cycle t event)))
+
+;;;###autoload
+(defun tabbar-mwheel-forward-tab (event)
+  "Select the next visible tab.
+EVENT is the mouse event that triggered this command.
+Mouse-enabled equivalent of the command `tabbar-forward-tab'."
+  (interactive "@e")
+  (let ((tabbar-cycle-scope 'tabs))
+    (tabbar-cycle nil event)))
+
+;;; Wrappers when there is only one generic mouse-wheel event
+;;
+(defsubst tabbar-mwheel-up-p (event)
+  "Return non-nil if EVENT is a mouse-wheel up event."
+  (let ((x (event-basic-type event)))
+    (if (eq 'mouse-wheel x)
+        (< (car (cdr (cdr event))) 0)   ;; Emacs 21.3
+      ;; Emacs > 21.3
+      (eq x (if (boundp 'mouse-wheel-up-event)
+                mouse-wheel-up-event
+              mouse-wheel-up-button)))))
+
+;;;###autoload
+(defun tabbar-mwheel-switch-tab (event)
+  "Select the next or previous tab according to EVENT."
+  (interactive "@e")
+  (if (tabbar-mwheel-up-p event)
+      (tabbar-mwheel-forward-tab event)
+    (tabbar-mwheel-backward-tab event)))
+
+;;;###autoload
+(defun tabbar-mwheel-switch-group (event)
+  "Select the next or previous group of tabs according to EVENT."
+  (interactive "@e")
+  (if (tabbar-mwheel-up-p event)
+      (tabbar-mwheel-forward-group event)
+    (tabbar-mwheel-backward-group event)))
+
+;;; Tabbar minor mode
+;;
 (defvar tabbar-old-global-hlf nil
-  "Global value of the header line when entering tab bar mode.")
-
-(defvar tabbar-old-local-hlf nil
-  "Local value of the header line when entering tab bar local mode.")
-(make-variable-buffer-local 'tabbar-old-local-hlf)
+  "Global value of the header line when entering Tabbar mode.")
 
 (defsubst tabbar-mode-on-p ()
-  "Return non-nil if tab bar mode is on."
+  "Return non-nil if Tabbar mode is on."
   (eq (default-value 'header-line-format)
       tabbar-header-line-format))
 
-;;;###autoload
-(define-minor-mode tabbar-local-mode
-  "Toggle local display of the tab bar.
-With prefix argument ARG, turn on if positive, otherwise off.
-When turned on:
-  If a local header line is shown, it is hidden to show the tab bar.
-  Otherwise the tab bar is locally hidden.
-When turned off:
-  If a local header line is hidden or the tab bar is locally hidden,
-  it is shown again.
-Returns non-nil if the new state is enabled.
-Does nothing if the tab bar global mode is off."
-  :global nil
-  :group 'tabbar
-  (unless (tabbar-mode-on-p)
-    (error "Tab bar mode must be enabled"))
-;;; ON
-  (if tabbar-local-mode
-      (if (and (local-variable-p 'header-line-format)
-               header-line-format)
-          ;; A local header line exists, hide it to show the tab bar.
-          (progn
-            ;; Fail in case of an inconsistency because another local
-            ;; header line is already hidden.
-            (when (local-variable-p 'tabbar-old-local-hlf)
-              (error "Another local header line is already hidden"))
-            (setq tabbar-old-local-hlf header-line-format)
-            (kill-local-variable 'header-line-format))
-        ;; Otherwise hide the tab bar in this buffer.
-        (setq header-line-format nil))
-;;; OFF
-    (if (local-variable-p 'tabbar-old-local-hlf)
-        ;; A local header line is hidden, show it again.
-        (progn
-          (setq header-line-format tabbar-old-local-hlf)
-          (kill-local-variable 'tabbar-old-local-hlf))
-      ;; The tab bar is locally hidden, show it again.
-      (kill-local-variable 'header-line-format))))
-
 (defvar tabbar-prefix-key [(control ?c)]
-  "The common prefix key used in tab bar minor mode.")
+  "The common prefix key used in Tabbar mode.")
 
 (defvar tabbar-prefix-map
   (let ((km (make-sparse-keymap)))
@@ -1427,13 +1490,13 @@ Does nothing if the tab bar global mode is off."
     (define-key km [(control next)]  'tabbar-press-scroll-right)
     (define-key km [(control f10)]   'tabbar-local-mode)
     km)
-  "The key bindings provided in tab bar minor mode.")
+  "The key bindings provided in Tabbar mode.")
 
 (defvar tabbar-mode-map
   (let ((km (make-sparse-keymap)))
     (define-key km tabbar-prefix-key tabbar-prefix-map)
     km)
-  "Keymap to use in tab bar minor mode.")
+  "Keymap to use in  Tabbar mode.")
 
 ;;;###autoload
 (define-minor-mode tabbar-mode
@@ -1455,7 +1518,7 @@ Returns non-nil if the new state is enabled.
         (setq-default header-line-format tabbar-header-line-format))
 ;;; OFF
     (when (tabbar-mode-on-p)
-      ;; Turn off locals tab bar mode.
+      ;; Turn off Tabbar-Local mode globally.
       (mapc #'(lambda (b)
                 (condition-case nil
                     (with-current-buffer b
@@ -1468,22 +1531,108 @@ Returns non-nil if the new state is enabled.
       (tabbar-free-tabsets-store)
       (remove-hook 'kill-buffer-hook 'tabbar-buffer-kill-buffer-hook))
     ))
-
-;;; Hooks
-;;
-(defun tabbar-default-inhibit-function ()
-  "Inhibit display of the tab bar in specified windows.
-That is dedicated windows, and `checkdoc' status windows."
-  (or (window-dedicated-p (selected-window))
-      (member (buffer-name)
-              (list " *Checkdoc Status*"
-                    (if (boundp 'ispell-choices-buffer)
-                        ispell-choices-buffer
-                      "*Choices*")))))
 
+;;; Tabbar-Local mode
+;;
+(defvar tabbar-old-local-hlf nil
+  "Local value of the header line when entering Tabbar-Local mode.")
+
+;;;###autoload
+(define-minor-mode tabbar-local-mode
+  "Toggle local display of the tab bar.
+With prefix argument ARG, turn on if positive, otherwise off.
+Returns non-nil if the new state is enabled.
+When turned on, if a local header line is shown, it is hidden to show
+the tab bar.  The tab bar is locally hidden otherwise.  When turned
+off, if a local header line is hidden or the tab bar is locally
+hidden, it is shown again.  Signal an error if Tabbar mode is off."
+  :group 'tabbar
+  :global nil
+  (unless (tabbar-mode-on-p)
+    (error "Tabbar mode must be enabled"))
+;;; ON
+  (if tabbar-local-mode
+      (if (and (local-variable-p 'header-line-format)
+               header-line-format)
+          ;; A local header line exists, hide it to show the tab bar.
+          (progn
+            ;; Fail in case of an inconsistency because another local
+            ;; header line is already hidden.
+            (when (local-variable-p 'tabbar-old-local-hlf)
+              (error "Another local header line is already hidden"))
+            (set (make-local-variable 'tabbar-old-local-hlf)
+                 header-line-format)
+            (kill-local-variable 'header-line-format))
+        ;; Otherwise hide the tab bar in this buffer.
+        (setq header-line-format nil))
+;;; OFF
+    (if (local-variable-p 'tabbar-old-local-hlf)
+        ;; A local header line is hidden, show it again.
+        (progn
+          (setq header-line-format tabbar-old-local-hlf)
+          (kill-local-variable 'tabbar-old-local-hlf))
+      ;; The tab bar is locally hidden, show it again.
+      (kill-local-variable 'header-line-format))))
+
+;;; Tabbar-Mwheel mode
+;;
+(defvar tabbar-mwheel-mode-map
+  (let ((km (make-sparse-keymap)))
+    (if (get 'mouse-wheel 'event-symbol-elements)
+        ;; Use one generic mouse wheel event
+        (define-key km [A-mouse-wheel]
+          'tabbar-mwheel-switch-group)
+      ;; Use separate up/down mouse wheel events
+      (let ((up   (if (boundp 'mouse-wheel-up-event)
+                      mouse-wheel-up-event
+                    (intern (format "mouse-%s"
+                                    mouse-wheel-up-button))))
+            (down (if (boundp 'mouse-wheel-down-event)
+                      mouse-wheel-down-event
+                    (intern (format "mouse-%s"
+                                    mouse-wheel-down-button)))))
+        (define-key km `[header-line ,down]
+          'tabbar-mwheel-backward-group)
+        (define-key km `[header-line ,up]
+          'tabbar-mwheel-forward-group)
+        (define-key km `[header-line (control ,down)]
+          'tabbar-mwheel-backward-tab)
+        (define-key km `[header-line (control ,up)]
+          'tabbar-mwheel-forward-tab)
+        (define-key km `[header-line (shift ,down)]
+          'tabbar-mwheel-backward)
+        (define-key km `[header-line (shift ,up)]
+          'tabbar-mwheel-forward)
+        ))
+    km)
+  "Keymap to use in Tabbar-Mwheel mode.")
+
+;;;###autoload
+(define-minor-mode tabbar-mwheel-mode
+  "Toggle use of the mouse wheel to navigate through tabs or groups.
+With prefix argument ARG, turn on if positive, otherwise off.
+Returns non-nil if the new state is enabled.
+
+\\{tabbar-mwheel-mode-map}"
+  :group 'tabbar
+  :global t
+  :keymap tabbar-mwheel-mode-map
+  (when tabbar-mwheel-mode
+    (unless (and mouse-wheel-mode tabbar-mode)
+      (tabbar-mwheel-mode -1))))
+
+(defun tabbar-mwheel-follow ()
+  "Toggle Tabbar-Mwheel following Tabbar and Mouse-Wheel modes."
+  (tabbar-mwheel-mode (if (and mouse-wheel-mode tabbar-mode) 1 -1)))
+
+(add-hook 'tabbar-mode-hook      'tabbar-mwheel-follow)
+(add-hook 'mouse-wheel-mode-hook 'tabbar-mwheel-follow)
+
+;;; Buffer tabs
+;;
 (defun tabbar-buffer-kill-buffer-hook ()
   "Hook run just before actually killing a buffer.
-In tab bar mode, try to switch to a buffer in the current tab bar,
+In Tabbar mode, try to switch to a buffer in the current tab bar,
 after the current buffer has been killed.  Try first the buffer in tab
 after the current one, then the buffer in tab before.  On success, put
 the sibling buffer in front of the buffer list, so it will be selected
@@ -1504,9 +1653,7 @@ first."
            ;; Move sibling buffer in front of the buffer list.
            (save-current-buffer
              (switch-to-buffer sibling))))))
-
-;;; Buffer tabs
-;;
+
 (defcustom tabbar-buffer-home-button
   (cons (cons "[+]" tabbar-home-button-enabled-image)
         (cons "[-]" tabbar-home-button-disabled-image))
@@ -1741,7 +1888,7 @@ mouse-2: pop to buffer, mouse-3: delete other windows"
       (delete-other-windows))
      (t
       (switch-to-buffer buffer)))
-    ;; Disable group mode.
+    ;; Don't show groups.
     (tabbar-buffer-show-groups nil)
     ))
 
