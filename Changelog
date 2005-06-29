@@ -1,3 +1,55 @@
+2005-06-29  David Ponce  <david@dponce.com>
+
+	* tabbar.el
+
+	Major version.  A lot of code cleanup.  Separate buffer tabs
+	implementation from core functions, so it can be moved into
+	another library.
+	
+	(tabbar-version): Update to 2.0.
+	(tabbar-auto-scroll-flag): Rename from
+	`tabbar-selected-tab-always-visible'.  All references updated.
+	(tabbar-init-hook): Move. Defvar it.
+	(tabbar-inhibit-functions): Defvar it and initialize to nil.
+	(tabbar-current-tabset-function, tabbar-tab-label-function)
+	(tabbar-select-tab-function, tabbar-help-on-tab-function)
+	(tabbar-button-label-function, tabbar-home-function)
+	(tabbar-home-help-function): Likewise.
+	(tabbar-scroll-left-function): Defvar it.
+	(tabbar-scroll-left-help-function, tabbar-scroll-right-function)
+	(tabbar-scroll-right-help-function, tabbar-buffer-list-function)
+	(tabbar-buffer-groups-function): Likewise.
+	(tabbar-quit-hook): New hook.
+	(tabbar-init-tabsets-store): Use it.  Don't call
+	`tabbar-free-tabsets-store'.
+	(tabbar-free-tabsets-store): Move.  Don't set
+	`tabbar-current-tabset'.
+	(tabbar--track-selected): Rename from `tabbar-show-selected'.  All
+	references updated.
+	(tabbar-line-button): Take into account when
+	`tabbar-button-label-function' is nil.
+	(tabbar-truncated-p): Remove.
+	(tabbar-line-format): Improve auto-scroll.
+	(tabbar--global-hlf): Rename from `tabbar-old-global-hlf'.  All
+	references updated.
+	(tabbar--local-hlf): Rename from `tabbar-old-local-hlf'.  All
+	references updated.  Move.
+	(tabbar-local-mode): Move.
+	(tabbar-mode): Don't setup `kill-buffer-hook'.
+	(tabbar-buffer): New custom group.
+	(tabbar-buffer-home-button): Move into it.
+	(tabbar-buffer-update-groups): Take into account when
+	`tabbar-buffer-list-function' or `tabbar-buffer-groups-function'
+	are nil.
+	(tabbar--buffer-show-groups): Rename from
+	`tabbar-buffer-show-groups-flag'.  All references updated.
+	(tabbar-buffer-tab-label): Use `tabbar-auto-scroll-flag' instead
+	of an internal variable.
+	(tabbar-buffer-track-killed): Rename from
+	`tabbar-buffer-kill-buffer-hook'.  Move.
+	(tabbar-buffer-init): Move.  Do all tabbar-buffer setup here.
+	(tabbar-buffer-quit): New function.  Add to `tabbar-quit-hook'.
+
 2005-06-28  David Ponce  <david@dponce.com>
 
 	* tabbar.el:
