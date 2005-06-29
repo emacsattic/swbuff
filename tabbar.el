@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 25 February 2003
 ;; Keywords: convenience
-;; Revision: $Id: tabbar.el,v 1.61 2005/06/29 07:04:17 ponced Exp $
+;; Revision: $Id: tabbar.el,v 1.62 2005/06/29 18:18:33 ponced Exp $
 
 (defconst tabbar-version "2.0")
 
@@ -1350,10 +1350,40 @@ mouse-2, or mouse-3 click.  The default is a mouse-1 click."
   (interactive "p")
   (tabbar-click-on-button 'scroll-right (tabbar--mouse arg)))
 
-;;; Mouse-wheel commands
+;;; Mouse-wheel support
 ;;
 (require 'mwheel)
 
+;;; Compatibility
+;;
+(defconst tabbar--mwheel-up-event
+  (symbol-value (if (boundp 'mouse-wheel-up-event)
+                    'mouse-wheel-up-event
+                  'mouse-wheel-up-button)))
+
+(defconst tabbar--mwheel-down-event
+  (symbol-value (if (boundp 'mouse-wheel-down-event)
+                    'mouse-wheel-down-event
+                  'mouse-wheel-down-button)))
+
+(defsubst tabbar--mwheel-key (event-type)
+  "Return a mouse wheel key symbol from EVENT-TYPE.
+When EVENT-TYPE is a symbol return it.
+When it is a button number, return symbol `mouse-<EVENT-TYPE>'."
+  (if (symbolp event-type)
+      event-type
+    (intern (format "mouse-%s" event-type))))
+
+(defsubst tabbar--mwheel-up-p (event)
+  "Return non-nil if EVENT is a mouse-wheel up event."
+  (let ((x (event-basic-type event)))
+    (if (eq 'mouse-wheel x)
+        (< (car (cdr (cdr event))) 0)   ;; Emacs 21.3
+      ;; Emacs > 21.3
+      (eq x tabbar--mwheel-up-event))))
+
+;;; Basic commands
+;;
 ;;;###autoload
 (defun tabbar-mwheel-backward (event)
   "Select the previous available tab.
@@ -1410,21 +1440,11 @@ Mouse-enabled equivalent of the command `tabbar-forward-tab'."
 
 ;;; Wrappers when there is only one generic mouse-wheel event
 ;;
-(defsubst tabbar-mwheel-up-p (event)
-  "Return non-nil if EVENT is a mouse-wheel up event."
-  (let ((x (event-basic-type event)))
-    (if (eq 'mouse-wheel x)
-        (< (car (cdr (cdr event))) 0)   ;; Emacs 21.3
-      ;; Emacs > 21.3
-      (eq x (if (boundp 'mouse-wheel-up-event)
-                mouse-wheel-up-event
-              mouse-wheel-up-button)))))
-
 ;;;###autoload
 (defun tabbar-mwheel-switch-tab (event)
   "Select the next or previous tab according to EVENT."
   (interactive "@e")
-  (if (tabbar-mwheel-up-p event)
+  (if (tabbar--mwheel-up-p event)
       (tabbar-mwheel-forward-tab event)
     (tabbar-mwheel-backward-tab event)))
 
@@ -1432,7 +1452,7 @@ Mouse-enabled equivalent of the command `tabbar-forward-tab'."
 (defun tabbar-mwheel-switch-group (event)
   "Select the next or previous group of tabs according to EVENT."
   (interactive "@e")
-  (if (tabbar-mwheel-up-p event)
+  (if (tabbar--mwheel-up-p event)
       (tabbar-mwheel-forward-group event)
     (tabbar-mwheel-backward-group event)))
 
@@ -1518,6 +1538,7 @@ Returns non-nil if the new state is enabled.
 
 \\{tabbar-mode-map}"
   :group 'tabbar
+  :require 'tabbar
   :global t
   :keymap tabbar-mode-map
   (if tabbar-mode
@@ -1551,14 +1572,8 @@ Returns non-nil if the new state is enabled.
         (define-key km [A-mouse-wheel]
           'tabbar-mwheel-switch-group)
       ;; Use separate up/down mouse wheel events
-      (let ((up   (if (boundp 'mouse-wheel-up-event)
-                      mouse-wheel-up-event
-                    (intern (format "mouse-%s"
-                                    mouse-wheel-up-button))))
-            (down (if (boundp 'mouse-wheel-down-event)
-                      mouse-wheel-down-event
-                    (intern (format "mouse-%s"
-                                    mouse-wheel-down-button)))))
+      (let ((up   (tabbar--mwheel-key tabbar--mwheel-up-event))
+            (down (tabbar--mwheel-key tabbar--mwheel-down-event)))
         (define-key km `[header-line ,down]
           'tabbar-mwheel-backward-group)
         (define-key km `[header-line ,up]
@@ -1583,6 +1598,7 @@ Returns non-nil if the new state is enabled.
 
 \\{tabbar-mwheel-mode-map}"
   :group 'tabbar
+  :require 'tabbar
   :global t
   :keymap tabbar-mwheel-mode-map
   (when tabbar-mwheel-mode
@@ -1706,7 +1722,7 @@ Return the the first group where the current buffer is."
                           (buffer-name)
                           (if tabbar-buffer-groups-function
                               (funcall tabbar-buffer-groups-function)
-                            "Common"))))
+                            '("Common")))))
               (and tabbar-buffer-list-function
                    (funcall tabbar-buffer-list-function)))
              #'(lambda (e1 e2)
