@@ -2,6 +2,18 @@
 
 	* tabbar.el
 
+	(tabbar--mwheel-up-event)
+	(tabbar--mwheel-down-event): New variables.
+	(tabbar--mwheel-up-p): Rename from `tabbar-mwheel-up-p'.  Move.
+	(tabbar-mwheel-switch-tab, tabbar-mwheel-switch-group): Use it.
+	(tabbar-mwheel-mode-map): Likewise.
+	(tabbar-mode, tabbar-mwheel-mode): Add :require.
+	(tabbar-buffer-update-groups): Fix last change.
+
+2005-06-29  David Ponce  <david@dponce.com>
+
+	* tabbar.el
+
 	Major version.  A lot of code cleanup.  Separate buffer tabs
 	implementation from core functions, so it can be moved into
 	another library.
