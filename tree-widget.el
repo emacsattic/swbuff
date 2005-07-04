@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 16 Feb 2001
 ;; Keywords: extensions
-;; Revision: $Id: tree-widget.el,v 1.25 2005/07/04 08:06:07 ponced Exp $
+;; Revision: $Id: tree-widget.el,v 1.26 2005/07/04 12:06:31 ponced Exp $
 
 (defconst tree-widget-version "2.3")
 
@@ -419,7 +419,7 @@ Handle mouse button 1 click on buttons.")
   :tag       "[-] "
   ;;:tag-glyph (tree-widget-find-image "open")
   :notify    'tree-widget-close-node
-  :help-echo "Hide node"
+  :help-echo "Collapse node"
   )
 
 (define-widget 'tree-widget-empty-control 'tree-widget-open-control
@@ -433,7 +433,7 @@ Handle mouse button 1 click on buttons.")
   :tag       "[+] "
   ;;:tag-glyph (tree-widget-find-image "close")
   :notify    'tree-widget-open-node
-  :help-echo "Show node"
+  :help-echo "Expand node"
   )
 
 (define-widget 'tree-widget-leaf-control 'item
