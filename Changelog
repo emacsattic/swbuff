@@ -1,3 +1,15 @@
+2005-07-04  David Ponce  <david@dponce.com>
+
+	* tree-widget.el:
+
+	Header Commentary fix.
+	(tree-widget-themes-directory, tree-widget-empty-control)
+	(tree-widget-open-control, tree-widget-close-control)
+	(tree-widget-after-toggle-functions)
+	(tree-widget-close-node, tree-widget-open-node): Doc fix.
+	(tree-widget-value-create): Use :expander property instead of
+	:defer.
+
 2005-07-01  David Ponce  <david@dponce.com>
 
 	* tree-widget.el
