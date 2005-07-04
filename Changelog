@@ -1,14 +1,42 @@
 2005-07-04  David Ponce  <david@dponce.com>
 
-	* tree-widget.el:
+	* tree-widget.el
 
 	Header Commentary fix.
 	(tree-widget-themes-directory, tree-widget-empty-control)
-	(tree-widget-open-control, tree-widget-close-control)
 	(tree-widget-after-toggle-functions)
 	(tree-widget-close-node, tree-widget-open-node): Doc fix.
+	(tree-widget-open-control, tree-widget-close-control): Doc and
+	:help-echo fix.
 	(tree-widget-value-create): Use :expander property instead of
 	:defer.
+
+	* dir-tree.el
+
+	(cl): Require at compilation time.
+	(dir-tree-overlay-lists, dir-tree-delete-overlay)
+	(dir-tree-toggle-selection, dir-tree-list): Simplify.
+	(dir-tree-dir-widget): Remove :has-children.
+	(dir-tree-file-widget): Add :help-echo, :keymap, and
+	:button-keymap.
+	(dir-tree-widget): Likewise in :node push-button.
+	(dir-tree-refresh-dir): Doc fix.
+	(dir-tree-expand-dir): Doc and messages fix.
+	(dir-tree-close): New function.
+	(dir-tree): Doc fix.  Add a close button.  Code cleanup.
+
+	* tree-widget-examples.el
+
+	(tree-widget-examples-version): Update to 1.3.
+	(tree-widget-example-overlay-lists)
+	(tree-widget-example-delete-overlay): Simplify.
+	(tree-widget-example-2*): Rename from tree-widget-example-11*.
+	(tree-widget-example-3*): Rename from tree-widget-example-2*.
+	(tree-widget-example-2-track-open-state): Rename from
+	tree-widget-example-11-after-toggle-fcn.  Update caller.
+	(tree-widget-example-dialog): New macro.
+	(tree-widget-example-1, tree-widget-example-2)
+	(tree-widget-example-3): Use it.
 
 2005-07-01  David Ponce  <david@dponce.com>
 
