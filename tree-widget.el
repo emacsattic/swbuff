@@ -6,11 +6,11 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 16 Feb 2001
 ;; Keywords: extensions
-;; Revision: $Id: tree-widget.el,v 1.24 2005/07/01 21:52:29 ponced Exp $
+;; Revision: $Id: tree-widget.el,v 1.25 2005/07/04 08:06:07 ponced Exp $
 
 (defconst tree-widget-version "2.3")
 
-;; This file is not part of Emacs
+;; This file is part of GNU Emacs
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -35,32 +35,32 @@
 ;; The following properties are specific to the tree widget:
 ;;
 ;; :open
-;;    Set to non-nil to unfold the tree.  By default the tree is
-;;    folded.
+;;    Set to non-nil to expand the tree.  By default the tree is
+;;    collapsed.
 ;;
 ;; :node
-;;    Specify the widget used to represent a tree node.  By default
-;;    this is an `item' widget which displays the tree-widget :tag
-;;    property value if defined or a string representation of the
-;;    tree-widget value.
+;;    Specify the widget used to represent the value of a tree node.
+;;    By default this is an `item' widget which displays the
+;;    tree-widget :tag property value if defined, or a string
+;;    representation of the tree-widget value.
 ;;
 ;; :keep
-;;    Specify a list of properties to keep when the tree is
-;;    folded so they can be recovered when the tree is unfolded.
-;;    This property can be used in child widgets too.
+;;    Specify a list of properties to keep when the tree is collapsed
+;;    so they can be recovered when the tree is expanded.  This
+;;    property can be used in child widgets too.
 ;;
-;; :defer (obsoletes :dynargs)
+;; :expander (obsoletes :dynargs)
 ;;    Specify a function to be called to dynamically provide the
-;;    tree's children in response to an unfold request.  This
-;;    function will be passed the tree widget and must return a list
-;;    of child widgets.
+;;    tree's children in response to an expand request.  This function
+;;    will be passed the tree widget and must return a list of child
+;;    widgets.
 ;;
-;;    *Please note:* Child widgets returned by the :defer function are
-;;    stored in the :args property of the tree widget.  To speed up
-;;    successive unfold requests, the :defer function is not called
-;;    again when the :args value is non-nil.  To refresh child values,
-;;    it is necessary to set the :args property to nil, then redraw
-;;    the tree.
+;;    *Please note:* Child widgets returned by the :expander function
+;;    are stored in the :args property of the tree widget.  To speed
+;;    up successive expand requests, the :expander function is not
+;;    called again when the :args value is non-nil.  To refresh child
+;;    values, it is necessary to set the :args property to nil, then
+;;    redraw the tree.
 ;;
 ;; :open-control  (default `tree-widget-open-control')
 ;; :close-control (default `tree-widget-close-control')
@@ -151,11 +151,11 @@ A complete theme must contain images with these file names with a
 supported extension (see also `tree-widget-image-formats'):
 
 \"open\"
-  Represent an unfolded node.
+  Represent an expanded node.
 \"close\"
-  Represent a folded node.
+  Represent a collapsed node.
 \"empty\"
-  Represent an unfolded node with no child.
+  Represent an expanded node with no child.
 \"leaf\"
   Represent a leaf node.
 \"guide\"
@@ -330,8 +330,8 @@ XEmacs in the variables `tree-widget-image-properties-emacs', and
 
 (defconst tree-widget--cursors
   ;; Pointer shapes when the mouse pointer is over tree-widget images.
-  ;; This feature works since Emacs 22, and shoudn't interfere with
-  ;; older versions, nor XEmacs.
+  ;; This feature works since Emacs 22, and ignored on older versions,
+  ;; and XEmacs.
   '(
     ("open"      . hand )
     ("close"     . hand )
@@ -415,7 +415,7 @@ Handle mouse button 1 click on buttons.")
   )
 
 (define-widget 'tree-widget-open-control 'tree-widget-control
-  "Button for an unfolded tree-widget node."
+  "Button for an expanded tree-widget node."
   :tag       "[-] "
   ;;:tag-glyph (tree-widget-find-image "open")
   :notify    'tree-widget-close-node
@@ -423,13 +423,13 @@ Handle mouse button 1 click on buttons.")
   )
 
 (define-widget 'tree-widget-empty-control 'tree-widget-open-control
-  "Button for an unfolded tree-widget node with no child."
+  "Button for an expanded tree-widget node with no child."
   :tag       "[X] "
   ;;:tag-glyph (tree-widget-find-image "empty")
   )
 
 (define-widget 'tree-widget-close-control 'tree-widget-control
-  "Button for a folded tree-widget node."
+  "Button for a collapsed tree-widget node."
   :tag       "[+] "
   ;;:tag-glyph (tree-widget-find-image "close")
   :notify    'tree-widget-open-node
@@ -567,16 +567,16 @@ WIDGET's :node sub-widget."
          (tree-widget-keep arg child)))))
 
 (defvar tree-widget-after-toggle-functions nil
-  "Hooks run after toggling a tree-widget folding.
+  "Hooks run after toggling a tree-widget expansion.
 Each function will receive the tree-widget as its unique argument.
 This hook should be local in the buffer used to display widgets.")
 
 (defun tree-widget-close-node (widget &rest ignore)
-  "Fold the tree-widget, parent of WIDGET.
+  "Collapse the tree-widget, parent of WIDGET.
 WIDGET is, or derives from, a tree-widget-open-control widget.
 IGNORE other arguments."
   (let ((tree (widget-get widget :parent)))
-    ;; Before folding the node up, save children values so next open
+    ;; Before to collapse the node, save children values so next open
     ;; can recover them.
     (tree-widget-children-value-save tree)
     (widget-put tree :open nil)
@@ -584,7 +584,7 @@ IGNORE other arguments."
     (run-hook-with-args 'tree-widget-after-toggle-functions tree)))
 
 (defun tree-widget-open-node (widget &rest ignore)
-  "Unfold the tree-widget, parent of WIDGET.
+  "Expand the tree-widget, parent of WIDGET.
 WIDGET is, or derives from, a tree-widget-close-control widget.
 IGNORE other arguments."
   (let ((tree (widget-get widget :parent)))
@@ -594,18 +594,21 @@ IGNORE other arguments."
 
 (defun tree-widget-value-create (tree)
   "Create the TREE tree-widget."
-  (let* ((widget-image-enable (tree-widget-use-image-p))     ; Emacs
-         (widget-glyph-enable widget-image-enable)           ; XEmacs
-         (node   (tree-widget-node tree))
+  (let* ((node   (tree-widget-node tree))
          (flags  (widget-get tree :tree-widget--guide-flags))
          (indent (widget-get tree :indent))
+         ;; Setup widget's image support.  Looking up for images, and
+         ;; setting widgets' :tag-glyph is done here, to allow to
+         ;; dynamically change the image theme.
+         (widget-image-enable (tree-widget-use-image-p))     ; Emacs
+         (widget-glyph-enable widget-image-enable)           ; XEmacs
          children buttons)
     (and indent (not (widget-get tree :parent))
          (insert-char ?\  indent))
     (if (widget-get tree :open)
-;;;; Unfolded node.
+;;;; Expanded node.
         (let ((args     (widget-get tree :args))
-              (defer    (or (widget-get tree :defer)
+              (xpandr   (or (widget-get tree :expander)
                             (widget-get tree :dynargs)))
               (leaf     (widget-get tree :leaf-control))
               (guide    (widget-get tree :guide))
@@ -613,8 +616,6 @@ IGNORE other arguments."
               (endguide (widget-get tree :end-guide))
               (handle   (widget-get tree :handle))
               (nohandle (widget-get tree :no-handle))
-              ;; Lookup for images, and set widgets' tag-glyphs here,
-              ;; to allow to dynamically change the image theme.
               (leafi    (tree-widget-find-image "leaf"))
               (guidi    (tree-widget-find-image "guide"))
               (noguidi  (tree-widget-find-image "no-guide"))
@@ -623,10 +624,10 @@ IGNORE other arguments."
               (nohandli (tree-widget-find-image "no-handle"))
               child)
           ;; Request children at run time, when not already done.
-          (when (and (not args) defer)
-            (setq args (mapcar 'widget-convert (funcall defer tree)))
+          (when (and (not args) xpandr)
+            (setq args (mapcar 'widget-convert (funcall xpandr tree)))
             (widget-put tree :args args))
-          ;; Insert the node control
+          ;; Insert the node "open" button.
           (push (widget-create-child-and-convert
                  tree (widget-get
                        tree (if args :open-control :empty-control))
@@ -655,7 +656,7 @@ IGNORE other arguments."
             ;; Insert the node handle line
             (widget-create-child-and-convert
              tree handle :tag-glyph handli)
-            ;; If leaf node, insert a leaf node control.
+            ;; If leaf node, insert a leaf node button.
             (unless (tree-widget-p child)
               (push (widget-create-child-and-convert
                      tree leaf :tag-glyph leafi)
@@ -665,8 +666,8 @@ IGNORE other arguments."
                    tree child
                    :tree-widget--guide-flags (cons (if args t) flags))
                   children)))
-;;;; Folded node.
-      ;; Insert the closed node control.
+;;;; Collapsed node.
+      ;; Insert the "closed" node button.
       (push (widget-create-child-and-convert
              tree (widget-get tree :close-control)
              :tag-glyph (tree-widget-find-image "close"))
