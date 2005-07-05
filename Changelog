@@ -1,3 +1,15 @@
+2005-07-05  David Ponce  <david@dponce.com>
+
+	* tree-widget.el
+
+	(tree-widget) [defgroup]: Add :version.
+
+	* tree-widget-examples.el
+
+	Fix provided feature.
+	(tree-widget-example-dialog): Move cursor on first button.
+	(tree-widget-example-4*): New example.
+
 2005-07-04  David Ponce  <david@dponce.com>
 
 	* tree-widget.el
