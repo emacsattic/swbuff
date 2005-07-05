@@ -1,12 +1,12 @@
 ;;; tree-widget-examples.el --- basic examples using the tree-widget
 
-;; Copyright (C) 2001, 2003 by David Ponce
+;; Copyright (C) 2001, 2003, 2005 by David Ponce
 
 ;; Author: David Ponce <david@dponce.com>
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 27 Nov 2001
 ;; Keywords: extensions
-;; Revision: $Id: tree-widget-examples.el,v 1.7 2005/07/04 12:09:42 ponced Exp $
+;; Revision: $Id: tree-widget-examples.el,v 1.8 2005/07/05 07:22:03 ponced Exp $
 
 (defconst tree-widget-examples-version "1.3")
 
@@ -24,8 +24,8 @@
 
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program; see the file COPYING.  If not, write to
-;; the Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-;; Boston, MA 02111-1307, USA.
+;; the Free Software Foundation, Inc., 51 Franklin Street, Fifth
+;; Floor, Boston, MA 02110-1301, USA.
 
 ;;; Commentary:
 ;;
@@ -78,6 +78,8 @@
       "Close")
      (use-local-map widget-keymap)
      (widget-setup)
+     (goto-char (point-min))
+     (widget-move 1)
      (switch-to-buffer (current-buffer))))
 
 (defun tree-widget-example-close (&rest ignore)
@@ -247,6 +249,113 @@ command."
          :tag "Leaf-3.2"))))
     ))
 
-(provide 'tree-widget-example)
+;;; Example 4
+;;
+(define-widget 'tree-widget-example-4-open-control
+  'tree-widget-open-control
+  ""
+  :tag "<< ")
+(define-widget 'tree-widget-example-4-close-control
+  'tree-widget-close-control
+  ""
+  :tag ">> ")
+(define-widget 'tree-widget-example-4-empty-control
+  'tree-widget-empty-control
+  ""
+  :tag "<> ")
+(define-widget 'tree-widget-example-4-leaf-control
+  'tree-widget-leaf-control
+  ""
+  :tag " ` ")
+(define-widget 'tree-widget-example-4-guide
+  'tree-widget-guide
+  ""
+  :tag " ")
+(define-widget 'tree-widget-example-4-end-guide
+  'tree-widget-end-guide
+  ""
+  :tag " ")
+(define-widget 'tree-widget-example-4-no-guide
+  'tree-widget-no-guide
+  ""
+  :tag " ")
+(define-widget 'tree-widget-example-4-handle
+  'tree-widget-handle
+  ""
+  :tag "")
+(define-widget 'tree-widget-example-4-no-handle
+  'tree-widget-no-handle
+  ""
+  :tag "")
+
+(define-widget 'tree-widget-example-4-tree
+  'tree-widget
+  "Tree widget with a customized ASCII look and feel."
+  :open-control  'tree-widget-example-4-open-control
+  :close-control 'tree-widget-example-4-close-control
+  :empty-control 'tree-widget-example-4-empty-control
+  :leaf-control  'tree-widget-example-4-leaf-control
+  :guide         'tree-widget-example-4-guide
+  :end-guide     'tree-widget-example-4-end-guide
+  :no-guide      'tree-widget-example-4-no-guide
+  :handle        'tree-widget-example-4-handle
+  :no-handle     'tree-widget-example-4-no-handle
+  )
+
+(defun tree-widget-example-4 ()
+  "A tree widget with a customized ASCII look and feel."
+  (interactive)
+  (tree-widget-example-dialog "*`tree-widget' example 4*"
+    ;; Don't use images.
+    (set (make-local-variable 'tree-widget-image-enable) nil)
+
+    ;; Create the tree.  Fully expanded it will look like this:
+    ;;
+    ;;   << 1
+    ;;    << 1.0
+    ;;     << 1.0.1
+    ;;       ` 1.0.1.1
+    ;;       ` 1.0.1.2
+    ;;      << 1.0.1.3
+    ;;        ` 1.0.1.3.1
+    ;;        ` 1.0.1.3.2
+    ;;     << 1.0.2
+    ;;       ` 1.0.2.1
+    ;;      << 1.0.2.2
+    ;;        ` 1.0.2.2.1
+    ;;    <> 1.1
+    ;;    << 1.2
+    ;;      ` 1.2.1
+    ;;      ` 1.2.2
+    (apply
+     'widget-create
+     '(tree-widget-example-4-tree
+       :tag "1" :open t :indent 2
+       (tree-widget-example-4-tree
+        :tag "1.0"
+        (tree-widget-example-4-tree
+         :tag "1.0.1"
+         (item :tag "1.0.1.1")
+         (item :tag "1.0.1.2")
+         (tree-widget-example-4-tree
+          :tag "1.0.1.3"
+          (item :tag "1.0.1.3.1")
+          (item :tag "1.0.1.3.2")
+          ))
+        (tree-widget-example-4-tree
+         :tag "1.0.2"
+         (item :tag "1.0.2.1")
+         (tree-widget-example-4-tree
+          :tag "1.0.2.2"
+          (item :tag "1.0.2.2.1")
+          )))
+       (tree-widget-example-4-tree
+        :tag "1.1")
+       (tree-widget-example-4-tree
+        :tag "1.2" :open t
+        (item :tag "1.2.1")
+        (item :tag "1.2.2"))))))
+
+(provide 'tree-widget-examples)
 
 ;;; tree-widget-examples.el ends here
