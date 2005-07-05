@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 16 Feb 2001
 ;; Keywords: extensions
-;; Revision: $Id: tree-widget.el,v 1.26 2005/07/04 12:06:31 ponced Exp $
+;; Revision: $Id: tree-widget.el,v 1.27 2005/07/05 07:20:29 ponced Exp $
 
 (defconst tree-widget-version "2.3")
 
@@ -24,8 +24,8 @@
 
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program; see the file COPYING.  If not, write to
-;; the Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-;; Boston, MA 02111-1307, USA.
+;; the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+;; Boston, MA 02110-1301, USA.
 
 ;;; Commentary:
 ;;
@@ -120,6 +120,7 @@
 ;;
 (defgroup tree-widget nil
   "Customization support for the Tree Widget library."
+  :version "22.1"
   :group 'widgets)
 
 (defcustom tree-widget-image-enable
