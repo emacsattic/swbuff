@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 25 February 2003
 ;; Keywords: convenience
-;; Revision: $Id: tabbar.el,v 1.62 2005/06/29 18:18:33 ponced Exp $
+;; Revision: $Id: tabbar.el,v 1.63 2005/07/05 07:19:40 ponced Exp $
 
 (defconst tabbar-version "2.0")
 
@@ -24,80 +24,73 @@
 
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program; see the file COPYING.  If not, write to
-;; the Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-;; Boston, MA 02111-1307, USA.
+;; the Free Software Foundation, Inc., 51 Franklin Street, Fifth
+;; Floor, Boston, MA 02110-1301, USA.
 
 ;;; Commentary:
 ;;
-;;  This library provides the Tabbar global minor mode to display a
-;;  tab bar in the header line of Emacs 21 and later versions.  You
-;;  can use the mouse to click on a tab and select it.  Also, three
-;;  buttons are displayed on the left side of the tab bar in this
-;;  order: the "home", "scroll left", and "scroll right" buttons.  The
-;;  "home" button is a general purpose button used to change something
-;;  on the tab bar.  The scroll left and scroll right buttons are used
-;;  to scroll tabs horizontally.  Tabs can be divided up into groups
-;;  to maintain several sets of tabs at the same time (see also the
-;;  chapter "Core" below for more details on tab grouping).  Only one
-;;  group is displayed on the tab bar, and the "home" button, for
-;;  example, can be used to navigate through the different groups, to
-;;  show different tab bars.
+;; This library provides the Tabbar global minor mode to display a tab
+;; bar in the header line of Emacs 21 and later versions.  You can use
+;; the mouse to click on a tab and select it.  Also, three buttons are
+;; displayed on the left side of the tab bar in this order: the
+;; "home", "scroll left", and "scroll right" buttons.  The "home"
+;; button is a general purpose button used to change something on the
+;; tab bar.  The scroll left and scroll right buttons are used to
+;; scroll tabs horizontally.  Tabs can be divided up into groups to
+;; maintain several sets of tabs at the same time (see also the
+;; chapter "Core" below for more details on tab grouping).  Only one
+;; group is displayed on the tab bar, and the "home" button, for
+;; example, can be used to navigate through the different groups, to
+;; show different tab bars.
 ;;
-;;  In a graphic environment, using the mouse is probably the preferred
-;;  way to work with the tab bar.  However, you can also use the tab
-;;  bar when Emacs is running on a terminal, so it is possible to use
-;;  commands to press special buttons, or to navigate cyclically
-;;  through tabs.
+;; In a graphic environment, using the mouse is probably the preferred
+;; way to work with the tab bar.  However, you can also use the tab
+;; bar when Emacs is running on a terminal, so it is possible to use
+;; commands to press special buttons, or to navigate cyclically
+;; through tabs.
 ;;
-;;  These commands, and default keyboard shortcuts, are provided:
+;; These commands, and default keyboard shortcuts, are provided:
 ;;
-;;  `tabbar-mode'
+;; `tabbar-mode'
+;;     Toggle the Tabbar global minor mode.  When enabled a tab bar is
+;;     displayed in the header line.
 ;;
-;;    Toggle the Tabbar global minor mode.  When enabled a tab bar is
-;;    displayed in the header line.
+;; `tabbar-local-mode'         (C-c <C-f10>)
+;;     Toggle the Tabbar-Local minor mode.  Provided the global minor
+;;     mode is turned on, the tab bar becomes local in the current
+;;     buffer when the local minor mode is enabled.  This permits to
+;;     see the tab bar in a buffer where the header line is already
+;;     used by another mode (like `Info-mode' for example).
 ;;
-;;  `tabbar-local-mode'         (C-c <C-f10>)
+;; `tabbar-mwheel-mode'
+;;     Toggle the Tabbar-Mwheel global minor mode.  When enabled you
+;;     can use the mouse wheel to navigate through tabs of groups.
 ;;
-;;    Toggle the Tabbar-Local minor mode.  Provided the global minor
-;;    mode is turned on, the tab bar becomes local in the current
-;;    buffer when the local minor mode is enabled.  This permits to
-;;    see the tab bar in a buffer where the header line is already
-;;    used by another mode (like `Info-mode' for example).
+;; `tabbar-press-home'         (C-c <C-home>)
+;; `tabbar-press-scroll-left'  (C-c <C-prior>)
+;; `tabbar-press-scroll-right' (C-c <C-next>)
+;;     Simulate a mouse-1 click on respectively the "home", "scroll
+;;     left", and "scroll right" buttons.  A numeric prefix argument
+;;     value of 2, or 3, respectively simulates a mouse-2, or mouse-3
+;;     click.
 ;;
-;;  `tabbar-mwheel-mode'
+;; `tabbar-backward'           (C-c <C-left>)
+;; `tabbar-forward'            (C-c <C-right>)
+;;     Are the basic commands to navigate cyclically through tabs or
+;;     groups of tabs.  The cycle is controlled by the
+;;     `tabbar-cycle-scope' option.  The default is to navigate
+;;     through all tabs across all existing groups of tabs.  You can
+;;     change the default behavior to navigate only through the tabs
+;;     visible on the tab bar, or through groups of tabs only.  Or use
+;;     the more specialized commands below.
 ;;
-;;    Toggle the Tabbar-Mwheel global minor mode.  When enabled you
-;;    can use the mouse wheel to navigate through tabs of groups.
+;; `tabbar-backward-tab'
+;; `tabbar-forward-tab'
+;;     Navigate through the tabs visible on the tab bar.
 ;;
-;;  `tabbar-press-home'         (C-c <C-home>)
-;;  `tabbar-press-scroll-left'  (C-c <C-prior>)
-;;  `tabbar-press-scroll-right' (C-c <C-next>)
-;;
-;;    Simulate a mouse-1 click on respectively the "home", "scroll
-;;    left", and "scroll right" buttons.  A numeric prefix argument
-;;    value of 2, or 3, respectively simulate a mouse-2, or mouse-3
-;;    click.
-;;
-;;  `tabbar-backward'           (C-c <C-left>)
-;;  `tabbar-forward'            (C-c <C-right>)
-;;
-;;    Are the basic commands to navigate cyclically through tabs or
-;;    groups of tabs.  The cycle is controlled by the
-;;    `tabbar-cycle-scope' option.  The default is to navigate through
-;;    all tabs across all existing groups of tabs.  You can change the
-;;    default behavior to navigate only through the tabs visible on
-;;    the tab bar, or through groups of tabs only.  Or use the more
-;;    specialized commands below.
-;;
-;;  `tabbar-backward-tab'
-;;  `tabbar-forward-tab'
-;;
-;;    Navigate through the tabs visible on the tab bar.
-;;
-;;  `tabbar-backward-group'     (C-c <C-up>)
-;;  `tabbar-forward-group'      (C-c <C-down>)
-;;
-;;    Navigate through existing groups of tabs.
+;; `tabbar-backward-group'     (C-c <C-up>)
+;; `tabbar-forward-group'      (C-c <C-down>)
+;;     Navigate through existing groups of tabs.
 ;;
 ;;
 ;; Core
