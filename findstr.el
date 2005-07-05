@@ -1,12 +1,12 @@
 ;;; findstr.el --- Use Windows NT findstr to match expression in files
 
-;; Copyright (C) 2000, 2003 by David Ponce
+;; Copyright (C) 2000, 2003, 2005 by David Ponce
 
 ;; Author: David Ponce <david@dponce.com>
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 21 Jul 2000
 ;; Keywords: tools
-;; Revision: $Id: findstr.el,v 1.4 2003/04/25 11:25:24 ponced Exp $
+;; Revision: $Id: findstr.el,v 1.5 2005/07/05 07:00:36 ponced Exp $
 
 (defconst findstr-version "1.1")
 
@@ -24,8 +24,8 @@
 
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program; see the file COPYING.  If not, write to
-;; the Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-;; Boston, MA 02111-1307, USA.
+;; the Free Software Foundation, Inc., 51 Franklin Street, Fifth
+;; Floor, Boston, MA 02110-1301, USA.
 
 ;;; Commentary:
 ;;

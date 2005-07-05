@@ -1,12 +1,12 @@
 ;;; jjar.el --- Java Archive builder
 
-;; Copyright (C) 1999, 2000, 2003 by David Ponce
+;; Copyright (C) 1999, 2000, 2003, 2005 by David Ponce
 
 ;; Author: David Ponce david@dponce.com
 ;; Maintainer: David Ponce david@dponce.com
 ;; Created: June 14 1999
 ;; Keywords: tools
-;; Revision: $Id: jjar.el,v 1.15 2003/05/04 11:18:34 ponced Exp $
+;; Revision: $Id: jjar.el,v 1.16 2005/07/05 07:00:36 ponced Exp $
 
 (defconst jjar-version "1.9")
 
@@ -24,8 +24,8 @@
 
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program; see the file COPYING.  If not, write to
-;; the Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-;; Boston, MA 02111-1307, USA.
+;; the Free Software Foundation, Inc., 51 Franklin Street, Fifth
+;; Floor, Boston, MA 02110-1301, USA.
 
 ;;; Commentary:
 ;;

@@ -1,12 +1,12 @@
 ;;; jmaker.el --- Java Makefile generator
 
-;; Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003 David Ponce
+;; Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2005 David Ponce
 
 ;; Author: David Ponce <david@dponce.com>
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: July 22 1998
 ;; Keywords: tools
-;; Revision: $Id: jmaker.el,v 1.29 2003/07/27 07:57:06 ponced Exp $
+;; Revision: $Id: jmaker.el,v 1.30 2005/07/05 07:00:37 ponced Exp $
 
 (defconst jmaker-version "2.4")
 
@@ -24,8 +24,8 @@
 
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program; see the file COPYING.  If not, write to
-;; the Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-;; Boston, MA 02111-1307, USA.
+;; the Free Software Foundation, Inc., 51 Franklin Street, Fifth
+;; Floor, Boston, MA 02110-1301, USA.
 
 ;;; Commentary:
 ;;

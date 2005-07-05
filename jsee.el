@@ -1,12 +1,12 @@
 ;;; jsee.el --- Java source documentation viewer
 
-;; Copyright (C) 1998, 2000, 2003 by David Ponce
+;; Copyright (C) 1998, 2000, 2003, 2005 by David Ponce
 
 ;; Author: David Ponce <david@dponce.com>
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 3 Dec 1998
 ;; Keywords: jde
-;; Revision: $Id: jsee.el,v 1.10 2003/04/25 11:29:56 ponced Exp $
+;; Revision: $Id: jsee.el,v 1.11 2005/07/05 07:00:37 ponced Exp $
 
 (defconst jsee-version "2.1")
 
@@ -24,8 +24,8 @@
 
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program; see the file COPYING.  If not, write to
-;; the Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-;; Boston, MA 02111-1307, USA.
+;; the Free Software Foundation, Inc., 51 Franklin Street, Fifth
+;; Floor, Boston, MA 02110-1301, USA.
 
 ;;; Commentary:
 ;;

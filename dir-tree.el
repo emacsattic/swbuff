@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 16 Feb 2001
 ;; Keywords: extensions
-;; Revision: $Id: dir-tree.el,v 1.8 2005/07/04 12:08:13 ponced Exp $
+;; Revision: $Id: dir-tree.el,v 1.9 2005/07/05 07:00:36 ponced Exp $
 
 (defconst dir-tree-version "1.2")
 
@@ -24,8 +24,6 @@
 
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program; see the file COPYING.  If not, write to
-;; the Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-;; Boston, MA 02111-1307, USA.
 
 ;;; Commentary:
 ;;
