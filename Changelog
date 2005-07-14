@@ -1,3 +1,10 @@
+2005-07-09  David Ponce  <david@dponce.com>
+
+	* tabbar.el
+
+	(tabbar-disable-image): Return a new copy of image.
+	(tabbar-button-label): Update accordingly.
+
 2005-07-05  David Ponce  <david@dponce.com>
 
 	* tree-widget.el
