@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 25 February 2003
 ;; Keywords: convenience
-;; Revision: $Id: tabbar.el,v 1.63 2005/07/05 07:19:40 ponced Exp $
+;; Revision: $Id: tabbar.el,v 1.64 2005/07/14 07:35:11 ponced Exp $
 
 (defconst tabbar-version "2.0")
 
@@ -847,7 +847,8 @@ SPECS is a list of image specifications.  See also `find-image'."
       (error nil))))
 
 (defsubst tabbar-disable-image (image)
-  "Make IMAGE look disabled."
+  "From IMAGE, return a new image which looks disabled."
+  (setq image (copy-sequence image))
   (setcdr image (plist-put (cdr image) :conversion 'disabled))
   image)
 
@@ -1030,8 +1031,7 @@ by the variable `tabbar-NAME-button'."
           (tabbar-normalize-image off 1)
         ;; If there is no disabled button image, derive one from the
         ;; button enabled image.
-        (setq off (copy-sequence on))
-        (tabbar-disable-image off)))
+        (setq off (tabbar-disable-image on))))
     (cons
      (propertize (or (caar btn) " ") 'display on)
      (propertize (or (cadr btn) " ") 'display off))))
