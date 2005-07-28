@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 16 Feb 2001
 ;; Keywords: extensions
-;; Revision: $Id: tree-widget.el,v 1.27 2005/07/05 07:20:29 ponced Exp $
+;; Revision: $Id: tree-widget.el,v 1.28 2005/07/28 20:34:31 ponced Exp $
 
 (defconst tree-widget-version "2.3")
 
@@ -184,6 +184,12 @@ supported extension (see also `tree-widget-image-formats'):
   "*Default properties of XEmacs images."
   :type 'plist
   :group 'tree-widget)
+
+(defcustom tree-widget-space-width 0.5
+  "Amount of space between a tree image and a node widget.
+Must be a valid space :width display property."
+  :group 'tree-widget
+  :type 'sexp)
 
 ;;; Image support
 ;;
@@ -310,6 +316,8 @@ properties.  Typically it should contain something like this:
      '(:ascent center :mask (heuristic t))
      ))
 
+When there is no \"tree-widget-theme-setup\" library in the current
+theme directory, load the one from the default theme, if available.
 Default global properties are provided for respectively Emacs and
 XEmacs in the variables `tree-widget-image-properties-emacs', and
 `tree-widget-image-properties-xemacs'."
@@ -321,12 +329,17 @@ XEmacs in the variables `tree-widget-image-properties-emacs', and
                               (file-name-directory file)) t t)
       ;; If properties have been setup, use them.
       (unless (setq plist (aref tree-widget--theme 2))
-        ;; By default, use supplied global properties.
-        (setq plist (if (featurep 'xemacs)
-                        tree-widget-image-properties-xemacs
-                      tree-widget-image-properties-emacs))
-        ;; Setup the cache.
-        (tree-widget-set-image-properties plist)))
+        ;; Try from the default theme.
+        (load (expand-file-name "../default/tree-widget-theme-setup"
+                                (file-name-directory file)) t t)
+        ;; If properties have been setup, use them.
+        (unless (setq plist (aref tree-widget--theme 2))
+          ;; By default, use supplied global properties.
+          (setq plist (if (featurep 'xemacs)
+                          tree-widget-image-properties-xemacs
+                        tree-widget-image-properties-emacs))
+          ;; Setup the cache.
+          (tree-widget-set-image-properties plist))))
     plist))
 
 (defconst tree-widget--cursors
@@ -417,7 +430,7 @@ Handle mouse button 1 click on buttons.")
 
 (define-widget 'tree-widget-open-control 'tree-widget-control
   "Button for an expanded tree-widget node."
-  :tag       "[-] "
+  :tag       "[-]"
   ;;:tag-glyph (tree-widget-find-image "open")
   :notify    'tree-widget-close-node
   :help-echo "Collapse node"
@@ -425,13 +438,13 @@ Handle mouse button 1 click on buttons.")
 
 (define-widget 'tree-widget-empty-control 'tree-widget-open-control
   "Button for an expanded tree-widget node with no child."
-  :tag       "[X] "
+  :tag       "[X]"
   ;;:tag-glyph (tree-widget-find-image "empty")
   )
 
 (define-widget 'tree-widget-close-control 'tree-widget-control
   "Button for a collapsed tree-widget node."
-  :tag       "[+] "
+  :tag       "[+]"
   ;;:tag-glyph (tree-widget-find-image "close")
   :notify    'tree-widget-open-node
   :help-echo "Expand node"
@@ -593,6 +606,16 @@ IGNORE other arguments."
     (widget-value-set tree t)
     (run-hook-with-args 'tree-widget-after-toggle-functions tree)))
 
+(defsubst tree-widget--insert-space ()
+  "Insert space between a tree image and a node widget."
+  (and (or (not (eq ?  (preceding-char)))
+           (get-text-property (1- (point)) 'display))
+       (insert-char ?  1))
+  (and widget-image-enable
+       (put-text-property
+        (1- (point)) (point) 'display
+        (list 'space :width tree-widget-space-width))))
+
 (defun tree-widget-value-create (tree)
   "Create the TREE tree-widget."
   (let* ((node   (tree-widget-node tree))
@@ -635,6 +658,7 @@ IGNORE other arguments."
                  :tag-glyph (tree-widget-find-image
                              (if args "open" "empty")))
                 buttons)
+          (tree-widget--insert-space)
           ;; Insert the :node element.
           (push (widget-create-child-and-convert tree node)
                 children)
@@ -661,7 +685,8 @@ IGNORE other arguments."
             (unless (tree-widget-p child)
               (push (widget-create-child-and-convert
                      tree leaf :tag-glyph leafi)
-                    buttons))
+                    buttons)
+              (tree-widget--insert-space))
             ;; Finally, insert the child widget.
             (push (widget-create-child-and-convert
                    tree child
@@ -674,6 +699,7 @@ IGNORE other arguments."
              :tag-glyph (tree-widget-find-image "close"))
             buttons)
       ;; Insert the :node element.
+      (tree-widget--insert-space)
       (push (widget-create-child-and-convert tree node)
             children))
     ;; Save widget children and buttons.  The :node child is the first
