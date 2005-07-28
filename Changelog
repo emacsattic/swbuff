@@ -1,3 +1,24 @@
+2005-07-28  David Ponce  <david@dponce.com>
+
+	* recentf.el
+
+	(recentf-max-saved-items, recentf-menu-filter)
+	(recentf-arrange-by-rule-subfilter): Doc fixes.
+	(recentf-menu-append-commands-flag)
+	(recentf-initialize-file-name-history, recentf-expand-file-name)
+	(recentf-clear-data): Fix typos in doc strings.
+
+2005-07-18  David Ponce  <david@dponce.com>
+
+	* tree-widget.el
+
+	(tree-widget-space-width): New option.
+	(tree-widget-image-properties): Look up in the default theme too.
+	(tree-widget-open-control, tree-widget-empty-control)
+	(tree-widget-close-control): Remove trailing space from :tag.
+	(tree-widget--insert-space): New function.
+	(tree-widget-value-create): Use it.
+
 2005-07-09  David Ponce  <david@dponce.com>
 
 	* tabbar.el
