@@ -8,7 +8,7 @@
 ;; Maintainer: FSF
 ;; Keywords: files
 
-(defconst recentf-version "$Revision: 1.45 $")
+(defconst recentf-version "$Revision: 1.46 $")
 
 ;; This file is part of GNU Emacs.
 
@@ -88,7 +88,7 @@ You should define the options of your own filters in this group."
 
 (defcustom recentf-max-saved-items 20
   "*Maximum number of items of the recent list that will be saved.
-nil means to save the whole list.
+A nil value means to save the whole list.
 See the command `recentf-save-list'."
   :group 'recentf
   :type 'integer)
@@ -179,7 +179,7 @@ The default is to call `find-file' to edit the selected file."
 
 (defcustom recentf-menu-filter nil
   "*Function used to filter files displayed in the recentf menu.
-nil means no filter.  The following functions are predefined:
+A nil value means no filter.  The following functions are predefined:
 
 - `recentf-sort-ascending'
     Sort menu items in ascending order.
@@ -233,7 +233,7 @@ elements (see `recentf-make-menu-element' for menu element form)."
   :set 'recentf-menu-customization-changed)
 
 (defcustom recentf-menu-append-commands-flag t
-  "*non-nil means to append command items to the menu."
+  "*Non-nil means to append command items to the menu."
   :group 'recentf
   :type 'boolean
   :set 'recentf-menu-customization-changed)
@@ -274,7 +274,7 @@ cleanup the list."
            (recentf-auto-cleanup))))
 
 (defcustom recentf-initialize-file-name-history t
-  "*non-nil means to initialize `file-name-history' with the recent list.
+  "*Non-nil means to initialize `file-name-history' with the recent list.
 If `file-name-history' is not empty, do nothing."
   :group 'recentf
   :type  'boolean)
@@ -400,8 +400,8 @@ filenames."
 (defsubst recentf-expand-file-name (name)
   "Convert filename NAME to absolute, and canonicalize it.
 See also the function `expand-file-name'.
-If defined, call the function `recentf-filename-handler' to post
-process the canonical name."
+If defined, call the function `recentf-filename-handler'
+to postprocess the canonical name."
   (let* ((directory-sep-char ?/) ;; Native MS-Windows XEmacs needs that
          (filename (expand-file-name name)))
     (or (and recentf-filename-handler
@@ -622,7 +622,7 @@ menu-elements (no sub-menu)."
 
 (defun recentf-clear-data ()
   "Clear data used to build the recentf menu.
-This force a rebuild of the menu."
+This forces a rebuild of the menu."
   (easy-menu-remove-item (recentf-menu-bar)
                          recentf-menu-path recentf-menu-title)
   (setq recentf-data-cache nil)
@@ -771,7 +771,7 @@ defined."
 
 (defcustom recentf-arrange-by-rule-subfilter nil
   "*Function called by a rule based filter to filter sub-menu elements.
-nil means no filter.  See also `recentf-menu-filter'.
+A nil value means no filter.  See also `recentf-menu-filter'.
 You can't use another rule based filter here."
   :group 'recentf-filters
   :type '(choice (const nil) function)
