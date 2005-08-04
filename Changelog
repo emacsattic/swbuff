@@ -1,3 +1,13 @@
+2005-08-04  David Ponce  <david@dponce.com>
+
+	* tree-widget-examples.el
+
+	(tree-widget-example-4-open-control)
+	(tree-widget-example-4-close-control)
+	(tree-widget-example-4-empty-control)
+	(tree-widget-example-4-leaf-control): Remove trailing space from
+	:tag.
+
 2005-07-28  David Ponce  <david@dponce.com>
 
 	* recentf.el
