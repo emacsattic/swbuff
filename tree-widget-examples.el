@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 27 Nov 2001
 ;; Keywords: extensions
-;; Revision: $Id: tree-widget-examples.el,v 1.8 2005/07/05 07:22:03 ponced Exp $
+;; Revision: $Id: tree-widget-examples.el,v 1.9 2005/08/04 13:28:10 ponced Exp $
 
 (defconst tree-widget-examples-version "1.3")
 
@@ -254,19 +254,19 @@ command."
 (define-widget 'tree-widget-example-4-open-control
   'tree-widget-open-control
   ""
-  :tag "<< ")
+  :tag "<<")
 (define-widget 'tree-widget-example-4-close-control
   'tree-widget-close-control
   ""
-  :tag ">> ")
+  :tag ">>")
 (define-widget 'tree-widget-example-4-empty-control
   'tree-widget-empty-control
   ""
-  :tag "<> ")
+  :tag "<>")
 (define-widget 'tree-widget-example-4-leaf-control
   'tree-widget-leaf-control
   ""
-  :tag " ` ")
+  :tag " `")
 (define-widget 'tree-widget-example-4-guide
   'tree-widget-guide
   ""
