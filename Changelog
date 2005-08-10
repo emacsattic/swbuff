@@ -1,3 +1,34 @@
+2005-08-10  David Ponce  <david@dponce.com>
+
+	* tree-widget.el
+
+	(tree-widget-version): Update to 3.0.
+	(tree-widget--cursors): Only for images with arrow pointer shape.
+	(tree-widget-lookup-image): Pointer shape is hand by default.
+	(tree-widget-icon): Generic icon widget renamed from
+	`tree-widget-control'.
+	(tree-widget-*-icon): Rename from `tree-widget-*-control' and
+	derive from `tree-widget-icon'.
+	(tree-widget): Rename :*-control properties to :*-icon properties.
+	Add :action and :help-echo properties.
+	(tree-widget-after-toggle-functions): Move.
+	(tree-widget-close-node, tree-widget-open-node): Remove.
+	(tree-widget--insert-space): Doc fix.
+	(tree-widget-before-create-icon-functions): New variable.
+	(tree-widget-icon-create): New function.
+	(tree-widget-value-create): Allow customization of icons and nodes
+	at run-time via `tree-widget-before-create-icon-functions'.
+	(tree-widget-icon-action, tree-widget-icon-help-echo)
+	(tree-widget-action, tree-widget-help-echo): New functions.
+
+	* tree-widget-examples.el
+
+	(tree-widget-example-4-*-icon): Rename from
+	`tree-widget-example-4-*-control' and derive from
+	`tree-widget-*-icon'.
+	(tree-widget-example-4-tree): Rename :*-control properties to
+	 :*-icon properties.
+
 2005-08-04  David Ponce  <david@dponce.com>
 
 	* tree-widget-examples.el
