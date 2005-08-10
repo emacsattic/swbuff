@@ -6,9 +6,9 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 16 Feb 2001
 ;; Keywords: extensions
-;; Revision: $Id: tree-widget.el,v 1.28 2005/07/28 20:34:31 ponced Exp $
+;; Revision: $Id: tree-widget.el,v 1.29 2005/08/10 11:30:11 ponced Exp $
 
-(defconst tree-widget-version "2.3")
+(defconst tree-widget-version "3.0")
 
 ;; This file is part of GNU Emacs
 
@@ -62,37 +62,39 @@
 ;;    values, it is necessary to set the :args property to nil, then
 ;;    redraw the tree.
 ;;
-;; :open-control  (default `tree-widget-open-control')
-;; :close-control (default `tree-widget-close-control')
-;; :empty-control (default `tree-widget-empty-control')
-;; :leaf-control  (default `tree-widget-leaf-control')
-;; :guide         (default `tree-widget-guide')
-;; :end-guide     (default `tree-widget-end-guide')
-;; :no-guide      (default `tree-widget-no-guide')
-;; :handle        (default `tree-widget-handle')
-;; :no-handle     (default `tree-widget-no-handle')
+;; :open-icon  (default `tree-widget-open-icon')
+;; :close-icon (default `tree-widget-close-icon')
+;; :empty-icon (default `tree-widget-empty-icon')
+;; :leaf-icon  (default `tree-widget-leaf-icon')
+;; :guide      (default `tree-widget-guide')
+;; :end-guide  (default `tree-widget-end-guide')
+;; :no-guide   (default `tree-widget-no-guide')
+;; :handle     (default `tree-widget-handle')
+;; :no-handle  (default `tree-widget-no-handle')
 ;;    Those properties define the widgets used to draw the tree, and
-;;    permit to customize its look and feel.  For example, using
-;;    `item' widgets with these :tag values:
+;;    permit to customize its look and feel.  Icon widgets must derive
+;;    from the `tree-widget-icon' widget. Guide lines and handles are
+;;    `item' widgets.  For example, using these :tag values for icons,
+;;    guide lines, and handles:
 ;;
-;;    open-control     "[-] "      (OC)
-;;    close-control    "[+] "      (CC)
-;;    empty-control    "[X] "      (EC)
-;;    leaf-control     "[>] "      (LC)
-;;    guide            " |"        (GU)
-;;    noguide          "  "        (NG)
-;;    end-guide        " `"        (EG)
-;;    handle           "-"         (HA)
-;;    no-handle        " "         (NH)
+;;    open-icon     "[-]"      (OI)
+;;    close-icon    "[+]"      (CI)
+;;    empty-icon    "[X]"      (EI)
+;;    leaf-icon     "[>]"      (LI)
+;;    guide         " |"       (GU)
+;;    noguide       "  "       (NG)
+;;    end-guide     " `"       (EG)
+;;    handle        "-"        (HA)
+;;    no-handle     " "        (NH)
 ;;
 ;;    A tree will look like this:
 ;;
-;;    [-] 1                        (OC :node)
-;;     |-[+] 1.0                   (GU+HA+CC :node)
-;;     |-[X] 1.1                   (GU+HA+EC :node)
-;;     `-[-] 1.2                   (EG+HA+OC :node)
-;;        |-[>] 1.2.1              (NG+NH+GU+HA+LC child)
-;;        `-[>] 1.2.2              (NG+NH+EG+HA+LC child)
+;;    [-] 1                        (OI :node)
+;;     |-[+] 1.0                   (GU+HA+CI :node)
+;;     |-[X] 1.1                   (GU+HA+EI :node)
+;;     `-[-] 1.2                   (EG+HA+OI :node)
+;;        |-[>] 1.2.1              (NG+NH+GU+HA+LI child)
+;;        `-[>] 1.2.2              (NG+NH+EG+HA+LI child)
 ;;
 ;; On versions of [X]Emacs that support this feature, images will be
 ;; used instead of strings to draw a nice-looking tree.  See the
@@ -347,10 +349,6 @@ XEmacs in the variables `tree-widget-image-properties-emacs', and
   ;; This feature works since Emacs 22, and ignored on older versions,
   ;; and XEmacs.
   '(
-    ("open"      . hand )
-    ("close"     . hand )
-    ("empty"     . arrow)
-    ("leaf"      . arrow)
     ("guide"     . arrow)
     ("no-guide"  . arrow)
     ("end-guide" . arrow)
@@ -383,7 +381,8 @@ found."
                    ;; Add the pointer shape
                    (cons :pointer
                          (cons
-                          (cdr (assoc name tree-widget--cursors))
+                          (or (cdr (assoc name tree-widget--cursors))
+                              'hand)
                           (tree-widget-image-properties file)))))))))
           nil)))))
 
@@ -421,40 +420,38 @@ Return the image found, or nil if not found."
   "Keymap used inside node buttons.
 Handle mouse button 1 click on buttons.")
 
-(define-widget 'tree-widget-control 'push-button
-  "Basic widget other tree-widget node buttons are derived from."
+(define-widget 'tree-widget-icon 'push-button
+  "Basic widget other tree-widget icons are derived from."
   :format        "%[%t%]"
   :button-keymap tree-widget-button-keymap ; XEmacs
   :keymap        tree-widget-button-keymap ; Emacs
+  :create        'tree-widget-icon-create
+  :action        'tree-widget-icon-action
+  :help-echo     'tree-widget-icon-help-echo
   )
 
-(define-widget 'tree-widget-open-control 'tree-widget-control
-  "Button for an expanded tree-widget node."
-  :tag       "[-]"
-  ;;:tag-glyph (tree-widget-find-image "open")
-  :notify    'tree-widget-close-node
-  :help-echo "Collapse node"
+(define-widget 'tree-widget-open-icon 'tree-widget-icon
+  "Icon for an expanded tree-widget node."
+  :tag        "[-]"
+  :glyph-name "open"
   )
 
-(define-widget 'tree-widget-empty-control 'tree-widget-open-control
-  "Button for an expanded tree-widget node with no child."
-  :tag       "[X]"
-  ;;:tag-glyph (tree-widget-find-image "empty")
+(define-widget 'tree-widget-empty-icon 'tree-widget-icon
+  "Icon for an expanded tree-widget node with no child."
+  :tag        "[X]"
+  :glyph-name "empty"
   )
 
-(define-widget 'tree-widget-close-control 'tree-widget-control
-  "Button for a collapsed tree-widget node."
-  :tag       "[+]"
-  ;;:tag-glyph (tree-widget-find-image "close")
-  :notify    'tree-widget-open-node
-  :help-echo "Expand node"
+(define-widget 'tree-widget-close-icon 'tree-widget-icon
+  "Icon for a collapsed tree-widget node."
+  :tag        "[+]"
+  :glyph-name "close"
   )
 
-(define-widget 'tree-widget-leaf-control 'item
-  "Representation of a tree-widget leaf node."
-  :tag       " " ;; Need at least one char to display the image :-(
-  ;;:tag-glyph (tree-widget-find-image "leaf")
-  :format    "%t"
+(define-widget 'tree-widget-leaf-icon 'tree-widget-icon
+  "Icon for a tree-widget leaf node."
+  :tag        " " ;; Need at least one char to display the image :-(
+  :glyph-name "leaf"
   )
 
 (define-widget 'tree-widget-guide 'item
@@ -499,10 +496,12 @@ Handle mouse button 1 click on buttons.")
   :value-get      'widget-value-value-get
   :value-delete   'widget-children-value-delete
   :value-create   'tree-widget-value-create
-  :open-control   'tree-widget-open-control
-  :close-control  'tree-widget-close-control
-  :empty-control  'tree-widget-empty-control
-  :leaf-control   'tree-widget-leaf-control
+  :action         'tree-widget-action
+  :help-echo      'tree-widget-help-echo
+  :open-icon      'tree-widget-open-icon
+  :close-icon     'tree-widget-close-icon
+  :empty-icon     'tree-widget-empty-icon
+  :leaf-icon      'tree-widget-leaf-icon
   :guide          'tree-widget-guide
   :end-guide      'tree-widget-end-guide
   :no-guide       'tree-widget-no-guide
@@ -580,34 +579,11 @@ WIDGET's :node sub-widget."
          ;; Save properties specified in :keep.
          (tree-widget-keep arg child)))))
 
-(defvar tree-widget-after-toggle-functions nil
-  "Hooks run after toggling a tree-widget expansion.
-Each function will receive the tree-widget as its unique argument.
-This hook should be local in the buffer used to display widgets.")
-
-(defun tree-widget-close-node (widget &rest ignore)
-  "Collapse the tree-widget, parent of WIDGET.
-WIDGET is, or derives from, a tree-widget-open-control widget.
-IGNORE other arguments."
-  (let ((tree (widget-get widget :parent)))
-    ;; Before to collapse the node, save children values so next open
-    ;; can recover them.
-    (tree-widget-children-value-save tree)
-    (widget-put tree :open nil)
-    (widget-value-set tree nil)
-    (run-hook-with-args 'tree-widget-after-toggle-functions tree)))
-
-(defun tree-widget-open-node (widget &rest ignore)
-  "Expand the tree-widget, parent of WIDGET.
-WIDGET is, or derives from, a tree-widget-close-control widget.
-IGNORE other arguments."
-  (let ((tree (widget-get widget :parent)))
-    (widget-put tree :open t)
-    (widget-value-set tree t)
-    (run-hook-with-args 'tree-widget-after-toggle-functions tree)))
-
+
+;;; Widget creation
+;;
 (defsubst tree-widget--insert-space ()
-  "Insert space between a tree image and a node widget."
+  "Insert space between a tree icon and a node widget."
   (and (or (not (eq ?  (preceding-char)))
            (get-text-property (1- (point)) 'display))
        (insert-char ?  1))
@@ -615,6 +591,24 @@ IGNORE other arguments."
        (put-text-property
         (1- (point)) (point) 'display
         (list 'space :width tree-widget-space-width))))
+
+(defvar tree-widget-before-create-icon-functions nil
+  "Hooks run before to create a tree-widget icon.
+Each function is passed the icon widget not yet created.
+The value of the icon widget :node property is a tree :node widget or
+a leaf node widget, not yet created.
+This hook can be used to dynamically change properties of the icon and
+associated node widgets.  For example, to dynamically change the look
+and feel of the tree-widget by changing the values of the :tag
+and :glyph-name properties of the icon widget.
+This hook should be local in the buffer setup to display widgets.")
+
+(defun tree-widget-icon-create (icon)
+  "Create the ICON widget."
+  (run-hook-with-args 'tree-widget-before-create-icon-functions icon)
+  (widget-put icon :tag-glyph (tree-widget-find-image
+                                  (widget-get icon :glyph-name)))
+  (widget-default-create icon))
 
 (defun tree-widget-value-create (tree)
   "Create the TREE tree-widget."
@@ -634,38 +628,35 @@ IGNORE other arguments."
         (let ((args     (widget-get tree :args))
               (xpandr   (or (widget-get tree :expander)
                             (widget-get tree :dynargs)))
-              (leaf     (widget-get tree :leaf-control))
               (guide    (widget-get tree :guide))
               (noguide  (widget-get tree :no-guide))
               (endguide (widget-get tree :end-guide))
               (handle   (widget-get tree :handle))
               (nohandle (widget-get tree :no-handle))
-              (leafi    (tree-widget-find-image "leaf"))
               (guidi    (tree-widget-find-image "guide"))
               (noguidi  (tree-widget-find-image "no-guide"))
               (endguidi (tree-widget-find-image "end-guide"))
               (handli   (tree-widget-find-image "handle"))
-              (nohandli (tree-widget-find-image "no-handle"))
-              child)
+              (nohandli (tree-widget-find-image "no-handle")))
           ;; Request children at run time, when not already done.
           (when (and (not args) xpandr)
             (setq args (mapcar 'widget-convert (funcall xpandr tree)))
             (widget-put tree :args args))
-          ;; Insert the node "open" button.
+          ;; Create the icon widget for the expanded tree.
           (push (widget-create-child-and-convert
-                 tree (widget-get
-                       tree (if args :open-control :empty-control))
-                 :tag-glyph (tree-widget-find-image
-                             (if args "open" "empty")))
+                 tree (widget-get tree (if args :open-icon :empty-icon))
+                 ;; At this point the node widget isn't yet created.
+                 :node (setq node (widget-convert node)))
                 buttons)
           (tree-widget--insert-space)
-          ;; Insert the :node element.
-          (push (widget-create-child-and-convert tree node)
-                children)
-          ;; Insert children.
+          ;; Create the tree node widget.
+          (push (widget-create-child tree node) children)
+          ;; Update the icon :node with the created node widget.
+          (widget-put (car buttons) :node (car children))
+          ;; Create the tree children.
           (while args
-            (setq child (car args)
-                  args  (cdr args))
+            (setq node (car args)
+                  args (cdr args))
             (and indent (insert-char ?\  indent))
             ;; Insert guide lines elements from previous levels.
             (dolist (f (reverse flags))
@@ -681,32 +672,91 @@ IGNORE other arguments."
             ;; Insert the node handle line
             (widget-create-child-and-convert
              tree handle :tag-glyph handli)
-            ;; If leaf node, insert a leaf node button.
-            (unless (tree-widget-p child)
+            (if (tree-widget-p node)
+                ;; Create a sub-tree node.
+                (push (widget-create-child-and-convert
+                       tree node :tree-widget--guide-flags
+                       (cons (if args t) flags))
+                      children)
+              ;; Create the icon widget for a leaf node.
               (push (widget-create-child-and-convert
-                     tree leaf :tag-glyph leafi)
+                     tree (widget-get tree :leaf-icon)
+                     ;; At this point the node widget isn't yet created.
+                     :node (setq node (widget-convert
+                                       node :tree-widget--guide-flags
+                                       (cons (if args t) flags)))
+                     :tree-widget--leaf-flag t)
                     buttons)
-              (tree-widget--insert-space))
-            ;; Finally, insert the child widget.
-            (push (widget-create-child-and-convert
-                   tree child
-                   :tree-widget--guide-flags (cons (if args t) flags))
-                  children)))
+              (tree-widget--insert-space)
+              ;; Create the leaf node widget.
+              (push (widget-create-child tree node) children)
+              ;; Update the icon :node with the created node widget.
+              (widget-put (car buttons) :node (car children)))))
 ;;;; Collapsed node.
-      ;; Insert the "closed" node button.
+      ;; Create the icon widget for the collapsed tree.
       (push (widget-create-child-and-convert
-             tree (widget-get tree :close-control)
-             :tag-glyph (tree-widget-find-image "close"))
+             tree (widget-get tree :close-icon)
+             ;; At this point the node widget isn't yet created.
+             :node (setq node (widget-convert node)))
             buttons)
-      ;; Insert the :node element.
+      ;; Create the tree node widget.
       (tree-widget--insert-space)
-      (push (widget-create-child-and-convert tree node)
-            children))
-    ;; Save widget children and buttons.  The :node child is the first
-    ;; element in children.
+      (push (widget-create-child tree node) children)
+      ;; Update the icon :node with the created node widget.
+      (widget-put (car buttons) :node (car children)))
+    ;; Save widget children and buttons.  The tree-widget :node child
+    ;; is the first element in :children.
     (widget-put tree :children (nreverse children))
-    (widget-put tree :buttons  buttons)
-    ))
+    (widget-put tree :buttons  buttons)))
+
+;;; Widget callbacks
+;;
+(defun tree-widget-icon-action (icon &optional event)
+  "Handle the ICON widget :action.
+If ICON :node is a leaf node it handles the :action.  The tree-widget
+parent of ICON handles the :action otherwise.
+Pass the received EVENT to :action."
+  (let ((node (widget-get
+               icon (if (widget-get icon :tree-widget--leaf-flag)
+                        :node :parent))))
+    (widget-apply node :action event)))
+
+(defun tree-widget-icon-help-echo (icon)
+  "Return the help-echo string of ICON.
+If ICON :node is a leaf node it handles the :help-echo.  The tree-widget
+parent of ICON handles the :help-echo otherwise."
+  (let* ((node (widget-get
+                icon (if (widget-get icon :tree-widget--leaf-flag)
+                         :node :parent)))
+         (help-echo (widget-get node :help-echo)))
+    (if (functionp help-echo)
+        (funcall help-echo node)
+      help-echo)))
+
+(defvar tree-widget-after-toggle-functions nil
+  "Hooks run after toggling a tree-widget expansion.
+Each function is passed a tree-widget.  If the value of the :open
+property is non-nil the tree has been expanded, else collapsed.
+This hook should be local in the buffer setup to display widgets.")
+
+(defun tree-widget-action (tree &optional event)
+  "Handle the :action of the TREE tree-widget.
+That is, toggle expansion of the TREE tree-widget.
+Ignore the EVENT argument."
+  (let ((open (not (widget-get tree :open))))
+    (or open
+        ;; Before to collapse the node, save children values so next
+        ;; open can recover them.
+        (tree-widget-children-value-save tree))
+    (widget-put tree :open open)
+    (widget-value-set tree open)
+    (run-hook-with-args 'tree-widget-after-toggle-functions tree)))
+
+(defun tree-widget-help-echo (tree)
+  "Return the help-echo string of the TREE tree-widget."
+  (if (widget-get tree :open)
+      "Collapse node"
+    "Expand node"))
 
 (provide 'tree-widget)
 
