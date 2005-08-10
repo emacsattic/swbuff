@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 27 Nov 2001
 ;; Keywords: extensions
-;; Revision: $Id: tree-widget-examples.el,v 1.9 2005/08/04 13:28:10 ponced Exp $
+;; Revision: $Id: tree-widget-examples.el,v 1.10 2005/08/10 11:30:48 ponced Exp $
 
 (defconst tree-widget-examples-version "1.3")
 
@@ -251,20 +251,20 @@ command."
 
 ;;; Example 4
 ;;
-(define-widget 'tree-widget-example-4-open-control
-  'tree-widget-open-control
+(define-widget 'tree-widget-example-4-open-icon
+  'tree-widget-open-icon
   ""
   :tag "<<")
-(define-widget 'tree-widget-example-4-close-control
-  'tree-widget-close-control
+(define-widget 'tree-widget-example-4-close-icon
+  'tree-widget-close-icon
   ""
   :tag ">>")
-(define-widget 'tree-widget-example-4-empty-control
-  'tree-widget-empty-control
+(define-widget 'tree-widget-example-4-empty-icon
+  'tree-widget-empty-icon
   ""
   :tag "<>")
-(define-widget 'tree-widget-example-4-leaf-control
-  'tree-widget-leaf-control
+(define-widget 'tree-widget-example-4-leaf-icon
+  'tree-widget-leaf-icon
   ""
   :tag " `")
 (define-widget 'tree-widget-example-4-guide
@@ -291,15 +291,15 @@ command."
 (define-widget 'tree-widget-example-4-tree
   'tree-widget
   "Tree widget with a customized ASCII look and feel."
-  :open-control  'tree-widget-example-4-open-control
-  :close-control 'tree-widget-example-4-close-control
-  :empty-control 'tree-widget-example-4-empty-control
-  :leaf-control  'tree-widget-example-4-leaf-control
-  :guide         'tree-widget-example-4-guide
-  :end-guide     'tree-widget-example-4-end-guide
-  :no-guide      'tree-widget-example-4-no-guide
-  :handle        'tree-widget-example-4-handle
-  :no-handle     'tree-widget-example-4-no-handle
+  :open-icon  'tree-widget-example-4-open-icon
+  :close-icon 'tree-widget-example-4-close-icon
+  :empty-icon 'tree-widget-example-4-empty-icon
+  :leaf-icon  'tree-widget-example-4-leaf-icon
+  :guide      'tree-widget-example-4-guide
+  :end-guide  'tree-widget-example-4-end-guide
+  :no-guide   'tree-widget-example-4-no-guide
+  :handle     'tree-widget-example-4-handle
+  :no-handle  'tree-widget-example-4-no-handle
   )
 
 (defun tree-widget-example-4 ()
