@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 16 Feb 2001
 ;; Keywords: extensions
-;; Revision: $Id: tree-widget.el,v 1.29 2005/08/10 11:30:11 ponced Exp $
+;; Revision: $Id: tree-widget.el,v 1.30 2005/08/11 08:15:53 ponced Exp $
 
 (defconst tree-widget-version "3.0")
 
@@ -66,35 +66,48 @@
 ;; :close-icon (default `tree-widget-close-icon')
 ;; :empty-icon (default `tree-widget-empty-icon')
 ;; :leaf-icon  (default `tree-widget-leaf-icon')
+;;    Those properties define the icon widgets associated to tree
+;;    nodes.  Icon widgets must derive from the `tree-widget-icon'
+;;    widget.  The :tag and :glyph-name property values are
+;;    respectively used when drawing the text and graphic
+;;    representation of the tree.  The :tag value must be a string
+;;    that represent a node icon, like "[+]" for example.  The
+;;    :glyph-name value must the name of an image found in the current
+;;    theme, like "close" for example (see also the variable
+;;    `tree-widget-theme').
+;;
 ;; :guide      (default `tree-widget-guide')
 ;; :end-guide  (default `tree-widget-end-guide')
 ;; :no-guide   (default `tree-widget-no-guide')
 ;; :handle     (default `tree-widget-handle')
 ;; :no-handle  (default `tree-widget-no-handle')
-;;    Those properties define the widgets used to draw the tree, and
-;;    permit to customize its look and feel.  Icon widgets must derive
-;;    from the `tree-widget-icon' widget. Guide lines and handles are
-;;    `item' widgets.  For example, using these :tag values for icons,
-;;    guide lines, and handles:
+;;    Those properties define `item'-like widgets used to draw the
+;;    tree guide lines.  The :tag property value is used when drawing
+;;    the text representation of the tree.  The graphic look and feel
+;;    is given by the images named "guide", "no-guide", "end-guide",
+;;    "handle", and "no-handle" found in the current theme (see also
+;;    the variable `tree-widget-theme').
 ;;
-;;    open-icon     "[-]"      (OI)
-;;    close-icon    "[+]"      (CI)
-;;    empty-icon    "[X]"      (EI)
-;;    leaf-icon     "[>]"      (LI)
-;;    guide         " |"       (GU)
-;;    noguide       "  "       (NG)
-;;    end-guide     " `"       (EG)
-;;    handle        "-"        (HA)
-;;    no-handle     " "        (NH)
+;; These are the default :tag values for icons, and guide lines:
 ;;
-;;    A tree will look like this:
+;; open-icon    "[-]"
+;; close-icon   "[+]"
+;; empty-icon   "[X]"
+;; leaf-icon    ""
+;; guide        " |"
+;; no-guide     "  "
+;; end-guide    " `"
+;; handle       "-"
+;; no-handle    " "
 ;;
-;;    [-] 1                        (OI :node)
-;;     |-[+] 1.0                   (GU+HA+CI :node)
-;;     |-[X] 1.1                   (GU+HA+EI :node)
-;;     `-[-] 1.2                   (EG+HA+OI :node)
-;;        |-[>] 1.2.1              (NG+NH+GU+HA+LI child)
-;;        `-[>] 1.2.2              (NG+NH+EG+HA+LI child)
+;; The text representation of a tree looks like this:
+;;
+;; [-] 1        (open-icon :node)
+;;  |-[+] 1.0   (guide+handle+close-icon :node)
+;;  |-[X] 1.1   (guide+handle+empty-icon :node)
+;;  `-[-] 1.2   (end-guide+handle+open-icon :node)
+;;     |- 1.2.1 (no-guide+no-handle+guide+handle+leaf-icon leaf)
+;;     `- 1.2.2 (no-guide+no-handle+end-guide+handle+leaf-icon leaf)
 ;;
 ;; On versions of [X]Emacs that support this feature, images will be
 ;; used instead of strings to draw a nice-looking tree.  See the
@@ -148,19 +161,13 @@ The default is to use the \"tree-widget\" relative name."
 (defcustom tree-widget-theme nil
   "*Name of the theme where to look up for images.
 It must be a sub directory of the directory specified in variable
-`tree-widget-themes-directory'.  The default is \"default\".  When an
-image is not found in this theme, the default theme is searched too.
-A complete theme must contain images with these file names with a
-supported extension (see also `tree-widget-image-formats'):
+`tree-widget-themes-directory'.  The default theme is \"default\".
+When an image is not found in a theme, it is searched in the default
+theme.
 
-\"open\"
-  Represent an expanded node.
-\"close\"
-  Represent a collapsed node.
-\"empty\"
-  Represent an expanded node with no child.
-\"leaf\"
-  Represent a leaf node.
+A complete theme must at least contain images with these file names
+with a supported extension (see also `tree-widget-image-formats'):
+
 \"guide\"
   A vertical guide line.
 \"no-guide\"
@@ -168,9 +175,21 @@ supported extension (see also `tree-widget-image-formats'):
 \"end-guide\"
   End of a vertical guide line.
 \"handle\"
-  Horizontal guide line that joins the vertical guide line to a node.
+  Horizontal guide line that joins the vertical guide line to an icon.
 \"no-handle\"
-  An invisible handle."
+  An invisible handle.
+
+Plus images whose name is given by the :glyph-name property of the
+icon widgets used to draw the tree.  By default these images are used:
+
+\"open\"
+  Icon associated to an expanded tree.
+\"close\"
+  Icon associated to a collapsed tree.
+\"empty\"
+  Icon associated to an expanded tree with no child.
+\"leaf\"
+  Icon associated to a leaf node."
   :type '(choice (const  :tag "Default" nil)
                  (string :tag "Name"))
   :group 'tree-widget)
@@ -188,7 +207,7 @@ supported extension (see also `tree-widget-image-formats'):
   :group 'tree-widget)
 
 (defcustom tree-widget-space-width 0.5
-  "Amount of space between a tree image and a node widget.
+  "Amount of space between an icon image and a node widget.
 Must be a valid space :width display property."
   :group 'tree-widget
   :type 'sexp)
@@ -450,8 +469,9 @@ Handle mouse button 1 click on buttons.")
 
 (define-widget 'tree-widget-leaf-icon 'tree-widget-icon
   "Icon for a tree-widget leaf node."
-  :tag        " " ;; Need at least one char to display the image :-(
+  :tag        ""
   :glyph-name "leaf"
+  :button-face 'default
   )
 
 (define-widget 'tree-widget-guide 'item
@@ -477,7 +497,7 @@ Handle mouse button 1 click on buttons.")
 
 (define-widget 'tree-widget-handle 'item
   "Horizontal guide line that joins a vertical guide line to a node."
-  :tag       " "
+  :tag       "-"
   ;;:tag-glyph (tree-widget-find-image "handle")
   :format    "%t"
   )
@@ -578,20 +598,9 @@ WIDGET's :node sub-widget."
          (widget-put arg :value (widget-value child))
          ;; Save properties specified in :keep.
          (tree-widget-keep arg child)))))
-
 
 ;;; Widget creation
 ;;
-(defsubst tree-widget--insert-space ()
-  "Insert space between a tree icon and a node widget."
-  (and (or (not (eq ?  (preceding-char)))
-           (get-text-property (1- (point)) 'display))
-       (insert-char ?  1))
-  (and widget-image-enable
-       (put-text-property
-        (1- (point)) (point) 'display
-        (list 'space :width tree-widget-space-width))))
-
 (defvar tree-widget-before-create-icon-functions nil
   "Hooks run before to create a tree-widget icon.
 Each function is passed the icon widget not yet created.
@@ -606,9 +615,18 @@ This hook should be local in the buffer setup to display widgets.")
 (defun tree-widget-icon-create (icon)
   "Create the ICON widget."
   (run-hook-with-args 'tree-widget-before-create-icon-functions icon)
-  (widget-put icon :tag-glyph (tree-widget-find-image
-                                  (widget-get icon :glyph-name)))
-  (widget-default-create icon))
+  (widget-put icon :tag-glyph
+              (tree-widget-find-image (widget-get icon :glyph-name)))
+  ;; Ensure there is at least one char to display the image.
+  (and (widget-get icon :tag-glyph)
+       (equal "" (or (widget-get icon :tag) ""))
+       (widget-put icon :tag " "))
+  (widget-default-create icon)
+  ;; Insert space between the icon and the node widget.
+  (insert-char ?  1)
+  (put-text-property
+   (1- (point)) (point)
+   'display (list 'space :width tree-widget-space-width)))
 
 (defun tree-widget-value-create (tree)
   "Create the TREE tree-widget."
@@ -648,7 +666,6 @@ This hook should be local in the buffer setup to display widgets.")
                  ;; At this point the node widget isn't yet created.
                  :node (setq node (widget-convert node)))
                 buttons)
-          (tree-widget--insert-space)
           ;; Create the tree node widget.
           (push (widget-create-child tree node) children)
           ;; Update the icon :node with the created node widget.
@@ -687,7 +704,6 @@ This hook should be local in the buffer setup to display widgets.")
                                        (cons (if args t) flags)))
                      :tree-widget--leaf-flag t)
                     buttons)
-              (tree-widget--insert-space)
               ;; Create the leaf node widget.
               (push (widget-create-child tree node) children)
               ;; Update the icon :node with the created node widget.
@@ -700,7 +716,6 @@ This hook should be local in the buffer setup to display widgets.")
              :node (setq node (widget-convert node)))
             buttons)
       ;; Create the tree node widget.
-      (tree-widget--insert-space)
       (push (widget-create-child tree node) children)
       ;; Update the icon :node with the created node widget.
       (widget-put (car buttons) :node (car children)))
