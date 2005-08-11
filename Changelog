@@ -1,3 +1,16 @@
+2005-08-11  David Ponce  <david@dponce.com>
+
+	* tree-widget.el
+
+	Update Commentary header.
+	(tree-widget-theme, tree-widget-space-width): Doc fix.
+	(tree-widget-leaf-icon, tree-widget-handle): Improve default look
+	and feel of the text representation.
+	(tree-widget--insert-space): Remove.
+	(tree-widget-value-create): Don't call it.
+	(tree-widget-icon-create): Insert space after icon.  Ensure that
+	:tag value is at least one char to display the image.
+
 2005-08-10  David Ponce  <david@dponce.com>
 
 	* tree-widget.el
