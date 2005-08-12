@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 16 Feb 2001
 ;; Keywords: extensions
-;; Revision: $Id: tree-widget.el,v 1.30 2005/08/11 08:15:53 ponced Exp $
+;; Revision: $Id: tree-widget.el,v 1.31 2005/08/12 12:59:03 ponced Exp $
 
 (defconst tree-widget-version "3.0")
 
@@ -726,23 +726,26 @@ This hook should be local in the buffer setup to display widgets.")
 
 ;;; Widget callbacks
 ;;
+(defsubst tree-widget-leaf-node-icon-p (icon)
+  "Return non-nil if ICON is a leaf node icon.
+That is, if its :node property value is a leaf node widget."
+  (widget-get icon :tree-widget--leaf-flag))
+
 (defun tree-widget-icon-action (icon &optional event)
   "Handle the ICON widget :action.
 If ICON :node is a leaf node it handles the :action.  The tree-widget
 parent of ICON handles the :action otherwise.
 Pass the received EVENT to :action."
-  (let ((node (widget-get
-               icon (if (widget-get icon :tree-widget--leaf-flag)
-                        :node :parent))))
+  (let ((node (widget-get icon (if (tree-widget-leaf-node-icon-p icon)
+                                   :node :parent))))
     (widget-apply node :action event)))
 
 (defun tree-widget-icon-help-echo (icon)
   "Return the help-echo string of ICON.
 If ICON :node is a leaf node it handles the :help-echo.  The tree-widget
 parent of ICON handles the :help-echo otherwise."
-  (let* ((node (widget-get
-                icon (if (widget-get icon :tree-widget--leaf-flag)
-                         :node :parent)))
+  (let* ((node (widget-get icon (if (tree-widget-leaf-node-icon-p icon)
+                                    :node :parent)))
          (help-echo (widget-get node :help-echo)))
     (if (functionp help-echo)
         (funcall help-echo node)
