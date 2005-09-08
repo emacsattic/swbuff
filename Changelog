@@ -1,3 +1,14 @@
+2005-09-08  David Ponce  <david@dponce.com>
+
+	* recentf.el (recentf-show-file-shortcuts-flag): New option.
+	(recentf-expand-file-name): Doc fix.
+	(recentf-dialog-mode-map): Define digit shortcuts.
+	(recentf--files-with-key): New variable.
+	(recentf-show-digit-shortcut-filter): New function.
+	(recentf-open-files-items): New function.
+	(recentf-open-files): Use it.
+	(recentf-open-file-with-key): New command.
+
 2005-08-12  David Ponce  <david@dponce.com>
 
 	* tree-widget.el
