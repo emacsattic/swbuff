@@ -7,7 +7,7 @@
 ;; Created: July 19 1999
 ;; Keywords: files
 
-(defconst recentf-version "$Revision: 1.47 $")
+(defconst recentf-version "$Revision: 1.48 $")
 
 ;; This file is part of GNU Emacs.
 
@@ -289,6 +289,7 @@ It is passed a filename to give a chance to transform it.
 If it returns nil, the filename is left unchanged."
   :group 'recentf
   :type '(choice (const :tag "None" nil)
+                 (const abbreviate-file-name)
                  function))
 
 (defcustom recentf-show-file-shortcuts-flag t
