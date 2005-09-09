@@ -1,6 +1,15 @@
+2005-09-09  David Ponce  <david@dponce.com>
+
+	* recentf.el
+
+	(recentf-filename-handler): Add custom choice
+	`abbreviate-file-name'.
+
 2005-09-08  David Ponce  <david@dponce.com>
 
-	* recentf.el (recentf-show-file-shortcuts-flag): New option.
+	* recentf.el
+
+	(recentf-show-file-shortcuts-flag): New option.
 	(recentf-expand-file-name): Doc fix.
 	(recentf-dialog-mode-map): Define digit shortcuts.
 	(recentf--files-with-key): New variable.
