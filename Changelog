@@ -1,3 +1,10 @@
+2005-09-14  David Ponce  <david@dponce.com>
+
+	* recentf.el
+
+	(recentf-save-file-modes): New option.
+	(recentf-save-list): Use it.
+
 2005-09-09  David Ponce  <david@dponce.com>
 
 	* recentf.el
