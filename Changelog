@@ -1,3 +1,15 @@
+2005-09-23  David Ponce  <david@dponce.com>
+
+	* tree-widget.el
+
+	(tree-widget-image-formats) [Emacs]: Doc fix.
+	(tree-widget-themes-load-path): New variable.
+	(tree-widget-themes-directory): Doc fix.
+	(tree-widget--locate-sub-directory)
+	(tree-widget--themes-load-path): New functions.
+	(tree-widget-themes-directory): Use them.
+	(tree-widget-value-create): Fix previous change.
+
 2005-09-19  David Ponce  <david@dponce.com>
 
 	* tree-widget.el
