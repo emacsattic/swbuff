@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 16 Feb 2001
 ;; Keywords: extensions
-;; Revision: $Id: tree-widget.el,v 1.33 2005/09/23 14:57:57 ponced Exp $
+;; Revision: $Id: tree-widget.el,v 1.34 2005/09/26 07:21:24 ponced Exp $
 
 (defconst tree-widget-version "3.0")
 
@@ -297,33 +297,16 @@ Does nothing if NAME is already the current theme."
 Return the absolute name of the directory found, or nil if not found."
   (let (dir elt)
     (while (and (not dir) (consp path))
-      (setq elt  (car path)
+      (setq elt  (condition-case nil (eval (car path)) (error nil))
             path (cdr path))
       (cond
        ((stringp elt)
         (setq dir (expand-file-name name elt))
         (or (file-accessible-directory-p dir)
             (setq dir nil)))
-       ((and (symbolp elt) (boundp elt))
-        (setq elt (symbol-value elt))
-        (cond
-	 ((stringp elt)
-          (setq dir (expand-file-name name elt))
-          (or (file-accessible-directory-p dir)
-              (setq dir nil)))
-	 ((consp elt)
-          (setq dir (tree-widget--locate-sub-directory name elt)))))))
+       ((and elt (not (equal elt (car path))))
+        (setq dir (tree-widget--locate-sub-directory name elt)))))
     dir))
-
-(defun tree-widget--themes-load-path ()
-  "Return the path where to search for the themes directory.
-It is computed from the value of `tree-widget-themes-load-path'."
-  (apply 'append
-         (mapcar
-          #'(lambda (e)
-              (setq e (condition-case nil (eval e) (error nil)))
-              (if (listp e) e (list e)))
-          tree-widget-themes-load-path)))
 
 (defun tree-widget-themes-directory ()
   "Locate the directory where to search for a theme.
@@ -353,7 +336,7 @@ specified directory is not accessible."
      (t
       (setq found (tree-widget--locate-sub-directory
                    tree-widget-themes-directory
-                   (tree-widget--themes-load-path)))))
+                   tree-widget-themes-load-path))))
     ;; Store the result in the cache for later use.
     (aset tree-widget--theme 1 (or found 'void))
     found))
