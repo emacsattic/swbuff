@@ -1,3 +1,11 @@
+2005-09-26  David Ponce  <david@dponce.com>
+
+	* tree-widget.el
+
+	(tree-widget--locate-sub-directory): Simplified.
+	(tree-widget--themes-load-path): Remove.
+	(tree-widget-themes-directory): Update accordingly.
+
 2005-09-23  David Ponce  <david@dponce.com>
 
 	* tree-widget.el
