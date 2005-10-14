@@ -7,7 +7,7 @@
 ;; Created: July 19 1999
 ;; Keywords: files
 
-(defconst recentf-version "$Revision: 1.51 $")
+(defconst recentf-version "$Revision: 1.52 $")
 
 ;; This file is part of GNU Emacs.
 
@@ -1065,6 +1065,63 @@ unchanged."
                             t)))))
     l))
 
+;;; Hooks
+;;
+(defun recentf-track-opened-file ()
+  "Insert the name of the file just opened or written into the recent list."
+  (and buffer-file-name
+       (recentf-add-file buffer-file-name))
+  ;; Must return nil because it is run from `write-file-hooks'.
+  nil)
+
+(defun recentf-track-closed-file ()
+  "Update the recent list when a buffer is killed.
+That is, remove a non kept file from the recent list."
+  (and buffer-file-name
+       (recentf-remove-if-non-kept buffer-file-name)))
+
+(defun recentf-update-menu ()
+  "Update the recentf menu from the current recent list."
+  (let ((cache (cons default-directory recentf-list)))
+    ;; Does nothing, if nothing has changed.
+    (if (equal recentf-data-cache cache)
+        ;; Tell XEmacs to not update the menubar
+        t
+      (setq recentf-data-cache cache)
+      (condition-case err
+          (easy-menu-add-item
+           (recentf-menu-bar) recentf-menu-path
+           (recentf-create-menu recentf-menu-title
+                                (recentf-make-menu-items))
+           recentf-menu-before)
+        (error
+         (message "recentf update menu failed: %s"
+                  (error-message-string err))))
+      ;; Tell XEmacs to update the menubar
+      nil)))
+
+(defconst recentf-menu-hook (if (boundp 'activate-menubar-hook)
+                                'activate-menubar-hook
+                              'menu-bar-update-hook)
+  "Hook run to update the recentf menu.")
+
+(defconst recentf-used-hooks
+  `(
+    (find-file-hooks    recentf-track-opened-file)
+    (write-file-hooks   recentf-track-opened-file)
+    (kill-buffer-hook   recentf-track-closed-file)
+    (,recentf-menu-hook recentf-update-menu)
+    (kill-emacs-hook    recentf-save-list)
+    )
+  "Hooks used by recentf.")
+
+(defsubst recentf-enabled-p ()
+  "Return non-nil if recentf mode is currently enabled."
+  (memq 'recentf-update-menu (symbol-value recentf-menu-hook)))
+
+;;; Commands
+;;
+
 ;;; Common dialog stuff
 ;;
 (defun recentf-cancel-dialog (&rest ignore)
@@ -1133,63 +1190,6 @@ Handle mouse button 1 click on buttons.  Needed on XEmacs only.")
     (widget-setup)
     (switch-to-buffer (current-buffer))))
 
-;;; Hooks
-;;
-(defun recentf-track-opened-file ()
-  "Insert the name of the file just opened or written into the recent list."
-  (and buffer-file-name
-       (recentf-add-file buffer-file-name))
-  ;; Must return nil because it is run from `write-file-hooks'.
-  nil)
-
-(defun recentf-track-closed-file ()
-  "Update the recent list when a buffer is killed.
-That is, remove a non kept file from the recent list."
-  (and buffer-file-name
-       (recentf-remove-if-non-kept buffer-file-name)))
-
-(defun recentf-update-menu ()
-  "Update the recentf menu from the current recent list."
-  (let ((cache (cons default-directory recentf-list)))
-    ;; Does nothing, if nothing has changed.
-    (if (equal recentf-data-cache cache)
-        ;; Tell XEmacs to not update the menubar
-        t
-      (setq recentf-data-cache cache)
-      (condition-case err
-          (easy-menu-add-item
-           (recentf-menu-bar) recentf-menu-path
-           (recentf-create-menu recentf-menu-title
-                                (recentf-make-menu-items))
-           recentf-menu-before)
-        (error
-         (message "recentf update menu failed: %s"
-                  (error-message-string err))))
-      ;; Tell XEmacs to update the menubar
-      nil)))
-
-(defconst recentf-menu-hook (if (boundp 'activate-menubar-hook)
-                                'activate-menubar-hook
-                              'menu-bar-update-hook)
-  "Hook run to update the recentf menu.")
-
-(defconst recentf-used-hooks
-  `(
-    (find-file-hooks    recentf-track-opened-file)
-    (write-file-hooks   recentf-track-opened-file)
-    (kill-buffer-hook   recentf-track-closed-file)
-    (,recentf-menu-hook recentf-update-menu)
-    (kill-emacs-hook    recentf-save-list)
-    )
-  "Hooks used by recentf.")
-
-(defsubst recentf-enabled-p ()
-  "Return non-nil if recentf mode is currently enabled."
-  (memq 'recentf-update-menu (symbol-value recentf-menu-hook)))
-
-;;; Commands
-;;
-
 ;;; Edit list dialog
 ;;
 (defvar recentf-edit-list nil)
@@ -1245,7 +1245,7 @@ Click on Cancel or type `q' to cancel.\n")
      :notify 'recentf-cancel-dialog
      "Cancel")
     (recentf-dialog-goto-first 'checkbox)))
-
+
 ;;; Open file dialog
 ;;
 (defun recentf-open-files-action (widget &rest ignore)
@@ -1368,7 +1368,7 @@ Optional argument N must be a valid digit number.  It defaults to 1.
     (when recentf--files-with-key
       (kill-buffer (current-buffer)))
     (funcall recentf-menu-action file)))
-
+
 ;;; Save/load/cleanup the recent list
 ;;
 (defconst recentf-save-file-header
@@ -1432,7 +1432,9 @@ That is, remove duplicates, non-kept, and excluded files."
         (message "File %s removed from the recentf list" f)))
     (message "Cleaning up the recentf list...done (%d removed)" n)
     (setq recentf-list (nreverse newlist))))
-
+
+;;; The minor mode
+;;
 (defvar recentf-mode-map (make-sparse-keymap)
   "Keymap to use in recentf mode.")
 
