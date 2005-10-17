@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 25 February 2003
 ;; Keywords: convenience
-;; Revision: $Id: tabbar.el,v 1.64 2005/07/14 07:35:11 ponced Exp $
+;; Revision: $Id: tabbar.el,v 1.65 2005/10/17 13:01:39 ponced Exp $
 
 (defconst tabbar-version "2.0")
 
@@ -1727,7 +1727,13 @@ Return the the first group where the current buffer is."
         (dolist (g (nth 2 e))
           (let ((tabset (tabbar-get-tabset g)))
             (if tabset
-                (tabbar-add-tab tabset (car e) t)
+                (let ((old (assq (car e) tabbar--buffers)))
+                  (if old
+                      ;; The buffer tab already exists.  If the buffer
+                      ;; name has been changed, refresh the display.
+                      (or (equal e old)
+                          (tabbar-set-template tabset nil))
+                    (tabbar-add-tab tabset (car e) t)))
               (tabbar-make-tabset g (car e))))))
       ;; Remove tabs for buffers not found in cache or moved to other
       ;; groups, and remove empty tabsets.
