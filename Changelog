@@ -1,3 +1,10 @@
+2005-11-04  David Ponce  <david@dponce.com>
+
+	* tabbar.el
+
+	(tabbar-delete-tab): Fix new tab selection after the selected tab
+	has been deleted.
+
 2005-10-18  David Ponce  <david@dponce.com>
 
 	* tree-widget.el
