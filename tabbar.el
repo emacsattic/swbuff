@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 25 February 2003
 ;; Keywords: convenience
-;; Revision: $Id: tabbar.el,v 1.65 2005/10/17 13:01:39 ponced Exp $
+;; Revision: $Id: tabbar.el,v 1.66 2005/11/04 12:30:38 ponced Exp $
 
 (defconst tabbar-version "2.0")
 
@@ -504,13 +504,15 @@ added at the end."
 (defun tabbar-delete-tab (tab)
   "Remove TAB from its tab set."
   (let* ((tabset (tabbar-tab-tabset tab))
-         (tabs   (tabbar-tabs tabset)))
+         (tabs   (tabbar-tabs tabset))
+         (sel    (eq tab (tabbar-selected-tab tabset)))
+         (next   (and sel (cdr (memq tab tabs)))))
     (tabbar-set-template tabset nil)
-    (when (eq tab (tabbar-selected-tab tabset))
-      ;; Before to delete the selected tab, select the next one.
-      (tabbar-select-tab (car (or (cdr (memq tab tabs)) (last tabs)))
-                         tabset))
-    (set tabset (delq tab tabs))))
+    (setq tabs (delq tab tabs))
+    ;; When the selected tab is deleted, select the next one, if
+    ;; available, or the last one otherwise.
+    (and sel (tabbar-select-tab (or next (car (last tabs))) tabset))
+    (set tabset tabs)))
 
 (defun tabbar-scroll (tabset count)
   "Scroll the visible tabs in TABSET of COUNT units.
