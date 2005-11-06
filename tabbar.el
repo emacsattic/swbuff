@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 25 February 2003
 ;; Keywords: convenience
-;; Revision: $Id: tabbar.el,v 1.66 2005/11/04 12:30:38 ponced Exp $
+;; Revision: $Id: tabbar.el,v 1.67 2005/11/06 17:19:11 ponced Exp $
 
 (defconst tabbar-version "2.0")
 
@@ -511,7 +511,7 @@ added at the end."
     (setq tabs (delq tab tabs))
     ;; When the selected tab is deleted, select the next one, if
     ;; available, or the last one otherwise.
-    (and sel (tabbar-select-tab (or next (car (last tabs))) tabset))
+    (and sel (tabbar-select-tab (car (or next (last tabs))) tabset))
     (set tabset tabs)))
 
 (defun tabbar-scroll (tabset count)
