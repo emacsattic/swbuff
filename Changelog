@@ -1,3 +1,11 @@
+2005-11-24  David Ponce  <david@dponce.com>
+
+	* recentf.el
+
+	(recentf-arrange-by-rule): Handle a special `auto-mode-alist'-like
+	"strip suffix" rule.
+	(recentf-build-mode-rules): Handle second level auto-mode entries.
+
 2005-11-06  David Ponce  <david@dponce.com>
 
 	* tabbar.el
