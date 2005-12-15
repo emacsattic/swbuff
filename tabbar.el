@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 25 February 2003
 ;; Keywords: convenience
-;; Revision: $Id: tabbar.el,v 1.67 2005/11/06 17:19:11 ponced Exp $
+;; Revision: $Id: tabbar.el,v 1.68 2005/12/15 08:09:36 ponced Exp $
 
 (defconst tabbar-version "2.0")
 
@@ -1151,6 +1151,7 @@ Call `tabbar-tab-label-function' to obtain a label for TAB."
       (with-temp-buffer
         (let ((truncate-partial-width-windows nil)
               (inhibit-modification-hooks t)
+              deactivate-mark ;; Prevent deactivation of the mark!
               start)
           (setq truncate-lines nil
                 buffer-undo-list t)
