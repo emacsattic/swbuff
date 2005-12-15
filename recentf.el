@@ -7,7 +7,7 @@
 ;; Created: July 19 1999
 ;; Keywords: files
 
-(defconst recentf-version "$Revision: 1.54 $")
+(defconst recentf-version "$Revision: 1.55 $")
 
 ;; This file is part of GNU Emacs.
 
@@ -1108,7 +1108,8 @@ Go to the beginning of buffer if not found."
           (if (eq widget-type (widget-type (widget-at (point))))
               (setq done t)
             (widget-move 1))))
-    (goto-char (point-min))))
+    (error
+     (goto-char (point-min)))))
 
 (defvar recentf-button-keymap
   (let ((km (make-sparse-keymap)))
@@ -1185,6 +1186,8 @@ IGNORE arguments."
 (defun recentf-edit-list ()
   "Show a dialog to delete selected files from the recent list."
   (interactive)
+  (unless recentf-list
+    (error "The list of recent files is empty"))
   (recentf-dialog (format "*%s - Edit list*" recentf-menu-title)
     (set (make-local-variable 'recentf-edit-list) nil)
     (widget-insert
@@ -1290,6 +1293,8 @@ files to choose from.  It defaults to the whole recent list.
 If optional argument BUFFER-NAME is non-nil, it is a buffer name to
 use for the dialog.  It defaults to \"*`recentf-menu-title'*\"."
   (interactive)
+  (unless (or files recentf-list)
+    (error "There is no file to open"))
   (recentf-dialog (or buffer-name (format "*%s*" recentf-menu-title))
     (widget-insert "Click on a file"
                    (if recentf-show-file-shortcuts-flag
