@@ -1,3 +1,10 @@
+2005-12-14  David Ponce  <david@dponce.com>
+
+	* tabbar.el
+
+	(tabbar-line-format): Prevent deactivation of the mark after the
+	commands that modify the temp buffer.
+
 2005-12-08  David Ponce  <david@dponce.com>
 
 	* recentf.el
