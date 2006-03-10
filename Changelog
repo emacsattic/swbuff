@@ -1,3 +1,16 @@
+2006-03-07  David Ponce  <david@dponce.com>
+
+	* tree-widget.el
+
+	Can search for themes in all occurrences of the main themes
+	sub-directory found in tree-widget-themes-load-path.
+	(tree-widget-themes-directory, tree-widget-theme): Doc fix.
+	(tree-widget--locate-sub-directory): Return all occurrences.
+	(tree-widget-themes-path): New function.  Replace
+	tree-widget-themes-directory, and return a list of directories.
+	(tree-widget-set-parent-theme)
+	(tree-widget-lookup-image): Use it.
+
 2006-03-06  David Ponce  <david@dponce.com>
 
 	* tree-widget.el
