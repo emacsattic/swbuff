@@ -2,7 +2,7 @@
 
 	* tree-widget.el
 
-	Can search for themes in all occurrences of the main themes
+	Handle themes across all occurrences of the main themes
 	sub-directory found in tree-widget-themes-load-path.
 	(tree-widget-themes-directory, tree-widget-theme): Doc fix.
 	(tree-widget--locate-sub-directory): Return all occurrences.
