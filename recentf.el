@@ -1,13 +1,13 @@
 ;;; recentf.el --- setup a menu of recently opened files
 
 ;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004,
-;;   2005 Free Software Foundation, Inc.
+;;   2005, 2006 Free Software Foundation, Inc.
 
 ;; Author: David Ponce <david@dponce.com>
 ;; Created: July 19 1999
 ;; Keywords: files
 
-(defconst recentf-version "$Revision: 1.55 $")
+(defconst recentf-version "$Revision: 1.56 $")
 
 ;; This file is part of GNU Emacs.
 
@@ -1261,7 +1261,7 @@ IGNORE other arguments."
            :button-prefix ""
            :button-suffix ""
            :button-face default
-           :format "%[%t%]\n"
+           :format "%[%t\n%]"
            :help-echo ,(concat "Open " (cdr menu-element))
            :action recentf-open-files-action
            ,(cdr menu-element))))
@@ -1346,9 +1346,14 @@ Optional argument N must be a valid digit number.  It defaults to 1.
   "Header to be written into the `recentf-save-file'.")
 
 (defconst recentf-save-file-coding-system
-  (if (coding-system-p 'utf-8-emacs)
-      'utf-8-emacs
-    'emacs-mule)
+  (if (featurep 'xemacs)
+      (if (and (<= emacs-major-version 21)
+               (< emacs-minor-version 5))
+          'iso-2022-8
+        'utf-8)
+    (if (coding-system-p 'utf-8-emacs)
+        'utf-8-emacs
+      'emacs-mule))
   "Coding system of the file `recentf-save-file'.")
 
 (defun recentf-save-list ()
