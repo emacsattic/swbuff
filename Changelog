@@ -2,7 +2,8 @@
 
 	* recentf.el
 
-	(recentf-save-file-coding-system): Fix XEmacs compatibility.
+	(recentf-coding-system-p): New function.
+	(recentf-save-file-coding-system): Use it.
 
 2006-04-03  Lennart Borgman  <lennart.borgman.073@student.lu.se>  (tiny change)
 
