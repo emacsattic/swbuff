@@ -1,3 +1,151 @@
+2006-05-17  David Ponce  <david@dponce.com>
+
+	* recentf.el
+
+	(recentf-edit-list-confirm-flag)
+	(recentf-dialog-committer): New variable.
+	(recentf-commit-dialog): New command.
+	(recentf-dialog-mode-map): Bind it to `x'.
+	(recentf-edit-list-validate): Ask for confirmation.
+	(recentf-edit-list): Use it as `recentf-dialog-committer'.
+	Call `recentf-dialog-committer' on OK button.
+
+	* tree-widget.el 
+
+	Update Commentary header.
+	(tree-widget-version): Update to 4.
+	(tree-widget--locate-sub-directory): Doc fix.
+	(tree-widget--cursors): Remove.  Replace by
+	(tree-widget-pointer-shape): New variable.
+	(tree-widget-image-properties): Use it.
+
+	(tree-widget-before-create-icon-functions)
+	(tree-widget-icon-create, tree-widget-leaf-node-icon-p)
+	(tree-widget-icon-action, tree-widget-icon-help-echo): Move to
+	group code related to icon widgets.
+
+	(tree-widget-guides, tree-widget-old-guides)
+	(tree-widget-default-guides, tree-widget-guide-item)
+	(tree-widget-mid-guide, tree-widget-last-node-guide)
+	(tree-widget-node-guide, tree-widget-skip-guide): New widgets.
+	
+	(tree-widget-old-guides-convert)
+	(tree-widget-old-guides-create)
+	(tree-widget-default-guides-convert)
+	(tree-widget-default-guides-create)
+	(tree-widget-guide-item-convert): New functions.
+	
+	(tree-widget-guide, tree-widget-end-guide)
+	(tree-widget-no-guide, tree-widget-handle)
+	(tree-widget-no-handle): Derive from `tree-widget-guide-item'.
+	
+	(tree-widget): Add :guides property.  Remove the :guide,
+	:end-guide, :no-guide, :handle, and :no-handle ones.
+	(tree-widget-value-create): Update accordingly.
+
+	* tree-widget-examples.el
+
+	(tree-widget-example-4-old-guides)
+	(tree-widget-example-4-old-tree)
+	(tree-widget-example-4-mid-guide)
+	(tree-widget-example-4-skip-guide)
+	(tree-widget-example-4-node-guide)
+	(tree-widget-example-4-last-node-guide)
+	(tree-widget-example-4-guides): New widgets.
+	(tree-widget-example-4-tree): Use `tree-widget-example-4-guides'.
+	(tree-widget-example-4): Use `tree-widget-example-4-tree' or
+	`tree-widget-example-4-old-tree' depending on argument.
+
+	* tree-widget/default/guides.xcf
+	* tree-widget/default/nodes.xcf
+	* tree-widget/default/old-guides.xcf
+	* tree-widget/default/old-handles.xcf
+
+	New file.
+	
+	* tree-widget/default/last-node-guide.png
+	* tree-widget/default/last-node-guide.xpm
+	* tree-widget/default/mid-guide.png
+	* tree-widget/default/mid-guide.xpm
+	* tree-widget/default/node-guide.png
+	* tree-widget/default/node-guide.xpm
+	* tree-widget/default/skip-guide.png
+	* tree-widget/default/skip-guide.xpm
+
+	New images created from default/guides.xcf.
+
+	* tree-widget/folder/guides.xcf
+	* tree-widget/folder/nodes.xcf
+	* tree-widget/folder/old-guides.xcf
+	* tree-widget/folder/old-handles.xcf
+
+	New files.
+
+	* tree-widget/folder/last-node-guide.png
+	* tree-widget/folder/last-node-guide.xpm
+	* tree-widget/folder/mid-guide.png
+	* tree-widget/folder/mid-guide.xpm
+	* tree-widget/folder/node-guide.png
+	* tree-widget/folder/node-guide.xpm
+	* tree-widget/folder/skip-guide.png
+	* tree-widget/folder/skip-guide.xpm
+
+	New images created from folder/guides.xcf.
+
+	* tree-widget/default/close.png
+	* tree-widget/default/close.xpm
+	* tree-widget/default/empty.png
+	* tree-widget/default/empty.xpm
+	* tree-widget/default/leaf.png
+	* tree-widget/default/leaf.xpm
+	* tree-widget/default/open.png
+	* tree-widget/default/open.xpm
+
+	Recreate from default/nodes.xcf.
+
+	* tree-widget/default/end-guide.png
+	* tree-widget/default/end-guide.xpm
+	* tree-widget/default/guide.png
+	* tree-widget/default/guide.xpm
+	* tree-widget/default/no-guide.png
+	* tree-widget/default/no-guide.xpm
+
+	Recreate from default/old-guides.xcf.
+
+	* tree-widget/default/handle.png
+	* tree-widget/default/handle.xpm
+	* tree-widget/default/no-handle.png
+	* tree-widget/default/no-handle.xpm
+
+	Recreate from default/old-handles.xcf.
+	
+	* tree-widget/folder/close.png
+	* tree-widget/folder/close.xpm
+	* tree-widget/folder/empty.png
+	* tree-widget/folder/empty.xpm
+	* tree-widget/folder/leaf.png
+	* tree-widget/folder/leaf.xpm
+	* tree-widget/folder/open.png
+	* tree-widget/folder/open.xpm
+
+	Recreate from folder/nodes.xcf.
+
+	* tree-widget/folder/end-guide.png
+	* tree-widget/folder/end-guide.xpm
+	* tree-widget/folder/guide.png
+	* tree-widget/folder/guide.xpm
+	* tree-widget/folder/no-guide.png
+	* tree-widget/folder/no-guide.xpm
+
+	Recreate from folder/old-guides.xcf.
+
+	* tree-widget/folder/handle.png
+	* tree-widget/folder/handle.xpm
+	* tree-widget/folder/no-handle.png
+	* tree-widget/folder/no-handle.xpm
+
+	Recreate from folder/old-handles.xcf.
+
 2006-04-05  David Ponce  <david@dponce.com>
 
 	* recentf.el
