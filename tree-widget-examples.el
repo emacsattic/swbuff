@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 27 Nov 2001
 ;; Keywords: extensions
-;; Revision: $Id: tree-widget-examples.el,v 1.10 2005/08/10 11:30:48 ponced Exp $
+;; Revision: $Id: tree-widget-examples.el,v 1.11 2006/05/17 10:09:28 ponced Exp $
 
 (defconst tree-widget-examples-version "1.3")
 
@@ -267,6 +267,8 @@ command."
   'tree-widget-leaf-icon
   ""
   :tag " `")
+
+;; Old guides scheme
 (define-widget 'tree-widget-example-4-guide
   'tree-widget-guide
   ""
@@ -288,13 +290,8 @@ command."
   ""
   :tag "")
 
-(define-widget 'tree-widget-example-4-tree
-  'tree-widget
-  "Tree widget with a customized ASCII look and feel."
-  :open-icon  'tree-widget-example-4-open-icon
-  :close-icon 'tree-widget-example-4-close-icon
-  :empty-icon 'tree-widget-example-4-empty-icon
-  :leaf-icon  'tree-widget-example-4-leaf-icon
+(define-widget 'tree-widget-example-4-old-guides 'tree-widget-old-guides
+  "Example 4 guides."
   :guide      'tree-widget-example-4-guide
   :end-guide  'tree-widget-example-4-end-guide
   :no-guide   'tree-widget-example-4-no-guide
@@ -302,59 +299,105 @@ command."
   :no-handle  'tree-widget-example-4-no-handle
   )
 
-(defun tree-widget-example-4 ()
-  "A tree widget with a customized ASCII look and feel."
-  (interactive)
-  (tree-widget-example-dialog "*`tree-widget' example 4*"
-    ;; Don't use images.
-    (set (make-local-variable 'tree-widget-image-enable) nil)
+(define-widget 'tree-widget-example-4-old-tree 'tree-widget
+  "Tree widget with a customized ASCII look and feel."
+  :open-icon  'tree-widget-example-4-open-icon
+  :close-icon 'tree-widget-example-4-close-icon
+  :empty-icon 'tree-widget-example-4-empty-icon
+  :leaf-icon  'tree-widget-example-4-leaf-icon
+  :guides 'tree-widget-example-4-old-guides
+  )
 
-    ;; Create the tree.  Fully expanded it will look like this:
-    ;;
-    ;;   << 1
-    ;;    << 1.0
-    ;;     << 1.0.1
-    ;;       ` 1.0.1.1
-    ;;       ` 1.0.1.2
-    ;;      << 1.0.1.3
-    ;;        ` 1.0.1.3.1
-    ;;        ` 1.0.1.3.2
-    ;;     << 1.0.2
-    ;;       ` 1.0.2.1
-    ;;      << 1.0.2.2
-    ;;        ` 1.0.2.2.1
-    ;;    <> 1.1
-    ;;    << 1.2
-    ;;      ` 1.2.1
-    ;;      ` 1.2.2
-    (apply
-     'widget-create
-     '(tree-widget-example-4-tree
-       :tag "1" :open t :indent 2
-       (tree-widget-example-4-tree
-        :tag "1.0"
-        (tree-widget-example-4-tree
-         :tag "1.0.1"
-         (item :tag "1.0.1.1")
-         (item :tag "1.0.1.2")
-         (tree-widget-example-4-tree
-          :tag "1.0.1.3"
-          (item :tag "1.0.1.3.1")
-          (item :tag "1.0.1.3.2")
-          ))
-        (tree-widget-example-4-tree
-         :tag "1.0.2"
-         (item :tag "1.0.2.1")
-         (tree-widget-example-4-tree
-          :tag "1.0.2.2"
-          (item :tag "1.0.2.2.1")
-          )))
-       (tree-widget-example-4-tree
-        :tag "1.1")
-       (tree-widget-example-4-tree
-        :tag "1.2" :open t
-        (item :tag "1.2.1")
-        (item :tag "1.2.2"))))))
+;; Default guides scheme
+(define-widget 'tree-widget-example-4-mid-guide
+  'tree-widget-mid-guide
+  ""
+  :tag " ")
+(define-widget 'tree-widget-example-4-skip-guide
+  'tree-widget-skip-guide
+  ""
+  :tag "")
+(define-widget 'tree-widget-example-4-node-guide
+  'tree-widget-node-guide
+  ""
+  :tag " ")
+(define-widget 'tree-widget-example-4-last-node-guide
+  'tree-widget-last-node-guide
+  ""
+  :tag " ")
+
+(define-widget 'tree-widget-example-4-guides 'tree-widget-default-guides
+  "Example 4 default guides."
+  :mid-guide       'tree-widget-example-4-mid-guide
+  :skip-guide      'tree-widget-example-4-skip-guide
+  :node-guide      'tree-widget-example-4-node-guide
+  :last-node-guide 'tree-widget-example-4-last-node-guide
+  )
+
+(define-widget 'tree-widget-example-4-tree 'tree-widget
+  "Tree widget with a customized ASCII look and feel."
+  :open-icon  'tree-widget-example-4-open-icon
+  :close-icon 'tree-widget-example-4-close-icon
+  :empty-icon 'tree-widget-example-4-empty-icon
+  :leaf-icon  'tree-widget-example-4-leaf-icon
+  :guides 'tree-widget-example-4-guides
+  )
+
+(defun tree-widget-example-4 (&optional arg)
+  "A tree widget with a customized ASCII look and feel."
+  (interactive "P")
+  (let ((tree-widget (if arg 'tree-widget-example-4-old-tree
+                       'tree-widget-example-4-tree)))
+    (tree-widget-example-dialog "*`tree-widget' example 4*"
+      ;; Don't use images.
+      (set (make-local-variable 'tree-widget-image-enable) nil)
+
+      ;; Create the tree.  Fully expanded it will look like this:
+      ;;
+      ;;   << 1
+      ;;    << 1.0
+      ;;     << 1.0.1
+      ;;       ` 1.0.1.1
+      ;;       ` 1.0.1.2
+      ;;      << 1.0.1.3
+      ;;        ` 1.0.1.3.1
+      ;;        ` 1.0.1.3.2
+      ;;     << 1.0.2
+      ;;       ` 1.0.2.1
+      ;;      << 1.0.2.2
+      ;;        ` 1.0.2.2.1
+      ;;    <> 1.1
+      ;;    << 1.2
+      ;;      ` 1.2.1
+      ;;      ` 1.2.2
+      (apply
+       'widget-create
+       `(,tree-widget
+         :tag "1" :open t :indent 2
+         (,tree-widget
+          :tag "1.0"
+          (,tree-widget
+           :tag "1.0.1"
+           (item :tag "1.0.1.1")
+           (item :tag "1.0.1.2")
+           (,tree-widget
+            :tag "1.0.1.3"
+            (item :tag "1.0.1.3.1")
+            (item :tag "1.0.1.3.2")
+            ))
+          (,tree-widget
+           :tag "1.0.2"
+           (item :tag "1.0.2.1")
+           (,tree-widget
+            :tag "1.0.2.2"
+            (item :tag "1.0.2.2.1")
+            )))
+         (,tree-widget
+          :tag "1.1")
+         (,tree-widget
+          :tag "1.2" :open t
+          (item :tag "1.2.1")
+          (item :tag "1.2.2")))))))
 
 (provide 'tree-widget-examples)
 
