@@ -6,9 +6,9 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 16 Feb 2001
 ;; Keywords: extensions
-;; Revision: $Id: tree-widget.el,v 1.38 2006/03/14 10:23:18 ponced Exp $
+;; Revision: $Id: tree-widget.el,v 1.39 2006/05/17 10:06:49 ponced Exp $
 
-(defconst tree-widget-version "3.1")
+(defconst tree-widget-version "4")
 
 ;; This file is part of GNU Emacs
 
@@ -78,38 +78,33 @@
 ;;    theme, like "close" for example (see also the variable
 ;;    `tree-widget-theme').
 ;;
-;; :guide      (default `tree-widget-guide')
-;; :end-guide  (default `tree-widget-end-guide')
-;; :no-guide   (default `tree-widget-no-guide')
-;; :handle     (default `tree-widget-handle')
-;; :no-handle  (default `tree-widget-no-handle')
-;;    Those properties define `item'-like widgets used to draw the
-;;    tree guide lines.  The :tag property value is used when drawing
-;;    the text representation of the tree.  The graphic look and feel
-;;    is given by the images named "guide", "no-guide", "end-guide",
-;;    "handle", and "no-handle" found in the current theme (see also
-;;    the variable `tree-widget-theme').
+;; :guides     (default `tree-widget-default-guides')
+;;    Define the widget which draws the tree guide lines.  See the
+;;    `tree-widget-guides' widget for details.  The default :guides
+;;    widget draws guide lines via the `tree-widget-mid-guide',
+;;    `tree-widget-skip-guide', `tree-widget-node-guide', and
+;;    `tree-widget-last-node-guide' guide item widgets.  See also the
+;;    `tree-widget-guide-item' widget for details.
 ;;
-;; These are the default :tag values for icons, and guide lines:
+;; Here are the default text representation of icons, and guide lines:
 ;;
-;; open-icon    "[-]"
-;; close-icon   "[+]"
-;; empty-icon   "[X]"
-;; leaf-icon    ""
-;; guide        " |"
-;; no-guide     "  "
-;; end-guide    " `"
-;; handle       "-"
-;; no-handle    " "
+;; open-icon       "[-]"
+;; close-icon      "[+]"
+;; empty-icon      "[X]"
+;; leaf-icon       ""
+;; skip-guide      "   "
+;; mid-guide       " | "
+;; node-guide      " |-"
+;; last-node-guide " `-"
 ;;
-;; The text representation of a tree looks like this:
+;; So, the text representation of a tree looks like:
 ;;
 ;; [-] 1        (open-icon :node)
-;;  |-[+] 1.0   (guide+handle+close-icon :node)
-;;  |-[X] 1.1   (guide+handle+empty-icon :node)
-;;  `-[-] 1.2   (end-guide+handle+open-icon :node)
-;;     |- 1.2.1 (no-guide+no-handle+guide+handle+leaf-icon leaf)
-;;     `- 1.2.2 (no-guide+no-handle+end-guide+handle+leaf-icon leaf)
+;;  |-[+] 1.0   (node-guide+close-icon :node)
+;;  |-[X] 1.1   (node-guide+empty-icon :node)
+;;  `-[-] 1.2   (last-node-guide+open-icon :node)
+;;     |- 1.2.1 (skip-guide+node-guide+leaf-icon leaf)
+;;     `- 1.2.2 (skip-guide+last-node-guide+leaf-icon leaf)
 ;;
 ;; On versions of [X]Emacs that support this feature, images will be
 ;; used instead of strings to draw a nice-looking tree.  See the
@@ -324,7 +319,8 @@ Typically it should contain something like this:
 (defun tree-widget--locate-sub-directory (name path &optional found)
   "Locate all occurrences of the sub-directory NAME in PATH.
 Return a list of absolute directory names in reverse order, or nil if
-not found."
+not found.
+Optional argument FOUND is a list where are pushed occurrences found."
   (condition-case err
       (dolist (elt path)
         (setq elt (eval elt))
@@ -378,17 +374,10 @@ has been found accessible."
       (aset tree-widget--theme 1 (or path 'void))
       path))))
 
-(defconst tree-widget--cursors
-  ;; Pointer shapes when the mouse pointer is over inactive
-  ;; tree-widget images.  This feature works since Emacs 22, and
-  ;; ignored on older versions, and XEmacs.
-  '(
-    ("guide"     . arrow)
-    ("no-guide"  . arrow)
-    ("end-guide" . arrow)
-    ("handle"    . arrow)
-    ("no-handle" . arrow)
-    ))
+(defvar tree-widget-pointer-shape 'hand
+  "Pointer shape when the mouse pointer is over the image.
+This feature works since Emacs 22, and is ignored on older versions,
+and XEmacs.")
 
 (defsubst tree-widget-set-image-properties (props)
   "In current theme, set images properties to PROPS.
@@ -404,7 +393,7 @@ XEmacs in the variables `tree-widget-image-properties-emacs', and
 `tree-widget-image-properties-xemacs'."
   ;; Add the pointer shape
   (cons :pointer
-        (cons (or (cdr (assoc name tree-widget--cursors)) 'hand)
+        (cons (or tree-widget-pointer-shape 'hand)
               (tree-widget-set-image-properties
                (if (featurep 'xemacs)
                    tree-widget-image-properties-xemacs
@@ -472,7 +461,9 @@ EVENT is the mouse event received."
     km)
   "Keymap used inside node buttons.
 Handle mouse button 1 click on buttons.")
-
+
+;;; Icons
+;;
 (define-widget 'tree-widget-icon 'push-button
   "Basic widget other tree-widget icons are derived from."
   :format        "%[%t%]"
@@ -482,6 +473,58 @@ Handle mouse button 1 click on buttons.")
   :action        'tree-widget-icon-action
   :help-echo     'tree-widget-icon-help-echo
   )
+
+(defvar tree-widget-before-create-icon-functions nil
+  "Hooks run before to create a tree-widget icon.
+Each function is passed the icon widget not yet created.
+The value of the icon widget :node property is a tree :node widget or
+a leaf node widget, not yet created.
+This hook can be used to dynamically change properties of the icon and
+associated node widgets.  For example, to dynamically change the look
+and feel of the tree-widget by changing the values of the :tag
+and :glyph-name properties of the icon widget.
+This hook should be local in the buffer setup to display widgets.")
+
+(defun tree-widget-icon-create (icon)
+  "Create the ICON widget."
+  (run-hook-with-args 'tree-widget-before-create-icon-functions icon)
+  (widget-put icon :tag-glyph
+              (tree-widget-find-image (widget-get icon :glyph-name)))
+  ;; Ensure there is at least one char to display the image.
+  (and (widget-get icon :tag-glyph)
+       (equal "" (or (widget-get icon :tag) ""))
+       (widget-put icon :tag " "))
+  (widget-default-create icon)
+  ;; Insert space between the icon and the node widget.
+  (insert-char ?  1)
+  (put-text-property
+   (1- (point)) (point)
+   'display (list 'space :width tree-widget-space-width)))
+
+(defsubst tree-widget-leaf-node-icon-p (icon)
+  "Return non-nil if ICON is a leaf node icon.
+That is, if its :node property value is a leaf node widget."
+  (widget-get icon :tree-widget--leaf-flag))
+
+(defun tree-widget-icon-action (icon &optional event)
+  "Handle the ICON widget :action.
+If ICON :node is a leaf node it handles the :action.  The tree-widget
+parent of ICON handles the :action otherwise.
+Pass the received EVENT to :action."
+  (let ((node (widget-get icon (if (tree-widget-leaf-node-icon-p icon)
+                                   :node :parent))))
+    (widget-apply node :action event)))
+
+(defun tree-widget-icon-help-echo (icon)
+  "Return the help-echo string of ICON.
+If ICON :node is a leaf node it handles the :help-echo.  The tree-widget
+parent of ICON handles the :help-echo otherwise."
+  (let* ((node (widget-get icon (if (tree-widget-leaf-node-icon-p icon)
+                                    :node :parent)))
+         (help-echo (widget-get node :help-echo)))
+    (if (functionp help-echo)
+        (funcall help-echo node)
+      help-echo)))
 
 (define-widget 'tree-widget-open-icon 'tree-widget-icon
   "Icon for an expanded tree-widget node."
@@ -507,42 +550,162 @@ Handle mouse button 1 click on buttons.")
   :glyph-name "leaf"
   :button-face 'default
   )
-
-(define-widget 'tree-widget-guide 'item
-  "Vertical guide line."
-  :tag       " |"
-  ;;:tag-glyph (tree-widget-find-image "guide")
-  :format    "%t"
+
+;;; Guides
+;;
+(define-widget 'tree-widget-guides 'default
+  "Basic widget for guides.
+This widget is a container.  Derived widgets must define properties
+for `tree-widget-guide-item' child widgets, and provide the `:create'
+and `:convert-widget' functions to handle guide drawing.  This
+widget's value is non-nil at the end of a vertical guide line.  See
+the `tree-widget-old-guides', and `tree-widget-default-guides' widgets
+for examples of implementation."
+  :value-get      'widget-value-value-get
   )
 
-(define-widget 'tree-widget-end-guide 'item
+(define-widget 'tree-widget-guide-item 'item
+  "Basic widget other tree-widget guides are derived from.
+Derived widgets must provide the `:tag', and `:glyph-name' properties
+for respectively the text and graphic (image) representation of the
+guide item."
+  :convert-widget 'tree-widget-guide-item-convert
+  :format         "%t"
+  )
+
+(defun tree-widget-guide-item-convert (guide)
+  "Prepare the GUIDE item widget."
+  (or (widget-get guide :tag-glyph)
+      (widget-put guide :tag-glyph
+                  (let ((tree-widget-pointer-shape 'arrow))
+                    (tree-widget-find-image
+                     (widget-get guide :glyph-name)))))
+  ;; Ensure there is at least one char to display the image.
+  (and (widget-get guide :tag-glyph)
+       (equal "" (or (widget-get guide :tag) ""))
+       (widget-put guide :tag " "))
+  (widget-value-convert-widget guide))
+
+;;; Old guide line widgets for compatibility.
+;;
+(define-widget 'tree-widget-old-guides 'tree-widget-guides
+  "The default guides widget."
+  :create         'tree-widget-old-guides-create
+  :convert-widget 'tree-widget-old-guides-convert
+  :guide          'tree-widget-guide
+  :end-guide      'tree-widget-end-guide
+  :no-guide       'tree-widget-no-guide
+  :handle         'tree-widget-handle
+  :no-handle      'tree-widget-no-handle
+  )
+
+(defun tree-widget-old-guides-convert (guides)
+  "Prepare the GUIDES widget."
+  (let ((widget (widget-types-convert-widget guides)))
+    (dolist (i '(:guide :end-guide :no-guide :handle :no-handle))
+      (widget-put widget i (widget-convert (widget-get widget i))))
+    widget))
+
+(defun tree-widget-old-guides-create (guides)
+  "Create the GUIDES widget."
+  ;; Insert guide lines elements from previous levels.
+  (dolist (f (widget-get guides :guide-flags))
+    (widget-create-child
+     guides (widget-get guides (if f :guide :no-guide)))
+    (widget-create-child guides (widget-get guides :no-handle)))
+  ;; Insert guide line element for this level.
+  (widget-create-child
+   guides (widget-get guides (if (widget-value guides)
+                                 :end-guide :guide)))
+  ;; Insert the node handle line
+  (widget-create-child guides (widget-get guides :handle)))
+
+(define-widget 'tree-widget-guide 'tree-widget-guide-item
+  "Vertical guide line."
+  :tag        " |"
+  :glyph-name "guide"
+  )
+
+(define-widget 'tree-widget-end-guide 'tree-widget-guide-item
   "End of a vertical guide line."
   :tag       " `"
-  ;;:tag-glyph (tree-widget-find-image "end-guide")
-  :format    "%t"
+  :glyph-name "end-guide"
   )
 
-(define-widget 'tree-widget-no-guide 'item
+(define-widget 'tree-widget-no-guide 'tree-widget-guide-item
   "Invisible vertical guide line."
   :tag       "  "
-  ;;:tag-glyph (tree-widget-find-image "no-guide")
-  :format    "%t"
+  :glyph-name "no-guide"
   )
 
-(define-widget 'tree-widget-handle 'item
+(define-widget 'tree-widget-handle 'tree-widget-guide-item
   "Horizontal guide line that joins a vertical guide line to a node."
   :tag       "-"
-  ;;:tag-glyph (tree-widget-find-image "handle")
-  :format    "%t"
+  :glyph-name "handle"
   )
 
-(define-widget 'tree-widget-no-handle 'item
+(define-widget 'tree-widget-no-handle 'tree-widget-guide-item
   "Invisible handle."
   :tag       " "
-  ;;:tag-glyph (tree-widget-find-image "no-handle")
-  :format    "%t"
+  :glyph-name "no-handle"
   )
 
+;;; Default guide line widgets
+;;
+(define-widget 'tree-widget-default-guides 'tree-widget-guides
+  "The alternate guides widget."
+  :create          'tree-widget-default-guides-create
+  :convert-widget  'tree-widget-default-guides-convert
+  :mid-guide       'tree-widget-mid-guide
+  :skip-guide      'tree-widget-skip-guide
+  :node-guide      'tree-widget-node-guide
+  :last-node-guide 'tree-widget-last-node-guide
+  )
+
+(defun tree-widget-default-guides-convert (guides)
+  "Prepare the GUIDES widget."
+  (let ((widget (widget-types-convert-widget guides)))
+    (dolist (i '(:mid-guide :skip-guide :node-guide :last-node-guide))
+      (widget-put widget i (widget-convert (widget-get widget i))))
+    widget))
+
+(defun tree-widget-default-guides-create (guides)
+  "Create the GUIDES widget."
+  ;; Insert guide lines from previous levels.
+  (dolist (f (widget-get guides :guide-flags))
+    (widget-create-child
+     guides (widget-get guides (if f :mid-guide :skip-guide))))
+  ;; Insert node guide for this level.
+  (widget-create-child
+   guides (widget-get guides (if (widget-value guides)
+                                 :last-node-guide :node-guide))))
+
+(define-widget 'tree-widget-mid-guide 'tree-widget-guide-item
+  "Vertical guide line."
+  :tag        " | "
+  :glyph-name "mid-guide"
+  )
+
+(define-widget 'tree-widget-last-node-guide 'tree-widget-guide-item
+  "End of a vertical guide line, in front of the last child node."
+  :tag        " `-"
+  :glyph-name "last-node-guide"
+  )
+
+(define-widget 'tree-widget-node-guide 'tree-widget-guide-item
+  "Vertical guide line in front of a node."
+  :tag        " |-"
+  :glyph-name "node-guide"
+  )
+
+(define-widget 'tree-widget-skip-guide 'tree-widget-guide-item
+  "Invisible guide line."
+  :tag        "   "
+  :glyph-name "skip-guide"
+  )
+
+;;; Tree widget
+;;
 (define-widget 'tree-widget 'default
   "Tree widget."
   :format         "%v"
@@ -557,15 +720,10 @@ Handle mouse button 1 click on buttons.")
   :close-icon     'tree-widget-close-icon
   :empty-icon     'tree-widget-empty-icon
   :leaf-icon      'tree-widget-leaf-icon
-  :guide          'tree-widget-guide
-  :end-guide      'tree-widget-end-guide
-  :no-guide       'tree-widget-no-guide
-  :handle         'tree-widget-handle
-  :no-handle      'tree-widget-no-handle
+;;   :guides         'tree-widget-old-guides
+  :guides         'tree-widget-default-guides
   )
-
-;;; Widget support functions
-;;
+
 (defun tree-widget-p (widget)
   "Return non-nil if WIDGET is a tree-widget."
   (let ((type (widget-type widget)))
@@ -633,35 +791,6 @@ WIDGET's :node sub-widget."
          (widget-put arg :value (widget-value child))
          ;; Save properties specified in :keep.
          (tree-widget-keep arg child)))))
-
-;;; Widget creation
-;;
-(defvar tree-widget-before-create-icon-functions nil
-  "Hooks run before to create a tree-widget icon.
-Each function is passed the icon widget not yet created.
-The value of the icon widget :node property is a tree :node widget or
-a leaf node widget, not yet created.
-This hook can be used to dynamically change properties of the icon and
-associated node widgets.  For example, to dynamically change the look
-and feel of the tree-widget by changing the values of the :tag
-and :glyph-name properties of the icon widget.
-This hook should be local in the buffer setup to display widgets.")
-
-(defun tree-widget-icon-create (icon)
-  "Create the ICON widget."
-  (run-hook-with-args 'tree-widget-before-create-icon-functions icon)
-  (widget-put icon :tag-glyph
-              (tree-widget-find-image (widget-get icon :glyph-name)))
-  ;; Ensure there is at least one char to display the image.
-  (and (widget-get icon :tag-glyph)
-       (equal "" (or (widget-get icon :tag) ""))
-       (widget-put icon :tag " "))
-  (widget-default-create icon)
-  ;; Insert space between the icon and the node widget.
-  (insert-char ?  1)
-  (put-text-property
-   (1- (point)) (point)
-   'display (list 'space :width tree-widget-space-width)))
 
 (defun tree-widget-convert-widget (widget)
   "Convert :args as widget types in WIDGET."
@@ -674,7 +803,6 @@ This hook should be local in the buffer setup to display widgets.")
 (defun tree-widget-value-create (tree)
   "Create the TREE tree-widget."
   (let* ((node   (tree-widget-node tree))
-         (flags  (widget-get tree :tree-widget--guide-flags))
          (indent (widget-get tree :indent))
          ;; Setup widget's image support.  Looking up for images, and
          ;; setting widgets' :tag-glyph is done here, to allow to
@@ -686,17 +814,11 @@ This hook should be local in the buffer setup to display widgets.")
          (insert-char ?\  indent))
     (if (widget-get tree :open)
 ;;;; Expanded node.
-        (let ((args     (widget-get tree :args))
-              (guide    (widget-get tree :guide))
-              (noguide  (widget-get tree :no-guide))
-              (endguide (widget-get tree :end-guide))
-              (handle   (widget-get tree :handle))
-              (nohandle (widget-get tree :no-handle))
-              (guidi    (tree-widget-find-image "guide"))
-              (noguidi  (tree-widget-find-image "no-guide"))
-              (endguidi (tree-widget-find-image "end-guide"))
-              (handli   (tree-widget-find-image "handle"))
-              (nohandli (tree-widget-find-image "no-handle")))
+        (let* ((args (widget-get tree :args))
+               (flags (widget-get tree :tree-widget--guide-flags))
+               (guides (widget-convert
+                        (widget-get tree :guides)
+                        :guide-flags (reverse flags))))
           ;; Request children at run time, when requested.
           (when (and (widget-get tree :expander)
                      (widget-apply tree :expander-p))
@@ -721,20 +843,8 @@ This hook should be local in the buffer setup to display widgets.")
             (setq node (car args)
                   args (cdr args))
             (and indent (insert-char ?\  indent))
-            ;; Insert guide lines elements from previous levels.
-            (dolist (f (reverse flags))
-              (widget-create-child-and-convert
-               tree (if f guide noguide)
-               :tag-glyph (if f guidi noguidi))
-              (widget-create-child-and-convert
-               tree nohandle :tag-glyph nohandli))
-            ;; Insert guide line element for this level.
-            (widget-create-child-and-convert
-             tree (if args guide endguide)
-             :tag-glyph (if args guidi endguidi))
-            ;; Insert the node handle line
-            (widget-create-child-and-convert
-             tree handle :tag-glyph handli)
+            ;; Insert guides.
+            (widget-create-child-value tree guides (null args))
             (if (tree-widget-p node)
                 ;; Create a sub-tree node.
                 (push (widget-create-child-and-convert
@@ -772,33 +882,6 @@ This hook should be local in the buffer setup to display widgets.")
     ;; is the first element in :children.
     (widget-put tree :children (nreverse children))
     (widget-put tree :buttons  buttons)))
-
-;;; Widget callbacks
-;;
-(defsubst tree-widget-leaf-node-icon-p (icon)
-  "Return non-nil if ICON is a leaf node icon.
-That is, if its :node property value is a leaf node widget."
-  (widget-get icon :tree-widget--leaf-flag))
-
-(defun tree-widget-icon-action (icon &optional event)
-  "Handle the ICON widget :action.
-If ICON :node is a leaf node it handles the :action.  The tree-widget
-parent of ICON handles the :action otherwise.
-Pass the received EVENT to :action."
-  (let ((node (widget-get icon (if (tree-widget-leaf-node-icon-p icon)
-                                   :node :parent))))
-    (widget-apply node :action event)))
-
-(defun tree-widget-icon-help-echo (icon)
-  "Return the help-echo string of ICON.
-If ICON :node is a leaf node it handles the :help-echo.  The tree-widget
-parent of ICON handles the :help-echo otherwise."
-  (let* ((node (widget-get icon (if (tree-widget-leaf-node-icon-p icon)
-                                    :node :parent)))
-         (help-echo (widget-get node :help-echo)))
-    (if (functionp help-echo)
-        (funcall help-echo node)
-      help-echo)))
 
 (defvar tree-widget-after-toggle-functions nil
   "Hooks run after toggling a tree-widget expansion.
