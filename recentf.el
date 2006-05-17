@@ -7,7 +7,7 @@
 ;; Created: July 19 1999
 ;; Keywords: files
 
-(defconst recentf-version "$Revision: 1.57 $")
+(defconst recentf-version "$Revision: 1.58 $")
 
 ;; This file is part of GNU Emacs.
 
@@ -323,6 +323,13 @@ They are successively passed a file name to transform it."
   "Whether to show ``[N]'' for the Nth item up to 10.
 If non-nil, `recentf-open-files' will show labels for keys that can be
 used as shortcuts to open the Nth file."
+  :group 'recentf
+  :type 'boolean)
+
+(defcustom recentf-edit-list-confirm-flag t
+  "Whether to ask for confirmation before to delete recent files.
+If non-nil, `recentf-edit-list' will ask for confirmation before to
+delete the selected files from the recent list."
   :group 'recentf
   :type 'boolean)
 
@@ -1097,6 +1104,14 @@ IGNORE arguments."
   (kill-buffer (current-buffer))
   (message "Dialog canceled"))
 
+(defvar recentf-dialog-committer 'ignore)
+
+(defun recentf-commit-dialog (&rest args)
+  "Commit the current dialog.
+Pass ARGS to the `recentf-dialog-committer' function."
+  (interactive)
+  (apply recentf-dialog-committer args))
+
 (defun recentf-dialog-goto-first (widget-type)
   "Move the cursor to the first WIDGET-TYPE in current dialog.
 Go to the beginning of buffer if not found."
@@ -1124,6 +1139,7 @@ Handle mouse button 1 click on buttons.  Needed on XEmacs only.")
   (let ((km (copy-keymap recentf--shortcuts-keymap)))
     (set-keymap-parent km widget-keymap)
     (define-key km "q" 'recentf-cancel-dialog)
+    (define-key km "x" 'recentf-commit-dialog)
     (define-key km [down-mouse-1] 'widget-button-click)
     km)
   "Keymap used in recentf dialogs.")
@@ -1175,12 +1191,14 @@ IGNORE other arguments."
   "Process the recent list when the edit list dialog is committed.
 IGNORE arguments."
   (if recentf-edit-list
-      (let ((i 0))
-        (dolist (e recentf-edit-list)
-          (setq recentf-list (delq e recentf-list)
-                i (1+ i)))
-        (kill-buffer (current-buffer))
-        (message "%S file(s) removed from the list" i))
+      (when (or (not recentf-edit-list-confirm-flag)
+                (y-or-n-p "Delete the selected files?"))
+        (let ((i 0))
+          (dolist (e recentf-edit-list)
+            (setq recentf-list (delq e recentf-list)
+                  i (1+ i)))
+          (kill-buffer (current-buffer))
+          (message "%S file(s) removed from the list" i)))
     (message "No file selected")))
 
 (defun recentf-edit-list ()
@@ -1190,9 +1208,11 @@ IGNORE arguments."
     (error "The list of recent files is empty"))
   (recentf-dialog (format "*%s - Edit list*" recentf-menu-title)
     (set (make-local-variable 'recentf-edit-list) nil)
+    (set (make-local-variable 'recentf-dialog-committer)
+         'recentf-edit-list-validate)
     (widget-insert
-     "Click on OK to delete selected files from the recent list.
-Click on Cancel or type `q' to cancel.\n")
+     "Click on OK, or type `x', to delete selected files from the recent list.
+Click on Cancel, or type `q', to cancel.\n")
     ;; Insert the list of files as checkboxes
     (dolist (item recentf-list)
       (widget-create 'checkbox
@@ -1204,7 +1224,7 @@ Click on Cancel or type `q' to cancel.\n")
     (widget-create
      'push-button
      :button-keymap recentf-button-keymap ; XEmacs
-     :notify 'recentf-edit-list-validate
+     :notify recentf-dialog-committer
      :help-echo "Delete selected files from the recent list"
      "Ok")
     (widget-insert " ")
