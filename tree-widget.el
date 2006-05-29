@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 16 Feb 2001
 ;; Keywords: extensions
-;; Revision: $Id: tree-widget.el,v 1.39 2006/05/17 10:06:49 ponced Exp $
+;; Revision: $Id: tree-widget.el,v 1.40 2006/05/29 13:14:02 ponced Exp $
 
 (defconst tree-widget-version "4")
 
@@ -76,35 +76,57 @@
 ;;    that represent a node icon, like "[+]" for example.  The
 ;;    :glyph-name value must the name of an image found in the current
 ;;    theme, like "close" for example (see also the variable
-;;    `tree-widget-theme').
+;;    `tree-widget-theme').  Here are the default text representation
+;;    of icons:
 ;;
-;; :guides     (default `tree-widget-default-guides')
+;;    open-icon    "[-]"
+;;    close-icon   "[+]"
+;;    empty-icon   "[X]"
+;;    leaf-icon    ""
+;;
+;; :guides     (default `tree-widget-old-guides')
 ;;    Define the widget which draws the tree guide lines.  See the
-;;    `tree-widget-guides' widget for details.  The default :guides
-;;    widget draws guide lines via the `tree-widget-mid-guide',
-;;    `tree-widget-skip-guide', `tree-widget-node-guide', and
-;;    `tree-widget-last-node-guide' guide item widgets.  See also the
-;;    `tree-widget-guide-item' widget for details.
+;;    `tree-widget-guides' widget for details.
 ;;
-;; Here are the default text representation of icons, and guide lines:
+;;    The default `tree-widget-old-guides' widget draws guide lines
+;;    via these guide item widgets (for compatibility, properties can
+;;    also be specified in the tree-widget definition):
 ;;
-;; open-icon       "[-]"
-;; close-icon      "[+]"
-;; empty-icon      "[X]"
-;; leaf-icon       ""
-;; skip-guide      "   "
-;; mid-guide       " | "
-;; node-guide      " |-"
-;; last-node-guide " `-"
+;;    Property          Widget                         Tag
+;;    ----------------  -----------------------------  ------
+;;    :guide            `tree-widget-guide'            " |"
+;;    :end-guide        `tree-widget-end-guide'        "  "
+;;    :no-guide         `tree-widget-no-guide'         " `"
+;;    :handle           `tree-widget-handle'           "-"
+;;    :no-handle        `tree-widget-no-handle'        " "
 ;;
-;; So, the text representation of a tree looks like:
+;;    The text representation of a tree looks like this:
 ;;
-;; [-] 1        (open-icon :node)
-;;  |-[+] 1.0   (node-guide+close-icon :node)
-;;  |-[X] 1.1   (node-guide+empty-icon :node)
-;;  `-[-] 1.2   (last-node-guide+open-icon :node)
-;;     |- 1.2.1 (skip-guide+node-guide+leaf-icon leaf)
-;;     `- 1.2.2 (skip-guide+last-node-guide+leaf-icon leaf)
+;;    [-] 1        (open-icon :node)
+;;     |-[+] 1.0   (guide+handle+close-icon :node)
+;;     |-[X] 1.1   (guide+handle+empty-icon :node)
+;;     `-[-] 1.2   (end-guide+handle+open-icon :node)
+;;        |- 1.2.1 (no-guide+no-handle+guide+handle+leaf-icon leaf)
+;;        `- 1.2.2 (no-guide+no-handle+end-guide+handle+leaf-icon leaf)
+;;
+;;    The new `tree-widget-new-guides' widget provides a simplified
+;;    and faster to draw guides scheme with these guide item widgets:
+
+;;    Property          Widget                         Tag
+;;    ----------------  -----------------------------  ------
+;;    :mid-guide        `tree-widget-mid-guide'        " | "
+;;    :skip-guide       `tree-widget-skip-guide'       "   "
+;;    :node-guide       `tree-widget-node-guide'       " |-"
+;;    :last-node-guide  `tree-widget-last-node-guide'  " `-"
+;;
+;;    The text representation of a tree looks like:
+;;
+;;    [-] 1        (open-icon :node)
+;;     |-[+] 1.0   (node-guide+close-icon :node)
+;;     |-[X] 1.1   (node-guide+empty-icon :node)
+;;     `-[-] 1.2   (last-node-guide+open-icon :node)
+;;        |- 1.2.1 (skip-guide+node-guide+leaf-icon leaf)
+;;        `- 1.2.2 (skip-guide+last-node-guide+leaf-icon leaf)
 ;;
 ;; On versions of [X]Emacs that support this feature, images will be
 ;; used instead of strings to draw a nice-looking tree.  See the
@@ -559,7 +581,7 @@ This widget is a container.  Derived widgets must define properties
 for `tree-widget-guide-item' child widgets, and provide the `:create'
 and `:convert-widget' functions to handle guide drawing.  This
 widget's value is non-nil at the end of a vertical guide line.  See
-the `tree-widget-old-guides', and `tree-widget-default-guides' widgets
+the `tree-widget-old-guides', and `tree-widget-new-guides' widgets
 for examples of implementation."
   :value-get      'widget-value-value-get
   )
@@ -601,9 +623,14 @@ guide item."
 
 (defun tree-widget-old-guides-convert (guides)
   "Prepare the GUIDES widget."
-  (let ((widget (widget-types-convert-widget guides)))
+  (let* ((widget (widget-types-convert-widget guides))
+         (tree (widget-get widget :parent)))
     (dolist (i '(:guide :end-guide :no-guide :handle :no-handle))
-      (widget-put widget i (widget-convert (widget-get widget i))))
+      (widget-put widget i
+                  ;; For compatibility, get guide item widgets from
+                  ;; the :parent tree-widget type, then from GUIDES.
+                  (widget-convert (or (widget-get tree i)
+                                      (widget-get widget i)))))
     widget))
 
 (defun tree-widget-old-guides-create (guides)
@@ -650,26 +677,26 @@ guide item."
   :glyph-name "no-handle"
   )
 
-;;; Default guide line widgets
+;;; New guide line widgets
 ;;
-(define-widget 'tree-widget-default-guides 'tree-widget-guides
+(define-widget 'tree-widget-new-guides 'tree-widget-guides
   "The alternate guides widget."
-  :create          'tree-widget-default-guides-create
-  :convert-widget  'tree-widget-default-guides-convert
+  :create          'tree-widget-new-guides-create
+  :convert-widget  'tree-widget-new-guides-convert
   :mid-guide       'tree-widget-mid-guide
   :skip-guide      'tree-widget-skip-guide
   :node-guide      'tree-widget-node-guide
   :last-node-guide 'tree-widget-last-node-guide
   )
 
-(defun tree-widget-default-guides-convert (guides)
+(defun tree-widget-new-guides-convert (guides)
   "Prepare the GUIDES widget."
   (let ((widget (widget-types-convert-widget guides)))
     (dolist (i '(:mid-guide :skip-guide :node-guide :last-node-guide))
       (widget-put widget i (widget-convert (widget-get widget i))))
     widget))
 
-(defun tree-widget-default-guides-create (guides)
+(defun tree-widget-new-guides-create (guides)
   "Create the GUIDES widget."
   ;; Insert guide lines from previous levels.
   (dolist (f (widget-get guides :guide-flags))
@@ -720,8 +747,8 @@ guide item."
   :close-icon     'tree-widget-close-icon
   :empty-icon     'tree-widget-empty-icon
   :leaf-icon      'tree-widget-leaf-icon
-;;   :guides         'tree-widget-old-guides
-  :guides         'tree-widget-default-guides
+  :guides         'tree-widget-old-guides
+  ;; :guides         'tree-widget-new-guides
   )
 
 (defun tree-widget-p (widget)
@@ -817,7 +844,10 @@ WIDGET's :node sub-widget."
         (let* ((args (widget-get tree :args))
                (flags (widget-get tree :tree-widget--guide-flags))
                (guides (widget-convert
-                        (widget-get tree :guides)
+                        ;; Make the :parent tree accessible by the
+                        ;; :convert-widget function of the :guides
+                        ;; widget.
+                        (list (widget-get tree :guides) :parent tree)
                         :guide-flags (reverse flags))))
           ;; Request children at run time, when requested.
           (when (and (widget-get tree :expander)
