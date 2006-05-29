@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 27 Nov 2001
 ;; Keywords: extensions
-;; Revision: $Id: tree-widget-examples.el,v 1.11 2006/05/17 10:09:28 ponced Exp $
+;; Revision: $Id: tree-widget-examples.el,v 1.12 2006/05/29 13:14:56 ponced Exp $
 
 (defconst tree-widget-examples-version "1.3")
 
@@ -268,7 +268,7 @@ command."
   ""
   :tag " `")
 
-;; Old guides scheme
+;; Old compatible guides schema
 (define-widget 'tree-widget-example-4-guide
   'tree-widget-guide
   ""
@@ -290,25 +290,21 @@ command."
   ""
   :tag "")
 
-(define-widget 'tree-widget-example-4-old-guides 'tree-widget-old-guides
-  "Example 4 guides."
-  :guide      'tree-widget-example-4-guide
-  :end-guide  'tree-widget-example-4-end-guide
-  :no-guide   'tree-widget-example-4-no-guide
-  :handle     'tree-widget-example-4-handle
-  :no-handle  'tree-widget-example-4-no-handle
-  )
-
 (define-widget 'tree-widget-example-4-old-tree 'tree-widget
   "Tree widget with a customized ASCII look and feel."
   :open-icon  'tree-widget-example-4-open-icon
   :close-icon 'tree-widget-example-4-close-icon
   :empty-icon 'tree-widget-example-4-empty-icon
   :leaf-icon  'tree-widget-example-4-leaf-icon
-  :guides 'tree-widget-example-4-old-guides
+  :guide      'tree-widget-example-4-guide
+  :end-guide  'tree-widget-example-4-end-guide
+  :no-guide   'tree-widget-example-4-no-guide
+  :handle     'tree-widget-example-4-handle
+  :no-handle  'tree-widget-example-4-no-handle
+  :guides     'tree-widget-old-guides
   )
 
-;; Default guides scheme
+;; New guides schema
 (define-widget 'tree-widget-example-4-mid-guide
   'tree-widget-mid-guide
   ""
