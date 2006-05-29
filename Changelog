@@ -1,3 +1,23 @@
+2006-05-29  David Ponce  <david@dponce.com>
+
+	* tree-widget.el
+
+	Update Commentary header.
+	(tree-widget-old-guides-convert): For compatibility, get guide
+	item widgets from the parent tree-widget.
+	(tree-widget-default-guides*): Rename to tree-widget-new-guides*.
+	(tree-widget): For compatibility, use `tree-widget-old-guides' as
+	the default :guide value.
+	(tree-widget-value-create): Make the :parent tree accessible by
+	the :convert-widget function of the :guides widget.
+
+	* tree-widget-examples.el
+
+	(tree-widget-example-4-old-guides): Remove.
+	(tree-widget-example-4-old-tree): To check compatibility, setup
+	here the :guide, :end-guide, :no-guide, :handle, :no-handle, and
+	:guides properties.
+
 2006-05-17  David Ponce  <david@dponce.com>
 
 	* recentf.el
