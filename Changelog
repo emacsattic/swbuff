@@ -1,3 +1,10 @@
+2006-06-08  David Ponce  <david@dponce.com>
+
+	* tabbar.el
+
+	(tabbar-buffer-update-groups): Fix tab set not updated, when
+	buffer is moved to another group.
+
 2006-05-29  David Ponce  <david@dponce.com>
 
 	* tree-widget.el
