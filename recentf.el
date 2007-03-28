@@ -1,13 +1,13 @@
 ;;; recentf.el --- setup a menu of recently opened files
 
 ;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004,
-;;   2005, 2006 Free Software Foundation, Inc.
+;;   2005, 2006, 2007 Free Software Foundation, Inc.
 
 ;; Author: David Ponce <david@dponce.com>
 ;; Created: July 19 1999
 ;; Keywords: files
 
-(defconst recentf-version "$Revision: 1.58 $")
+(defconst recentf-version "$Revision: 1.59 $")
 
 ;; This file is part of GNU Emacs.
 
@@ -104,7 +104,14 @@ See the command `recentf-save-list'."
 (defcustom recentf-save-file "~/.recentf"
   "*File to save the recent list into."
   :group 'recentf
-  :type 'file)
+  :type 'file
+  :initialize 'custom-initialize-default
+  :set (lambda (symbol value)
+         (let ((oldvalue (eval symbol)))
+           (custom-set-default symbol value)
+           (and (not (equal value oldvalue))
+                recentf-mode
+                (recentf-load-list)))))
 
 (defcustom recentf-save-file-modes 384 ;; 0600
   "Mode bits of recentf save file, as an integer, or nil.
