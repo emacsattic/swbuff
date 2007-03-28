@@ -1,3 +1,9 @@
+2007-03-28  Stephen Berman  <Stephen.Berman@gmx.net>
+
+	* recentf.el
+
+	(recentf-save-file): Add a custom :set function.
+
 2006-06-08  David Ponce  <david@dponce.com>
 
 	* tabbar.el
