@@ -1,8 +1,27 @@
+2007-09-19  Stefan Monnier  <monnier@iro.umontreal.ca>
+
+	* recentf.el: Remove spurious * in docstrings.
+	(recentf-save-list): Fix up comment style.
+
+2007-07-17  Michael Albinus  <michael.albinus@gmx.de>
+
+	* recentf.el (recentf-keep-default-predicate): Adapt call of
+	`file-remote-p'.
+
+2007-07-15  Michael Albinus  <michael.albinus@gmx.de>
+
+	* recentf.el (recentf-keep-default-predicate): New defun.
+	(recentf-keep): Use it as initial value.
+
 2007-03-28  Stephen Berman  <Stephen.Berman@gmx.net>
 
 	* recentf.el
 
 	(recentf-save-file): Add a custom :set function.
+
+2006-10-18  Richard Stallman  <rms@gnu.org>
+
+	* recentf.el (recentf-mode): Doc fix.
 
 2006-06-08  David Ponce  <david@dponce.com>
 
