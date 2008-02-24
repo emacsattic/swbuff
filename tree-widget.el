@@ -1,12 +1,12 @@
 ;;; tree-widget.el --- Tree widget
 
-;; Copyright (C) 2001, 2003, 2004, 2005, 2006 by David Ponce
+;; Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008 by David Ponce
 
 ;; Author: David Ponce <david@dponce.com>
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 16 Feb 2001
 ;; Keywords: extensions
-;; Revision: $Id: tree-widget.el,v 1.40 2006/05/29 13:14:02 ponced Exp $
+;; Revision: $Id: tree-widget.el,v 1.41 2008/02/24 11:34:24 ponced Exp $
 
 (defconst tree-widget-version "4")
 
@@ -14,7 +14,7 @@
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
-;; published by the Free Software Foundation; either version 2, or (at
+;; published by the Free Software Foundation; either version 3, or (at
 ;; your option) any later version.
 
 ;; This program is distributed in the hope that it will be useful, but
@@ -427,19 +427,20 @@ Search first in current theme, then in parent themes (see also the
 function `tree-widget-set-parent-theme').
 Return the first image found having a supported format, or nil if not
 found."
-  (catch 'found
-    (dolist (default-directory (tree-widget-themes-path))
-      (dolist (dir (aref tree-widget--theme 0))
-        (dolist (fmt (tree-widget-image-formats))
-          (dolist (ext (cdr fmt))
-            (setq file (expand-file-name (concat name ext) dir))
-            (and (file-readable-p file)
-                 (file-regular-p file)
-                 (throw 'found
-                        (tree-widget-create-image
-                         (car fmt) file
-                         (tree-widget-image-properties name))))))))
-    nil))
+  (let (file)
+    (catch 'found
+      (dolist (default-directory (tree-widget-themes-path))
+        (dolist (dir (aref tree-widget--theme 0))
+          (dolist (fmt (tree-widget-image-formats))
+            (dolist (ext (cdr fmt))
+              (setq file (expand-file-name (concat name ext) dir))
+              (and (file-readable-p file)
+                   (file-regular-p file)
+                   (throw 'found
+                          (tree-widget-create-image
+                           (car fmt) file
+                           (tree-widget-image-properties name))))))))
+      nil)))
 
 (defun tree-widget-find-image (name)
   "Find the image with NAME in current theme.
